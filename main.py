@@ -5,14 +5,18 @@ import design
 import os
 import subprocess
 
-class ExampleApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
+class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self, parent=None):
         super(self.__class__, self).__init__()
         self.setupUi(self)
+        # defaults for debugging
+        self.oldFileNameBox.insert("/Users/primaryuser/Downloads/china_old.csv")
+        self.newFileNameBox.insert("/Users/primaryuser/Downloads/china_cur.csv")
+        self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test.csv")
+        # end debugging
         self.oldFileSelectButton.clicked.connect(self.open_old_file)
         self.newFileSelectButton.clicked.connect(self.open_new_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
-        # self.groupingCheckBox.clicked.connect(self.)
         self.runButton.clicked.connect(self.run_query)
     def open_old_file(self):
         oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(self, "Select CSV file with old data", os.path.expanduser("~/Documents"), "CSV (*.csv)")
@@ -30,34 +34,30 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         oldFileValue = self.oldFileNameBox.text()
         newFileValue = self.newFileNameBox.text()
         outputFileValue = self.outputFileNameBox.text()
-        # Begin code that I actually wrote
-        # Get just the input filenames (with extensions) from the full path
-        # oldNameExt = os.path.basename(oldFileName)
-        # newNameExt = os.path.basename(newFileName)
-        #
-        # # Get the filenames *without* extensions
-        # oldName = os.path.splitext(oldFileName)
-        # newName = os.path.splitext(newFileName)
+        groupingstmt = ""
 
         # Creating SQL snippets
         selectid = "substr(new.\"@type\",1,1) || new.\"@id\""
 
-        # if groupingenabled:
-        #     selectid = "group_concat($selectid) AS id, new.highway, (old.ref || \"→\" || new.ref) AS ref_change"
-        #     groupingstmt = " GROUP BY (old.ref || \"→\" || new.ref)"
-        # else:
-        selectid += " AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.highway, old.ref AS old_ref, new.ref AS new_ref"
+        if self.groupingCheckBox.isChecked():
+            # print("Checked")
+            selectid = "group_concat(" + selectid + ") AS id, new.highway, (old.ref || \"→\" || new.ref) AS ref_change"
+            groupingstmt = " GROUP BY (old.ref || \"→\" || new.ref)"
+        else:
+            # print("Unchecked")
+            selectid += " AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.highway, old.ref AS old_ref, new.ref AS new_ref"
 
-        # Construct the query
-        sql = "SELECT " + selectid + " FROM " + oldFileValue + " AS old LEFT OUTER JOIN " + newFileValue + " AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref"
+        # Construct the queryr
+        sql = "SELECT " + selectid + " FROM " + oldFileValue + " AS old LEFT OUTER JOIN " + newFileValue + " AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref" + groupingstmt
+        # print(sql)
 
-        outputFile = open(outputFileValue, "w")
-        subprocess.call(['q', '-H', '-O', '-t', sql], stdout=outputFile)
-        outputFile.close()
+        with open(outputFileValue, "w") as outputFile:
+            subprocess.call(['q', '-H', '-O', '-t', sql], stdout=outputFile)
+            print("Complete")
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    form = ExampleApp()
+    form = MainApp()
     form.show()
     app.exec_()
 
