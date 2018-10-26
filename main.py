@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
-import design
 import os
 import subprocess
+# Import generated UI file
+import design
+
 
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self, parent=None):
@@ -21,14 +23,17 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def open_old_file(self):
         oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(self, "Select CSV file with old data", os.path.expanduser("~/Documents"), "CSV (*.csv)")
         if oldFileName:
+            self.oldFileNameBox.clear()
             self.oldFileNameBox.insert(oldFileName)
     def open_new_file(self):
         newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(self, "Select CSV file with new data", os.path.expanduser("~/Documents"), "CSV (*.csv)")
         if newFileName:
+            self.newFileNameBox.clear()
             self.newFileNameBox.insert(newFileName)
     def output_file(self):
         outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(self, "Save output file", os.path.expanduser("~/Documents"), "CSV (*.csv)")
         if outputFileName:
+            self.outputFileNameBox.clear()
             self.outputFileNameBox.insert(outputFileName)
     def run_query(self):
         oldFileValue = self.oldFileNameBox.text()
