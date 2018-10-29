@@ -41,24 +41,45 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         outputFileValue = self.outputFileNameBox.text()
         groupingstmt = ""
 
-        # Creating SQL snippets
-        selectid = "substr(new.\"@type\",1,1) || new.\"@id\""
+        # Define list of selected modes
+        modes = set()
+        if self.refBox.isChecked():
+            modes += {"ref"}
+        if self.int_refBox.isChecked():
+            modes += {"int_ref"}
+        if self.nameBox.isChecked():
+            modes += {"name"}
+        # Handle highway separately
+        # if self.highwayBox.isChecked():
+        #     modes += ["highway"]
+        print(modes)
 
-        if self.groupingCheckBox.isChecked():
-            # print("Checked")
-            selectid = f"group_concat({selectid}) AS id, new.highway, (old.ref || \"→\" || new.ref) AS ref_change"
-            groupingstmt = " GROUP BY (old.ref || \"→\" || new.ref)"
-        else:
-            # print("Unchecked")
-            selectid += " AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.highway, old.ref AS old_ref, new.ref AS new_ref"
 
-        # Construct the queryr
-        sql = f"SELECT {selectid} FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref{groupingstmt}"
-        # print(sql)
+        # Create a file for each chosen mode
+        for mode in modes:
+            # Creating SQL snippets
+            selectid = "substr(new.\"@type\",1,1) || new.\"@id\""
 
-        with open(outputFileValue, "w") as outputFile:
-            subprocess.call(['q', '-H', '-O', '-t', sql], stdout=outputFile)
-            print("Complete")
+            if self.groupingCheckBox.isChecked():
+                # print("Checked")
+                selectid = f"group_concat(" + selectid + ") AS id, "
+                if mode != "highway": selectid = "new.highway,
+                selectid += "(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
+                groupingstmt = f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
+            else:
+                # print("Unchecked")
+                selectid += f" AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.highway, old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
+
+            # Construct the query
+            sql = f"SELECT {selectid} FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref{groupingstmt}"
+            printf(sql)
+
+            # with open(outputFileValue, "w") as outputFile:
+            #     subprocess.call(['q', '-H', '-O', '-t', sql], stdout=outputFile)
+            #     print("Complete")
+
+        if self.highwayBox.isChecked():
+
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
