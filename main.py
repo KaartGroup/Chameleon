@@ -46,14 +46,14 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
         if self.groupingCheckBox.isChecked():
             # print("Checked")
-            selectid = "group_concat(" + selectid + ") AS id, new.highway, (old.ref || \"→\" || new.ref) AS ref_change"
+            selectid = f"group_concat({selectid}) AS id, new.highway, (old.ref || \"→\" || new.ref) AS ref_change"
             groupingstmt = " GROUP BY (old.ref || \"→\" || new.ref)"
         else:
             # print("Unchecked")
             selectid += " AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.highway, old.ref AS old_ref, new.ref AS new_ref"
 
         # Construct the queryr
-        sql = "SELECT " + selectid + " FROM " + oldFileValue + " AS old LEFT OUTER JOIN " + newFileValue + " AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref" + groupingstmt
+        sql = f"SELECT {selectid} FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref{groupingstmt}"
         # print(sql)
 
         with open(outputFileValue, "w") as outputFile:
