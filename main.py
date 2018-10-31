@@ -32,8 +32,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.newFileNameBox.clear()
             self.newFileNameBox.insert(newFileName)
     def output_file(self):
-        outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(self, "Save output file", os.path.expanduser("~/Documents"))
+        outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(self, "Enter output file prefix", os.path.expanduser("~/Documents"))
         if outputFileName:
+            if ".csv" in outputFileName:
+                outputFileName = outputFileName.replace('.csv', '')
             self.outputFileNameBox.clear()
             self.outputFileNameBox.insert(outputFileName)
     def run_query(self):
@@ -42,7 +44,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         outputFileValue = self.outputFileNameBox.text()
         groupingstmt = ""
 
-        # Define list of selected modes
+        # Define set of selected modes
         modes = set()
         if self.refBox.isChecked():
             modes |= {"ref"}
@@ -54,7 +56,6 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         if self.highwayBox.isChecked():
             modes |= {"highway"}
         print(modes)
-
 
         # Create a file for each chosen mode
         for mode in modes:
@@ -71,7 +72,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 # print("Unchecked")
                 selectid += f" AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,"
                 if mode != "highway": selectid += "new.highway, "
-                if mode = "highway": selectid += "new.name, "
+                if mode == "highway": selectid += "new.name, "
                 selectid += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
 
             # Construct the query
