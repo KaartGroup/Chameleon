@@ -14,7 +14,8 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         # defaults for debugging
         self.oldFileNameBox.insert("/Users/primaryuser/Downloads/china_old.csv")
         self.newFileNameBox.insert("/Users/primaryuser/Downloads/china_cur.csv")
-        self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test.csv")
+        self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test")
+        self.refBox.setChecked(1)
         # end debugging
         self.oldFileSelectButton.clicked.connect(self.open_old_file)
         self.newFileSelectButton.clicked.connect(self.open_new_file)
@@ -31,7 +32,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.newFileNameBox.clear()
             self.newFileNameBox.insert(newFileName)
     def output_file(self):
-        outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(self, "Save output file", os.path.expanduser("~/Documents"), "CSV (*.csv)")
+        outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(self, "Save output file", os.path.expanduser("~/Documents"))
         if outputFileName:
             self.outputFileNameBox.clear()
             self.outputFileNameBox.insert(outputFileName)
@@ -44,14 +45,14 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         # Define list of selected modes
         modes = set()
         if self.refBox.isChecked():
-            modes += {"ref"}
+            modes |= {"ref"}
         if self.int_refBox.isChecked():
-            modes += {"int_ref"}
+            modes |= {"int_ref"}
         if self.nameBox.isChecked():
-            modes += {"name"}
+            modes |= {"name"}
         # Handle highway separately
-        # if self.highwayBox.isChecked():
-        #     modes += ["highway"]
+        if self.highwayBox.isChecked():
+            modes |= {"highway"}
         print(modes)
 
 
@@ -63,22 +64,26 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             if self.groupingCheckBox.isChecked():
                 # print("Checked")
                 selectid = f"group_concat(" + selectid + ") AS id, "
-                if mode != "highway": selectid = "new.highway,
-                selectid += "(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
+                if mode != "highway": selectid = "new.highway,"
+                selectid += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
                 groupingstmt = f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
             else:
                 # print("Unchecked")
-                selectid += f" AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.highway, old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
+                selectid += f" AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,"
+                if mode != "highway": selectid += "new.highway, "
+                if mode = "highway": selectid += "new.name, "
+                selectid += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
 
             # Construct the query
             sql = f"SELECT {selectid} FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref{groupingstmt}"
-            printf(sql)
+            print(sql)
 
-            # with open(outputFileValue, "w") as outputFile:
-            #     subprocess.call(['q', '-H', '-O', '-t', sql], stdout=outputFile)
-            #     print("Complete")
+            with open(outputFileValue + "_" + mode + ".csv", "w") as outputFile:
+                subprocess.call(['q', '-H', '-O', '-t', sql], stdout=outputFile)
+                print("Complete")
+        # Insert completion feedback here
 
-        if self.highwayBox.isChecked():
+        # if self.highwayBox.isChecked():
 
 
 def main():
