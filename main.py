@@ -6,6 +6,12 @@ import subprocess
 # Import generated UI file
 import design
 
+# if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+#     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+#
+# if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+#     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+
 
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self, parent=None):
@@ -89,6 +95,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
+    # Enable High DPI display with PyQt5
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+    if hasattr(QStyleFactory, 'AA_UseHighDpiPixmaps'):
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
     form = MainApp()
     form.show()
     app.exec_()
