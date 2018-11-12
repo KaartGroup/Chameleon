@@ -70,7 +70,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
             if self.groupingCheckBox.isChecked():
                 # print("Checked")
-                selectid = f"group_concat(" + selectid + ") AS id, "
+                selectid = f"group_concat({selectid}) AS id, "
                 if mode != "highway": selectid = "new.highway,"
                 selectid += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
                 groupingstmt = f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
@@ -97,8 +97,8 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     # Enable High DPI display with PyQt5
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(QStyleFactory, 'AA_UseHighDpiPixmaps'):
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+        app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
     form = MainApp()
     form.show()
     app.exec_()
