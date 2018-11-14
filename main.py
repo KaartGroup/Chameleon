@@ -67,18 +67,20 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         for mode in modes:
             # Creating SQL snippets
             selectid = "substr(new.\"@type\",1,1) || new.\"@id\""
-
             if self.groupingCheckBox.isChecked():
                 # print("Checked")
-                selectid = f"group_concat({selectid}) AS id, "
-                if mode != "highway": selectid = "new.highway,"
+                selectid = f"group_concat({selectid}) AS id,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                if mode != "highway": 
+                    selectid += "new.highway,"
                 selectid += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
                 groupingstmt = f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
             else:
                 # print("Unchecked")
-                selectid += f" AS id,('www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,"
-                if mode != "highway": selectid += "new.highway, "
-                if mode == "highway": selectid += "new.name, "
+                selectid += " AS id,('http://localhost:8111/import?url=https://www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp,"
+                if mode != "highway": 
+                    selectid += "new.highway, "
+                if mode == "highway": 
+                    selectid += "new.name, "
                 selectid += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
 
             # Construct the query
