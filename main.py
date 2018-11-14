@@ -71,7 +71,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             if self.groupingCheckBox.isChecked():
                 # print("Checked")
                 selectid = f"group_concat({selectid}) AS id, "
-                if mode != "highway": selectid = "new.highway,"
+                if mode != "highway": selectid += "new.highway,"
                 selectid += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
                 groupingstmt = f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
             else:
