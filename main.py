@@ -28,12 +28,12 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.outputFileSelectButton.clicked.connect(self.output_file)
         self.runButton.clicked.connect(self.run_query)
     def open_old_file(self):
-        oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(self, "Select CSV file with old data", os.path.expanduser("~/Documents"), "CSV (*.csv)")
+        oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(self, "Select CSV file with old data", os.path.expanduser("~/Downloads"), "CSV (*.csv)")
         if oldFileName:
             self.oldFileNameBox.clear()
             self.oldFileNameBox.insert(oldFileName)
     def open_new_file(self):
-        newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(self, "Select CSV file with new data", os.path.expanduser("~/Documents"), "CSV (*.csv)")
+        newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(self, "Select CSV file with new data", os.path.expanduser("~/Downloads"), "CSV (*.csv)")
         if newFileName:
             self.newFileNameBox.clear()
             self.newFileNameBox.insert(newFileName)
@@ -70,16 +70,16 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             if self.groupingCheckBox.isChecked():
                 # print("Checked")
                 selectid = f"group_concat({selectid}) AS id,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
-                if mode != "highway": 
+                if mode != "highway":
                     selectid += "new.highway,"
                 selectid += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
                 groupingstmt = f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
             else:
                 # print("Unchecked")
                 selectid += " AS id,('http://localhost:8111/import?url=https://www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp,"
-                if mode != "highway": 
+                if mode != "highway":
                     selectid += "new.highway, "
-                if mode == "highway": 
+                if mode == "highway":
                     selectid += "new.name, "
                 selectid += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
 
