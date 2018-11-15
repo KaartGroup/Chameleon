@@ -37,4 +37,8 @@ coll = COLLECT(exe,
 app = BUNDLE(coll,
              name='Chameleon 2.app',
              icon='chameleon.icns',
-             bundle_identifier=None)
+             bundle_identifier=None,
+             info_plist={
+            'NSHighResolutionCapable': 'True'
+            },
+        )
