@@ -84,7 +84,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 selectid += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
 
             # Construct the query
-            sql = f"SELECT {selectid} FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.ref NOT LIKE new.ref{groupingstmt}"
+            sql = f"SELECT {selectid} FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}{groupingstmt}"
             print(sql)
 
             with open(outputFileValue + "_" + mode + ".csv", "w") as outputFile:
