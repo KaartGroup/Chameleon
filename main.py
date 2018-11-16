@@ -8,7 +8,7 @@ from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
 
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self, parent=None):
-        super(self.__class__, self).__init__()
+        super().__init__()
         self.setupUi(self)
         # defaults for debugging
         self.oldFileNameBox.insert("/Users/primaryuser/Downloads/china_old.csv")
