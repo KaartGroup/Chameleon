@@ -2,16 +2,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 import os
-import subprocess
 # Import generated UI file
 import design
-
-# if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-#     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-#
-# if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-#     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
-
+from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
 
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self, parent=None):
@@ -88,12 +81,22 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             print(sql)
 
             with open(outputFileValue + "_" + mode + ".csv", "w") as outputFile:
-                subprocess.call(['q', '-H', '-O', '-t', sql], stdout=outputFile)
+                input_params = QInputParams(
+                    skip_header=True,
+                    delimiter='\t'
+                )
+                output_params = QOutputParams(
+                    delimiter='\t',
+                    output_header=True
+                )
+                q_engine = QTextAsData()
+                q_output = q_engine.execute(
+                    sql,input_params)
+                q_output_printer = QOutputPrinter(
+                    output_params)
+                q_output_printer.print_output(outputFile,sys.stderr,q_output)
                 print("Complete")
-        # Insert completion feedback here
-
-        # if self.highwayBox.isChecked():
-
+                # Insert completion feedback here
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
