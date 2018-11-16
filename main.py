@@ -62,7 +62,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             selectid = "substr(new.\"@type\",1,1) || new.\"@id\""
             if self.groupingCheckBox.isChecked():
                 # print("Checked")
-                selectid = f"group_concat({selectid}) AS id,group_concat(new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
+                selectid = f"group_concat({selectid}) AS id,group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
                 if mode != "highway":
                     selectid += "new.highway,"
                 selectid += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
