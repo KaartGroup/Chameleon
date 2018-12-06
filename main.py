@@ -13,8 +13,8 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
         # defaults for debugging
-        self.oldFileNameBox.insert("/Users/primaryuser/Downloads/china_old.csv")
-        self.newFileNameBox.insert("/Users/primaryuser/Downloads/china_cur.csv")
+        self.oldFileNameBox.insert("/Users/primaryuser/Downloads/algeria_old.csv")
+        self.newFileNameBox.insert("/Users/primaryuser/Downloads/algeria_cur.csv")
         self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test")
         self.refBox.setChecked(1)
         # end debugging
@@ -74,25 +74,28 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             # Create a file for each chosen mode
             for mode in modes:
                 # Creating SQL snippets
-                selectid = "substr(new.\"@type\",1,1) || new.\"@id\""
+                sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' ||"
+                if self.groupingCheckBox.isChecked():
+                    sql += " group_concat("
+                sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                if self.groupingCheckBox.isChecked():
+                    sql += ")) AS url,group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
+                else:
+                    sql += ") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                if mode != "highway":
+                        sql += "new.highway, "
                 if self.groupingCheckBox.isChecked():
                     # print("Checked")
-                    selectid = f"group_concat({selectid}) AS id,group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
-                    if mode != "highway":
-                        selectid += "new.highway,"
-                    selectid += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change"
-                    groupingstmt = f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
+                    sql += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change, "
                 else:
-                    # print("Unchecked")
-                    selectid += " AS id,('http://localhost:8111/import?url=https://www.openstreetmap.org/' || new.\"@type\" || '/' || new.\"@id\") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp,"
-                    if mode != "highway":
-                        selectid += "new.highway, "
                     if mode == "highway":
-                        selectid += "new.name, "
-                    selectid += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}"
+                        sql += "new.name, "
+                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
 
-                # Construct the query
-                sql = f"SELECT {selectid}, NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}{groupingstmt}"
+                sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
+                if self.groupingCheckBox.isChecked():
+                    sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
+
                 print(sql)
 
                 with open(outputFileValue + "_" + mode + ".csv", "w") as outputFile:
