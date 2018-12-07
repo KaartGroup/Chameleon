@@ -46,18 +46,16 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         # Check for spaces in file names
         spaceExpression = re.compile("^\S+\s+\S+$")
         if spaceExpression.match(oldFileValue) or spaceExpression.match(newFileValue) or spaceExpression.match(outputFileValue):
-            #Popup here
-            self.msgBox = QtWidgets.QMessageBox()
-            self.msgBox.setIcon(QMessageBox.Critical)
-            self.msgBox.setText("Chameleon cannot use files or folders with spaces in their names.")
-            self.msgBox.setInformativeText(
+            # Popup here
+            self.spaceWarning = QtWidgets.QMessageBox()
+            self.spaceWarning.setIcon(QMessageBox.Critical)
+            self.spaceWarning.setText("Chameleon cannot use files or folders with spaces in their names.")
+            self.spaceWarning.setInformativeText(
                 "Please rename your files and/or folders to remove spaces.")
-            self.msgBox.setEscapeButton(QMessageBox.Ok)
-            self.msgBox.exec()
+            self.spaceWarning.setEscapeButton(QMessageBox.Ok)
+            self.spaceWarning.exec()
             return
         else:
-            groupingstmt = ""
-
             # Define set of selected modes
             modes = set()
             if self.refBox.isChecked():
@@ -97,8 +95,15 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                     sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
 
                 print(sql)
-
-                with open(outputFileValue + "_" + mode + ".csv", "w") as outputFile:
+                fname = outputFileValue + "_" + mode + ".csv"
+                if os.path.isfile(fname):
+                    overwritePrompt = QtWidgets.QMessageBox()
+                    overwritePrompt.setIcon(QMessageBox.Question)
+                    ret = overwritePrompt.question(self, '', f"{fname} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
+                    if ret == overwritePrompt.No:
+                        continue
+                with open(fname, "w") as outputFile:
+                    print(f"Writing {fname}")
                     input_params = QInputParams(
                         skip_header=True,
                         delimiter='\t'
