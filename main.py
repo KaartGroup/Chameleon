@@ -95,15 +95,16 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                     sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
 
                 print(sql)
-                fname = outputFileValue + "_" + mode + ".csv"
-                if os.path.isfile(fname):
+                fileName = outputFileValue + "_" + mode + ".csv"
+                if os.path.isfile(fileName):
                     overwritePrompt = QtWidgets.QMessageBox()
                     overwritePrompt.setIcon(QMessageBox.Question)
-                    ret = overwritePrompt.question(self, '', f"{fname} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
-                    if ret == overwritePrompt.No:
+                    overwritePromptResponse = overwritePrompt.question(self, '', f"{fileName} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
+                    # Skip to the next iteration if user responds "No", continue to the `with` block otherwise
+                    if overwritePromptResponse == overwritePrompt.No:
                         continue
-                with open(fname, "w") as outputFile:
-                    print(f"Writing {fname}")
+                with open(fileName, "w") as outputFile:
+                    print(f"Writing {fileName}")
                     input_params = QInputParams(
                         skip_header=True,
                         delimiter='\t'
