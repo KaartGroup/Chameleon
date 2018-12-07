@@ -105,6 +105,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                         continue
                 with open(fileName, "w") as outputFile:
                     print(f"Writing {fileName}")
+                    # These functions are provided by q (the SQL tool), NOT by Qt the GUI framework
                     input_params = QInputParams(
                         skip_header=True,
                         delimiter='\t'
