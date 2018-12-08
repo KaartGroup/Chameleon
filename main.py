@@ -69,6 +69,11 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 modes |= {"highway"}
             print(modes)
 
+            # Disable run button while running
+            self.runButton.setEnabled(0)
+            # Cancel button logic goes here
+            # self.cancelButton.setEnabled(1)
+
             # Create a file for each chosen mode
             for mode in modes:
                 # Creating SQL snippets
@@ -122,6 +127,9 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                     q_output_printer.print_output(outputFile,sys.stderr,q_output)
                     print("Complete")
                     # Insert completion feedback here
+            # Re-enable run button when function complete
+            self.runButton.setEnabled(1)
+            # self.cancelButton.setEnabled(0)
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
