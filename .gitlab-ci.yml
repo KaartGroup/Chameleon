@@ -3,3 +3,6 @@ test_main:
   script:
   - pip install -r requirements.txt
   - pytest
+  - nosetests -c .noserc -q --cover-html-dir=build --cover-html
+  - coverage report -m
+  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
