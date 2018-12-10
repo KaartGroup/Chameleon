@@ -107,10 +107,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                             sql += "new.name, "
                         sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
 
-                    sql += f"""
-                    NULL AS \"notes\" FROM {oldFileValue} AS old
-                    LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\"
-                    WHERE old.{mode} NOT LIKE new.{mode}"""
+                    sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
                     if self.groupingCheckBox.isChecked():
                         sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
 
