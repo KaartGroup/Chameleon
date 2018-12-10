@@ -80,68 +80,70 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 modes |= {"highway"}
             print(modes)
 
-            # Disable run button while running
-            self.runButton.setEnabled(0)
-            # Cancel button logic goes here
-            # self.cancelButton.setEnabled(1)
+            try:
+                # Disable run button while running
+                self.runButton.setEnabled(0)
+                # Cancel button logic goes here
+                # self.cancelButton.setEnabled(1)
 
-            # Create a file for each chosen mode
-            for mode in modes:
-                # Creating SQL snippets
-                sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' ||"
-                if self.groupingCheckBox.isChecked():
-                    sql += " group_concat("
-                sql += "substr(new.\"@type\",1,1) || new.\"@id\""
-                if self.groupingCheckBox.isChecked():
-                    sql += ")) AS url,group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
-                else:
-                    sql += ") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
-                if mode != "highway":
-                    sql += "new.highway, "
-                if self.groupingCheckBox.isChecked():
-                    # print("Checked")
-                    sql += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change, "
-                else:
-                    if mode == "highway":
-                        sql += "new.name, "
-                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                # Create a file for each chosen mode
+                for mode in modes:
+                    # Creating SQL snippets
+                    sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' ||"
+                    if self.groupingCheckBox.isChecked():
+                        sql += " group_concat("
+                    sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                    if self.groupingCheckBox.isChecked():
+                        sql += ")) AS url,group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
+                    else:
+                        sql += ") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                    if mode != "highway":
+                        sql += "new.highway, "
+                    if self.groupingCheckBox.isChecked():
+                        # print("Checked")
+                        sql += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change, "
+                    else:
+                        if mode == "highway":
+                            sql += "new.name, "
+                        sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
 
-                sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
-                if self.groupingCheckBox.isChecked():
-                    sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
+                    sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
+                    if self.groupingCheckBox.isChecked():
+                        sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
 
-                print(sql)
-                fileName = outputFileValue + "_" + mode + ".csv"
-                if os.path.isfile(fileName):
-                    overwritePrompt = QtWidgets.QMessageBox()
-                    overwritePrompt.setIcon(QMessageBox.Question)
-                    overwritePromptResponse = overwritePrompt.question(
-                        self, '', f"{fileName} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
-                    # Skip to the next iteration if user responds "No", continue to the `with` block otherwise
-                    if overwritePromptResponse == overwritePrompt.No:
-                        continue
-                with open(fileName, "w") as outputFile:
-                    print(f"Writing {fileName}")
-                    input_params = QInputParams(
-                        skip_header=True,
-                        delimiter='\t'
-                    )
-                    output_params = QOutputParams(
-                        delimiter='\t',
-                        output_header=True
-                    )
-                    q_engine = QTextAsData()
-                    q_output = q_engine.execute(
-                        sql, input_params)
-                    q_output_printer = QOutputPrinter(
-                        output_params)
-                    q_output_printer.print_output(
-                        outputFile, sys.stderr, q_output)
-                    print("Complete")
-                    # Insert completion feedback here
-            # Re-enable run button when function complete
-            self.runButton.setEnabled(1)
-            # self.cancelButton.setEnabled(0)
+                    print(sql)
+                    fileName = outputFileValue + "_" + mode + ".csv"
+                    if os.path.isfile(fileName):
+                        overwritePrompt = QtWidgets.QMessageBox()
+                        overwritePrompt.setIcon(QMessageBox.Question)
+                        overwritePromptResponse = overwritePrompt.question(
+                            self, '', f"{fileName} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
+                        # Skip to the next iteration if user responds "No", continue to the `with` block otherwise
+                        if overwritePromptResponse == overwritePrompt.No:
+                            continue
+                    with open(fileName, "w") as outputFile:
+                        print(f"Writing {fileName}")
+                        input_params = QInputParams(
+                            skip_header=True,
+                            delimiter='\t'
+                        )
+                        output_params = QOutputParams(
+                            delimiter='\t',
+                            output_header=True
+                        )
+                        q_engine = QTextAsData()
+                        q_output = q_engine.execute(
+                            sql, input_params)
+                        q_output_printer = QOutputPrinter(
+                            output_params)
+                        q_output_printer.print_output(
+                            outputFile, sys.stderr, q_output)
+                        print("Complete")
+                        # Insert completion feedback here
+            finally:
+                # Re-enable run button when function complete
+                self.runButton.setEnabled(1)
+                # self.cancelButton.setEnabled(0)
 
 
 def main():
