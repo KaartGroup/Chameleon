@@ -1,26 +1,46 @@
 #!/usr/bin/env python3
+
+import design  # Import generated UI file
+from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
+from appdirs import *
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sys
 import os
+import errno
 import re
-# Import generated UI file
-import design
-from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
+from ruamel.yaml import YAML
+# Required by the yaml module b/c of namespace conflicts
+yaml = YAML(typ='safe')
 
 
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
+
     def __init__(self, parent=None):
         super().__init__()
         self.setupUi(self)
+        self.history_location = user_config_dir(
+            "Chameleon 2", "Kaart") + "/history.yaml"
         # defaults for debugging
-        self.oldFileNameBox.insert(
-            "/Users/primaryuser/Downloads/algeria_old.csv")
-        self.newFileNameBox.insert(
-            "/Users/primaryuser/Downloads/algeria_cur.csv")
-        self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test")
-        self.refBox.setChecked(1)
+        # self.oldFileNameBox.insert(
+        #     "/Users/primaryuser/Downloads/algeria_old.csv")
+        # self.newFileNameBox.insert(
+        #     "/Users/primaryuser/Downloads/algeria_cur.csv")
+        # self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test")
+        # self.refBox.setChecked(1)
         # end debugging
+
+        # Check for history file and load if exists
+        try:
+            with open(self.history_location, 'r') as history_read:
+                loaded = yaml.load(history_read)
+                self.oldFileNameBox.insert(loaded.get('oldFileName'))
+                self.newFileNameBox.insert(loaded.get('newFileName'))
+                self.outputFileNameBox.insert(loaded.get('outputFileName'))
+        # If file doesn't exist, fail silently
+        except:
+            pass
+        # Connecting signals to slots
         self.oldFileSelectButton.clicked.connect(self.open_old_file)
         self.newFileSelectButton.clicked.connect(self.open_new_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
@@ -50,41 +70,39 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.outputFileNameBox.insert(outputFileName)
 
     def run_query(self):
-        oldFileValue = self.oldFileNameBox.text()
-        newFileValue = self.newFileNameBox.text()
-        outputFileValue = self.outputFileNameBox.text()
-        # Check for spaces in file names
-        spaceExpression = re.compile("^\\S+\\s+\\S+$")
-        if spaceExpression.match(oldFileValue) or spaceExpression.match(newFileValue) or spaceExpression.match(outputFileValue):
-            # Popup here
-            self.spaceWarning = QtWidgets.QMessageBox()
-            self.spaceWarning.setIcon(QMessageBox.Critical)
-            self.spaceWarning.setText(
-                "Chameleon cannot use files or folders with spaces in their names.")
-            self.spaceWarning.setInformativeText(
-                "Please rename your files and/or folders to remove spaces.")
-            self.spaceWarning.setEscapeButton(QMessageBox.Ok)
-            self.spaceWarning.exec()
-            return
-        else:
-            # Define set of selected modes
-            modes = set()
-            if self.refBox.isChecked():
-                modes |= {"ref"}
-            if self.int_refBox.isChecked():
-                modes |= {"int_ref"}
-            if self.nameBox.isChecked():
-                modes |= {"name"}
-            # Handle highway separately
-            if self.highwayBox.isChecked():
-                modes |= {"highway"}
-            print(modes)
-
-            try:
-                # Disable run button while running
-                self.runButton.setEnabled(0)
-                # Cancel button logic goes here
-                # self.cancelButton.setEnabled(1)
+        try:
+            # Disable run button while running
+            self.runButton.setEnabled(0)
+            # Need to fix the threading here
+            oldFileValue = self.oldFileNameBox.text()
+            newFileValue = self.newFileNameBox.text()
+            outputFileValue = self.outputFileNameBox.text()
+            # Check for spaces in file names
+            spaceExpression = re.compile("^\\S+\\s+\\S+$")
+            if spaceExpression.match(oldFileValue) or spaceExpression.match(newFileValue) or spaceExpression.match(outputFileValue):
+                # Popup here
+                self.spaceWarning = QtWidgets.QMessageBox()
+                self.spaceWarning.setIcon(QMessageBox.Critical)
+                self.spaceWarning.setText(
+                    "Chameleon cannot use files or folders with spaces in their names.")
+                self.spaceWarning.setInformativeText(
+                    "Please rename your files and/or folders to remove spaces.")
+                self.spaceWarning.setEscapeButton(QMessageBox.Ok)
+                self.spaceWarning.exec()
+                return
+            else:
+                # Define set of selected modes
+                modes = set()
+                if self.refBox.isChecked():
+                    modes |= {"ref"}
+                if self.int_refBox.isChecked():
+                    modes |= {"int_ref"}
+                if self.nameBox.isChecked():
+                    modes |= {"name"}
+                # Handle highway separately
+                if self.highwayBox.isChecked():
+                    modes |= {"highway"}
+                print(modes)
 
                 # Create a file for each chosen mode
                 for mode in modes:
@@ -140,10 +158,25 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                             outputFile, sys.stderr, q_output)
                         print("Complete")
                         # Insert completion feedback here
-            finally:
-                # Re-enable run button when function complete
-                self.runButton.setEnabled(1)
-                # self.cancelButton.setEnabled(0)
+                    # Saving paths to cache for future loading
+                    # Make directory if it doesn't exist
+                    if not os.path.exists(os.path.dirname(self.history_location)):
+                        try:
+                            os.makedirs(os.path.dirname(self.history_location))
+                        except OSError as exc:
+                            if exc.errno != errno.EEXIST:
+                                raise
+                    with open(self.history_location, 'w') as history_write:
+                        history_write.write("oldFileName: " +
+                                            oldFileValue + "\n")
+                        history_write.write("newFileName: " +
+                                            newFileValue + "\n")
+                        history_write.write("outputFileName: " +
+                                            outputFileValue + "\n")
+        finally:
+            # Re-enable run button when function complete,
+            # even if it doesn't complete successfully
+            self.runButton.setEnabled(1)
 
 
 def main():
