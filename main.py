@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-import design  # Import generated UI file
-# Does the processing
-from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
+import errno
+import os
+import re
+import sys
 # Finds the right place to save config and log files on each OS
-from appdirs import user_config_dir, user_log_dir
+from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
-import sys
-import os
-import errno
-import re
 # Loads and saves settings to YAML
 from ruamel.yaml import YAML
+# Does the processing
+from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
+import design  # Import generated UI file
 # Required by the yaml module b/c of namespace conflicts
 yaml = YAML(typ='safe')
 
