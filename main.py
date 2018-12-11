@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 
 import design  # Import generated UI file
+# Does the processing
 from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
-from appdirs import *
+# Finds the right place to save config and log files on each OS
+from appdirs import user_config_dir, user_log_dir
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sys
 import os
 import errno
 import re
+# Loads and saves settings to YAML
 from ruamel.yaml import YAML
 # Required by the yaml module b/c of namespace conflicts
 yaml = YAML(typ='safe')
@@ -47,22 +50,25 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.runButton.clicked.connect(self.run_query)
 
     def open_old_file(self):
+        oldFileDir = os.path.dirname(self.oldFileNameBox.text())
         oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select CSV file with old data", os.path.expanduser("~/Downloads"), "CSV (*.csv)")
+            self, "Select CSV file with old data", oldFileDir, "CSV (*.csv)")
         if oldFileName:
             self.oldFileNameBox.clear()
             self.oldFileNameBox.insert(oldFileName)
 
     def open_new_file(self):
+        newFileDir = os.path.dirname(self.newFileNameBox.text())
         newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select CSV file with new data", os.path.expanduser("~/Downloads"), "CSV (*.csv)")
+            self, "Select CSV file with new data", newFileDir, "CSV (*.csv)")
         if newFileName:
             self.newFileNameBox.clear()
             self.newFileNameBox.insert(newFileName)
 
     def output_file(self):
+        outputFileDir = os.path.dirname(self.outputFileNameBox.text())
         outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Enter output file prefix", os.path.expanduser("~/Documents"))
+            self, "Enter output file prefix", outputFileDir)
         if outputFileName:
             if ".csv" in outputFileName:
                 outputFileName = outputFileName.replace('.csv', '')
