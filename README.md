@@ -9,7 +9,7 @@
 
 ## Description
 
-Cross-platform GUI development project expanding upon Chameleon 1 functionalities. This application compare tabulated OSM data (.csv) and provide users with an output documenting changes. Current functionality includes detecting changes in ref, int_ref, name, and highway tags from OSM data. Chameleon 2 enables change grouping and multi-analytical capabilities. The project is under ongoing development, and is currently in Alpha.
+Cross-platform GUI development expanding upon Chameleon 1 functionalities. This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities include detecting changes in ref, int_ref, name, and highway tags from OSM data. Chameleon 2 enables change grouping and multi-analytical capability for processing multiple user options at once. This project is under ongoing development, and Chameleon 2 is currently in Alpha stage.
 
 ## Installation
 
