@@ -142,7 +142,8 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                         overwritePrompt.setIcon(QMessageBox.Question)
                         overwritePromptResponse = overwritePrompt.question(
                             self, '', f"{fileName} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
-                        # Skip to the next iteration if user responds "No", continue to the `with` block otherwise
+                        # Skip to the next iteration if user responds "No",
+                        # continue to the `with` block otherwise
                         if overwritePromptResponse == overwritePrompt.No:
                             continue
                     with open(fileName, "w") as outputFile:
