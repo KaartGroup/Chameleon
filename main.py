@@ -50,11 +50,16 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         # If file doesn't exist, fail silently
         except:
             pass
+        self.checkbox_checker()
         # Connecting signals to slots
         self.oldFileSelectButton.clicked.connect(self.open_old_file)
         self.newFileSelectButton.clicked.connect(self.open_new_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
         self.runButton.clicked.connect(self.run_query)
+        self.refBox.stateChanged.connect(self.checkbox_checker)
+        self.int_refBox.stateChanged.connect(self.checkbox_checker)
+        self.nameBox.stateChanged.connect(self.checkbox_checker)
+        self.highwayBox.stateChanged.connect(self.checkbox_checker)
 
     def open_old_file(self):
         if re.match("\\S+", self.oldFileNameBox.text()):
@@ -90,6 +95,12 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 outputFileName = outputFileName.replace('.csv', '')
             self.outputFileNameBox.clear()
             self.outputFileNameBox.insert(outputFileName)
+
+    def checkbox_checker(self):
+        if not self.refBox.isChecked() and not self.int_refBox.isChecked() and not self.nameBox.isChecked() and not self.highwayBox.isChecked():
+            self.runButton.setEnabled(0)
+        else:
+            self.runButton.setEnabled(1)
 
     def run_query(self):
         try:
