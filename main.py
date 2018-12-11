@@ -2,6 +2,7 @@
 
 import errno
 import os
+import errno
 import re
 import sys
 # Finds the right place to save config and log files on each OS
