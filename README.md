@@ -1,5 +1,5 @@
 # Chameleon 2
-![chameleon-logo](./chameleonbeta.png)
+![chameleon-logo](./chameleon.png)
 [![pipeline status](https://gitlab.com/seakaart/chameleon-2/badges/master/pipeline.svg)](https://gitlab.com/seakaart/chameleon-2/commits/master)
 
 - - -
