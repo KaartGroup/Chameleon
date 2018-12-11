@@ -140,7 +140,9 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 # Create a file for each chosen mode
                 for mode in modes:
                     # Creating SQL snippets
-                    sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' ||"
+                    # Added based ID SQL to ensure Object ID output
+                    sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                    sql += "('http://localhost:8111/load_object?new_layer=true&objects=' ||"
                     if self.groupingCheckBox.isChecked():
                         sql += " group_concat("
                     sql += "substr(new.\"@type\",1,1) || new.\"@id\""
@@ -157,8 +159,14 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                         if mode == "highway":
                             sql += "new.name, "
                         sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-
                     sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
+
+                    # Added Left Outer Union Statements (Testing)
+                    sql += " UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, ('http://localhost:8111/load_object?new_layer=true&objects=' || substr(new.\"@type\",1,1) || new.\"@id\") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp,"
+                    sql += f" new.name, old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                    sql += f"NULL AS \"notes\" FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+
+                    # Group-function specific concatenate
                     if self.groupingCheckBox.isChecked():
                         sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
 
