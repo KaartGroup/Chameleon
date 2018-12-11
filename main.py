@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import os
 import errno
+import os
 import re
 import sys
 # Finds the right place to save config and log files on each OS
