@@ -33,13 +33,20 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         # self.refBox.setChecked(1)
         # end debugging
 
+        oldFileName = ''
+        newFileName = ''
+        outputFileName = ''
+
         # Check for history file and load if exists
         try:
             with open(self.history_location, 'r') as history_read:
                 loaded = yaml.load(history_read)
-                self.oldFileNameBox.insert(loaded.get('oldFileName'))
-                self.newFileNameBox.insert(loaded.get('newFileName'))
-                self.outputFileNameBox.insert(loaded.get('outputFileName'))
+                oldFileName = loaded.get('oldFileName')
+                newFileName = loaded.get('newFileName')
+                outputFileName = loaded.get('outputFileName')
+                self.oldFileNameBox.insert(oldFileName)
+                self.newFileNameBox.insert(newFileName)
+                self.outputFileNameBox.insert(outputFileName)
         # If file doesn't exist, fail silently
         except:
             pass
@@ -50,7 +57,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.runButton.clicked.connect(self.run_query)
 
     def open_old_file(self):
-        oldFileDir = os.path.dirname(self.oldFileNameBox.text())
+        if re.match("\\S+", self.oldFileNameBox.text()):
+            oldFileDir = os.path.dirname(self.oldFileNameBox.text())
+        else:
+            oldFileDir = os.path.expanduser("~/Downloads")
         oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
             self, "Select CSV file with old data", oldFileDir, "CSV (*.csv)")
         if oldFileName:
@@ -58,7 +68,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.oldFileNameBox.insert(oldFileName)
 
     def open_new_file(self):
-        newFileDir = os.path.dirname(self.newFileNameBox.text())
+        if re.match("\\S+", self.newFileNameBox.text()):
+            newFileDir = os.path.dirname(self.newFileNameBox.text())
+        else:
+            newFileDir = os.path.expanduser("~/Downloads")
         newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
             self, "Select CSV file with new data", newFileDir, "CSV (*.csv)")
         if newFileName:
@@ -66,7 +79,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.newFileNameBox.insert(newFileName)
 
     def output_file(self):
-        outputFileDir = os.path.dirname(self.outputFileNameBox.text())
+        if re.match("\\S+", self.newFileNameBox.text()):
+            outputFileDir = os.path.dirname(self.outputFileNameBox.text())
+        else:
+            outputFileDir = os.path.expanduser("~/Documents")
         outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Enter output file prefix", outputFileDir)
         if outputFileName:
