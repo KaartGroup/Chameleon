@@ -63,7 +63,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
     def open_old_file(self):
         if re.match("\\S+", self.oldFileNameBox.text()):
-            oldFileDir = os.path.dirname(self.oldFileNameBox.text())
+            oldFileDir = self.oldFileNameBox.text()
         else:
             oldFileDir = os.path.expanduser("~/Downloads")
         oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
@@ -74,7 +74,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
     def open_new_file(self):
         if re.match("\\S+", self.newFileNameBox.text()):
-            newFileDir = os.path.dirname(self.newFileNameBox.text())
+            newFileDir = self.newFileNameBox.text()
         else:
             newFileDir = os.path.expanduser("~/Downloads")
         newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
