@@ -141,34 +141,39 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 for mode in modes:
                     # Creating SQL snippets
                     # Added based ID SQL to ensure Object ID output
-                    sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
-                    sql += "('http://localhost:8111/load_object?new_layer=true&objects=' ||"
+                    sql = ''
                     if self.groupingCheckBox.isChecked():
-                        sql += " group_concat("
-                    sql += "substr(new.\"@type\",1,1) || new.\"@id\""
-                    if self.groupingCheckBox.isChecked():
-                        sql += ")) AS url,group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
-                    else:
-                        sql += ") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                        sql += "SELECT "
+                        # Comment this line to remove ids column
+                        sql += "group_concat(sub.id) AS ids, "
+                        sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || sub.ids) AS url, "
+                        sql += ("group_concat(distinct sub.user) AS users, max(sub.timestamp) AS latest_timestamp, "
+                                f"sub.{mode}_change, NULL AS notes FROM ( ")
+                    sql += "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                    if not self.groupingCheckBox.isChecked():
+                        sql += "('http://localhost:8111/load_object?new_layer=true&objects=' ||"
+                        sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                        sql += ") AS url, "
+                    sql += "new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
                     if mode != "highway":
                         sql += "new.highway, "
-                    if self.groupingCheckBox.isChecked():
-                        # print("Checked")
-                        sql += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change, "
-                    else:
-                        if mode == "highway":
-                            sql += "new.name, "
-                        sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-                    sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
+                    if mode == "highway" and not self.groupingCheckBox.isChecked():
+                        sql += "new.name, "
+                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                    if not self.groupingCheckBox.isChecked():
+                        sql += "NULL AS \"notes\" "
+                    sql += f"FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
 
                     # Added Left Outer Union Statements (Testing)
                     sql += " UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, ('http://localhost:8111/load_object?new_layer=true&objects=' || substr(new.\"@type\",1,1) || new.\"@id\") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp,"
                     sql += f" new.name, old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-                    sql += f"NULL AS \"notes\" FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+                    if not self.groupingCheckBox.isChecked():
+                        sql += "NULL AS \"notes\" "
+                    sql += f"FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
 
                     # Group-function specific concatenate
                     if self.groupingCheckBox.isChecked():
-                        sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
+                        sql += f" ) sub GROUP BY (old.{mode} || \"→\" || new.{mode})"
 
                     print(sql)
                     fileName = outputFileValue + "_" + mode + ".csv"
