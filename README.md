@@ -15,7 +15,18 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 
 ### Dependencies
 
-* [`PyInstaller`](https://github.com/pyinstaller/pyinstaller): Installation instruction [`here.`](https://pyinstaller.readthedocs.io/en/v3.3.1/installation.html)
+* [`PyInstaller`](https://github.com/pyinstaller/pyinstaller): 
+```bash 
+	pip3 install pyinstaller
+```
+* [`ruamel.yaml`](https://pypi.org/project/ruamel.yaml/): 
+```bash 
+	pip3 install ruamel.yaml
+```
+* [`appdirs`](https://pypi.org/project/appdirs/): 
+```bash 
+	pip3 install appdirs
+```
 
 ### Mac
 
@@ -40,6 +51,12 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 
 ```bash
  	pyuic5 design.ui -o design.py
+```
+
+5. Package Chameleon 2 into application
+
+```bash
+ 	pyinstaller Chameleon2.spec
 ```
 
 - - -
