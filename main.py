@@ -4,6 +4,7 @@ import errno
 import os
 import re
 import sys
+# import tempfile
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
@@ -148,7 +149,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                         sql += "group_concat(sub.id) AS ids, "
                         sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || sub.ids) AS url, "
                         sql += ("group_concat(distinct sub.user) AS users, max(sub.timestamp) AS latest_timestamp, "
-                                f"sub.{mode}_change, NULL AS notes FROM ( ")
+                                f"sub.{mode}_change, NULL AS notes FROM ( ") # Sub-query
                     sql += "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
                     if not self.groupingCheckBox.isChecked():
                         sql += "('http://localhost:8111/load_object?new_layer=true&objects=' ||"
