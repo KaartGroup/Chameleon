@@ -145,7 +145,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                         sql += " group_concat("
                     sql += "substr(new.\"@type\",1,1) || new.\"@id\""
                     if self.groupingCheckBox.isChecked():
-                        sql += ")) AS url,group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
+                        sql += ")) AS url, count(new.\"@id\") AS way_count, group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
                     else:
                         sql += ") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
                     if mode != "highway":
