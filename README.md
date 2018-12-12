@@ -13,6 +13,10 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 
 ## Installation
 
+### Dependencies
+
+* [`PyInstaller`](https://github.com/pyinstaller/pyinstaller): Installation instruction [`here.`](https://pyinstaller.readthedocs.io/en/v3.3.1/installation.html)
+
 ### Mac
 
 1. Clone the repo
