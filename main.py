@@ -4,7 +4,7 @@ import errno
 import os
 import re
 import sys
-# import tempfile
+import tempfile
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
@@ -140,44 +140,87 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
                 # Create a file for each chosen mode
                 for mode in modes:
+
+                    # Generating temporary output files
+                    tempPath = os.path.dirname(outputFileValue) # Check with Evan
+                    tempf = tempfile.mkstemp(suffix=mode, prefix='temp', dir=tempPath, text=True)
+                    
+                    # Getting just the file name of temp files
+                    # os.path.basename(tempf[1]) -> countryhighway
+                    # Getting base directory of path
+                    # os.path.dirname(tempf[1]) -> /Users/primaryuser/Documents'
+
                     # Creating SQL snippets
                     # Added based ID SQL to ensure Object ID output
-                    sql = ''
-                    if self.groupingCheckBox.isChecked():
-                        sql += "SELECT "
-                        # Comment this line to remove ids column
-                        sql += "group_concat(sub.id) AS ids, "
-                        sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || sub.ids) AS url, "
-                        sql += ("group_concat(distinct sub.user) AS users, max(sub.timestamp) AS latest_timestamp, "
-                                f"sub.{mode}_change, NULL AS notes FROM ( ") # Sub-query
-                    sql += "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
-                    if not self.groupingCheckBox.isChecked():
-                        sql += "('http://localhost:8111/load_object?new_layer=true&objects=' ||"
-                        sql += "substr(new.\"@type\",1,1) || new.\"@id\""
-                        sql += ") AS url, "
-                    sql += "new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                    sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                    sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                    sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                    sql += ") AS url, new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
                     if mode != "highway":
                         sql += "new.highway, "
-                    if mode == "highway" and not self.groupingCheckBox.isChecked():
-                        sql += "new.name, "
-                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-                    if not self.groupingCheckBox.isChecked():
-                        sql += "NULL AS \"notes\" "
-                    sql += f"FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
+                    else:
+                        if mode == "highway":
+                            sql += "new.name, "
+                        sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                    sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
 
-                    # Added Left Outer Union Statements (Testing)
-                    sql += " UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, ('http://localhost:8111/load_object?new_layer=true&objects=' || substr(new.\"@type\",1,1) || new.\"@id\") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp,"
-                    sql += f" new.name, old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-                    if not self.groupingCheckBox.isChecked():
-                        sql += "NULL AS \"notes\" "
-                    sql += f"FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+                    # Union all full left outer join SQL statements
+                    sql += " UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                    sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                    sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                    sql += ") AS url, new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                    if mode != "highway":
+                        sql += "new.highway, "
+                    else:
+                        if mode == "highway":
+                            sql += "new.name, "
+                        sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                    sql += f"NULL AS \"notes\" FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
 
-                    # Group-function specific concatenate
-                    if self.groupingCheckBox.isChecked():
-                        sql += f" ) sub GROUP BY (old.{mode} || \"→\" || new.{mode})"
+                    # Creating SQL snippets
+                    # Added based ID SQL to ensure Object ID output
+                    # sql = ''
+                    # if self.groupingCheckBox.isChecked():
+                    #     sql += "SELECT "
+                    #     # Comment this line to remove ids column
+                    #     sql += "group_concat(sub.id) AS ids, "
+                    #     sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || sub.ids) AS url, "
+                    #     sql += ("group_concat(distinct sub.user) AS users, max(sub.timestamp) AS latest_timestamp, "
+                    #             f"sub.{mode}_change, NULL AS notes FROM ( ") # Sub-query
+                    # sql += "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                    # if not self.groupingCheckBox.isChecked():
+                    #     sql += "('http://localhost:8111/load_object?new_layer=true&objects=' ||"
+                    #     sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                    #     sql += ") AS url, "
+                    # sql += "new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                    # if mode != "highway":
+                    #     sql += "new.highway, "
+                    # if mode == "highway" and not self.groupingCheckBox.isChecked():
+                    #     sql += "new.name, "
+                    # sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                    # if not self.groupingCheckBox.isChecked():
+                    #     sql += "NULL AS \"notes\" "
+                    # sql += f"FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
 
-                    print(sql)
-                    fileName = outputFileValue + "_" + mode + ".csv"
+                    # # Added Left Outer Union Statements
+                    # sql += " UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, ('http://localhost:8111/load_object?new_layer=true&objects=' || substr(new.\"@type\",1,1) || new.\"@id\") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp,"
+                    # sql += f" new.name, old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                    # if not self.groupingCheckBox.isChecked():
+                    #     sql += "NULL AS \"notes\" "
+                    # sql += f"FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+
+                    # # Group-function specific concatenate
+                    # if self.groupingCheckBox.isChecked():
+                    #     sql += f" ) sub GROUP BY (old.{mode} || \"→\" || new.{mode})"
+                    # print(sql)
+                    
+                    # Generate variable for output file path
+                    fileName = tempf[1] + ".csv"
+                    # Removing temporary files
+                    print(f"Deleting {tempf[1]}")
+                    os.remove(tempf[1])
+
+                    # Writing initial Chameleon output to temporary file
                     if os.path.isfile(fileName):
                         overwritePrompt = QtWidgets.QMessageBox()
                         overwritePrompt.setIcon(QMessageBox.Question)
@@ -188,7 +231,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                         if overwritePromptResponse == overwritePrompt.No:
                             continue
                     with open(fileName, "w") as outputFile:
-                        print(f"Writing {fileName}")
+                        print(f"Writing to {fileName}")
                         input_params = QInputParams(
                             skip_header=True,
                             delimiter='\t'
@@ -204,7 +247,8 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                             output_params)
                         q_output_printer.print_output(
                             outputFile, sys.stderr, q_output)
-                        print("Complete")
+                        print(f"Completed intermediate processing for {mode}.")
+
                         # Insert completion feedback here
                     # Saving paths to cache for future loading
                     # Make directory if it doesn't exist
@@ -221,6 +265,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                                             newFileValue + "\n")
                         history_write.write("outputFileName: " +
                                             outputFileValue + "\n")
+                    # Clearing temp files
+                    # print(f"Deleting {fileName}")
+                    # os.remove(fileName)
+
         finally:
             # Re-enable run button when function complete,
             # even if it doesn't complete successfully
