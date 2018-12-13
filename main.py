@@ -142,17 +142,9 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 # First block provides virtual file processing for grouping option
                 if self.groupingCheckBox.isChecked():
                     for mode in modes:
-                        # Generating temporary output files
-                        # tempPath = os.path.dirname(outputFileValue) # Check with Evan
-                        # tempf = tempfile.mkstemp(suffix=mode, prefix='temp', dir=tempPath, text=True)
-
+                        # Generating temporary output files (max size 100 MB)
                         tempf = tempfile.SpooledTemporaryFile(max_size=100000000, mode='w+b', buffering=None, encoding=None, newline=None, suffix=None, prefix=None, dir=None)
                         print(f'Temporary file generated at {tempf}.')
-                        # Getting just the file name of temp files
-                        # os.path.basename(tempf[1]) -> countryhighway
-                        # Getting base directory of path
-                        # os.path.dirname(tempf[1]) -> /Users/primaryuser/Documents'
-
                         # Creating SQL snippets
                         # Added based ID SQL to ensure Object ID output
                         sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
