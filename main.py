@@ -143,9 +143,11 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 if self.groupingCheckBox.isChecked():
                     for mode in modes:
                         # Generating temporary output files
-                        tempPath = os.path.dirname(outputFileValue) # Check with Evan
-                        tempf = tempfile.mkstemp(suffix=mode, prefix='temp', dir=tempPath, text=True)
-                        print(f'Temporary file generated at {tempf[1]}.')
+                        # tempPath = os.path.dirname(outputFileValue) # Check with Evan
+                        # tempf = tempfile.mkstemp(suffix=mode, prefix='temp', dir=tempPath, text=True)
+
+                        tempf = tempfile.SpooledTemporaryFile(max_size=100000000, mode='w+b', buffering=None, encoding=None, newline=None, suffix=None, prefix=None, dir=None)
+                        print(f'Temporary file generated at {tempf}.')
                         # Getting just the file name of temp files
                         # os.path.basename(tempf[1]) -> countryhighway
                         # Getting base directory of path
@@ -179,11 +181,36 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                         sql += f"NULL AS \"notes\" FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
                         
                         # Generate variable for output file path
-                        fileName = tempf[1] + ".csv"
-                        # Removing temporary files
-                        print(f"Deleting {tempf[1]}")
-                        os.remove(tempf[1])
-                        # Writing initial Chameleon output to temporary file
+                        with tempf:
+                            print(f"Writing to temp file.")
+                            input_params = QInputParams(
+                                skip_header=True,
+                                delimiter='\t'
+                            )
+                            output_params = QOutputParams(
+                                delimiter='\t',
+                                output_header=True
+                            )
+                            q_engine = QTextAsData()
+                            q_output = q_engine.execute(
+                                sql, input_params)
+                            q_output_printer = QOutputPrinter(
+                                output_params)
+                            print(f"Completed intermediate processing for {mode}.")
+                        
+                        # Grouping function with q
+                        sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                        sql += "group_concat(substr(new.\"@type\",1,1) || new.\"@id\""
+                        sql += ")) AS url, group_concat(distinct new.\"@user\") AS users, max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
+                        if mode != "highway":
+                            sql += "new.highway, "
+                        sql += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change, "
+                        sql += f"NULL AS \"notes\" FROM {oldFileValue} AS old LEFT OUTER JOIN {newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
+                        sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
+                        print(sql)
+
+                        # Proceed with generating tangible output for user
+                        fileName = outputFileValue + "_" + mode + ".csv"
                         if os.path.isfile(fileName):
                             overwritePrompt = QtWidgets.QMessageBox()
                             overwritePrompt.setIcon(QMessageBox.Question)
@@ -210,8 +237,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                                 output_params)
                             q_output_printer.print_output(
                                 outputFile, sys.stderr, q_output)
-                            print(f"Completed intermediate processing for {mode}.")
-
+                            print(f"Completed file processing for {mode}.")
                             # Insert completion feedback here
                         # Saving paths to cache for future loading
                         # Make directory if it doesn't exist
@@ -228,9 +254,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                                                 newFileValue + "\n")
                             history_write.write("outputFileName: " +
                                                 outputFileValue + "\n")
-                        # Clearing temp files
-                        # print(f"Deleting {fileName}")
-                        # os.remove(fileName)
+
                 # Proceed with normal file processing when grouping is not selected
                 else:
                     for mode in modes:
@@ -260,6 +284,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                                 sql += "new.name, "
                             sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
                         sql += f"NULL AS \"notes\" FROM {newFileValue} AS new LEFT OUTER JOIN {oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+                        print(sql)
                         # Processing output file without grouping
                         fileName = outputFileValue + "_" + mode + ".csv"
                         if os.path.isfile(fileName):
