@@ -251,6 +251,8 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
     def finished(self):
         self.runButton.setEnabled(1)
+        self.work_thread.quit()
+        self.work_thread.wait()
 
     def overwrite_message(self, fileName):
         mutex.lock()
