@@ -4,6 +4,7 @@ import errno
 import os
 import re
 import sys
+import tempfile
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
@@ -36,46 +37,139 @@ class Worker(QObject):
     # Create a file for each chosen mode
     @pyqtSlot()
     def firstwork(self):
-
+        # Saving paths to config for future loading
+        # Make directory if it doesn't exist
+        if not os.path.exists(os.path.dirname(history_location)):
+            try:
+                os.makedirs(os.path.dirname(history_location))
+            except OSError as exc:
+                if exc.errno != errno.EEXIST:
+                    raise
+        with open(history_location, 'w') as history_write:
+            history_write.write("oldFileName: " +
+                                self.oldFileValue + "\n")
+            history_write.write("newFileName: " +
+                                self.newFileValue + "\n")
+            history_write.write("outputFileName: " +
+                                self.outputFileValue + "\n")
         for mode in self.modes:
-            # Creating SQL snippets
-            sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' ||"
             if self.group_output:
-                sql += " group_concat("
-            sql += "substr(new.\"@type\",1,1) || new.\"@id\""
-            if self.group_output:
-                sql += ")) AS url, count(new.\"@id\") AS way_count, group_concat(distinct new.\"@user\") AS users,max(substr(new.\"@timestamp\",1,10)) AS latest_timestamp, "
-            else:
-                sql += ") AS url,new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
-            if mode != "highway":
-                sql += "new.highway, "
-            if self.group_output:
-                # print("Checked")
-                sql += f"(old.{mode} || \"→\" || new.{mode}) AS {mode}_change, "
-            else:
-                if mode == "highway":
-                    sql += "new.name, "
-                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                # Generating temporary output files (max size 100 MB)
+                tempf = tempfile.NamedTemporaryFile(
+                    mode='w', buffering=-1, encoding=None, newline=None, suffix=".csv", prefix=None, dir=None, delete=True)
+                print(f'Temporary file generated at {tempf.name}.')
+                # Creating SQL snippets
+                # Added based ID SQL to ensure Object ID output
+                sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
+                if mode != "highway":
+                    sql += "new.highway AS new_highway, "
+                elif mode == "highway":
+                    sql += "new.name AS new_name, "
+                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
+                sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode} "
 
-            sql += f"NULL AS \"notes\" FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
-            if self.group_output:
-                sql += f" GROUP BY (old.{mode} || \"→\" || new.{mode})"
+                # Union all full left outer join SQL statements
+                sql += "UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
+                if mode != "highway":
+                    sql += "new.highway AS new_highway, "
+                elif mode == "highway":
+                    sql += "new.name AS new_name, "
+                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
+                sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+                print(sql)
+                # Generate variable for output file path
 
-            print(sql)
-            fileName = self.outputFileValue + "_" + mode + ".csv"
-            if os.path.isfile(fileName):
-                mutex.lock()
-                self.overwrite_confirm.emit(fileName)
-                waiting_for_input.wait(mutex)
-                if self.response == False:
-                    continue
-                elif self.response:
+                print(f"Writing to temp file.")
+                input_params = QInputParams(
+                    skip_header=True,
+                    delimiter='\t'
+                )
+                output_params = QOutputParams(
+                    delimiter='\t',
+                    output_header=True
+                )
+                q_engine = QTextAsData()
+                q_output = q_engine.execute(
+                    sql, input_params)
+                q_output_printer = QOutputPrinter(
+                    output_params)
+                q_output_printer.print_output(
+                    tempf, sys.stderr, q_output)
+
+                print(
+                    f"Completed intermediate processing for {mode}.")
+
+                # Grouping function with q
+                sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                sql += "group_concat(id)) AS url, count(id) AS count, group_concat(distinct user) AS users, max(timestamp) AS latest_timestamp, "
+                if mode != "highway":
+                    sql += "new_highway, "
+                sql += f"(old_{mode} || \"→\" || new_{mode}) AS {mode}_change, "
+                sql += f"NULL AS \"notes\" FROM {tempf.name} AS new"
+                sql += f" GROUP BY (old_{mode} || \"→\" || new_{mode})"
+                print(sql)
+
+                # Proceed with generating tangible output for user
+                fileName = self.outputFileValue + "_" + mode + ".csv"
+                if os.path.isfile(fileName):
+                    mutex.lock()
+                    self.overwrite_confirm.emit(fileName)
+                    waiting_for_input.wait(mutex)
+                    if self.response == False:
+                        continue
+                    elif self.response:
+                        self.write_file(sql, fileName)
+                    tempf.close()
+                    mutex.unlock()
+                else:
                     self.write_file(sql, fileName)
-                mutex.unlock()
+                    tempf.close()
 
+            # Proceed with normal file processing when grouping is not selected
             else:
-                self.write_file(sql, fileName)
+                # Creating SQL snippets
+                # Added based ID SQL to ensure Object ID output
+                sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                sql += ") AS url, new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                if mode != "highway":
+                    sql += "new.highway AS new_highway, "
+                else:
+                    if mode == "highway":
+                        sql += "new.name AS new_name, "
+                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                sql += f"NULL AS \"notes\" FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
 
+                # Union all full left outer join SQL statements
+                sql += " UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                sql += "substr(new.\"@type\",1,1) || new.\"@id\""
+                sql += ") AS url, new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
+                if mode != "highway":
+                    sql += "new.highway, "
+                else:
+                    if mode == "highway":
+                        sql += "new.name, "
+                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                sql += f"NULL AS \"notes\" FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+
+                print(sql)
+                fileName = self.outputFileValue + "_" + mode + ".csv"
+                if os.path.isfile(fileName):
+                    mutex.lock()
+                    self.overwrite_confirm.emit(fileName)
+                    waiting_for_input.wait(mutex)
+                    if self.response == False:
+                        continue
+                    elif self.response:
+                        self.write_file(sql, fileName)
+                    mutex.unlock()
+                else:
+                    self.write_file(sql, fileName)
+        # Signal the main thread that this thread is complete
         self.done.emit()
 
     def write_file(self, sql, fileName):
@@ -98,21 +192,6 @@ class Worker(QObject):
                 outputFile, sys.stderr, q_output)
             print("Complete")
             # Insert completion feedback here
-        # Saving paths to cache for future loading
-        # Make directory if it doesn't exist
-        if not os.path.exists(os.path.dirname(history_location)):
-            try:
-                os.makedirs(os.path.dirname(history_location))
-            except OSError as exc:
-                if exc.errno != errno.EEXIST:
-                    raise
-        with open(history_location, 'w') as history_write:
-            history_write.write("oldFileName: " +
-                                self.oldFileValue + "\n")
-            history_write.write("newFileName: " +
-                                self.newFileValue + "\n")
-            history_write.write("outputFileName: " +
-                                self.outputFileValue + "\n")
 
 
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
@@ -238,7 +317,6 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 self.worker.group_output = True
             else:
                 self.worker.group_output = False
-
             self.worker.overwrite_confirm.connect(self.overwrite_message)
             self.worker.moveToThread(self.work_thread)
             self.work_thread.start()
