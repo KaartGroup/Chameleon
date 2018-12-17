@@ -73,7 +73,7 @@ class Worker(QObject):
             if not self.group_output:
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" "
-            sql += f"WHERE old.{mode} NOT LIKE new.{mode} "
+            sql += f"WHERE old.{mode} NOT LIKE new.{mode} AND length(old_{mode} || new_{mode}) > 0 "
 
             # Union all full left outer join SQL statements
             sql += "UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
