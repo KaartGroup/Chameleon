@@ -256,7 +256,6 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.worker.done.connect(self.finished)
         # try:
         # Disable run button while running
-        self.runButton.setEnabled(0)
         self.worker.oldFileValue = self.oldFileNameBox.text()
         self.worker.newFileValue = self.newFileNameBox.text()
         self.worker.outputFileValue = self.outputFileNameBox.text()
@@ -274,6 +273,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.spaceWarning.exec()
             return
         else:
+            self.runButton.setEnabled(0)
             # Define set of selected modes
             self.worker.modes = set()
             if self.refBox.isChecked():
