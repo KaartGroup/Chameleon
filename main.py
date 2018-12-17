@@ -58,30 +58,41 @@ class Worker(QObject):
                 tempf = tempfile.NamedTemporaryFile(
                     mode='w', buffering=-1, encoding=None, newline=None, suffix=".csv", prefix=None, dir=None, delete=True)
                 print(f'Temporary file generated at {tempf.name}.')
-                # Creating SQL snippets
-                # Added based ID SQL to ensure Object ID output
-                sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
-                sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
-                if mode != "highway":
-                    sql += "new.highway AS new_highway, "
-                elif mode == "highway":
-                    sql += "new.name AS new_name, "
-                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
-                sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode} "
+            # Creating SQL snippets
+            # Added based ID SQL to ensure Object ID output
+            sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+            if not self.group_output:
+                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                sql += "substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
+            sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
+            if mode != "highway":
+                sql += "new.highway AS new_highway, "
+            if mode != "name":
+                sql += "new.name AS new_name, "
+            sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
+            if not self.group_output:
+                sql += ", NULL AS \"notes\" "
+            sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" "
+            sql += f"WHERE old.{mode} NOT LIKE new.{mode} "
 
-                # Union all full left outer join SQL statements
-                sql += "UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
-                sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
-                if mode != "highway":
-                    sql += "new.highway AS new_highway, "
-                elif mode == "highway":
-                    sql += "new.name AS new_name, "
-                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
-                sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
-                sql += f"WHERE old.\"@id\" IS NULL AND length(old_{mode} || new_{mode}) > 0"
-                print(sql)
-                # Generate variable for output file path
-
+            # Union all full left outer join SQL statements
+            sql += "UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+            if not self.group_output:
+                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                sql += "substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
+            sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
+            if mode != "highway":
+                sql += "new.highway AS new_highway, "
+            if mode != "name":
+                sql += "new.name AS new_name, "
+            sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
+            if not self.group_output:
+                sql += ", NULL AS \"notes\" "
+            sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
+            sql += f"WHERE old.\"@id\" IS NULL AND length(old_{mode} || new_{mode}) > 0"
+            print(sql)
+            # Generate variable for output file path
+            if self.group_output:
                 print(f"Writing to temp file.")
                 input_params = QInputParams(
                     skip_header=True,
@@ -113,72 +124,24 @@ class Worker(QObject):
                 print(sql)
 
                 # Proceed with generating tangible output for user
-                fileName = self.outputFileValue + "_" + mode + ".csv"
-                if os.path.isfile(fileName):
-                    mutex.lock()
-                    self.overwrite_confirm.emit(fileName)
-                    waiting_for_input.wait(mutex)
-                    mutex.unlock()
-                    if self.response:
-                        # mutex.unlock()
-                        self.write_file(sql, fileName)
-                    elif self.response == False:
-                        # mutex.unlock()
-                        continue
-                    else:
-                        raise Exception("Chameleon didn't get an answer")
-                    tempf.close()
-                else:
+            fileName = self.outputFileValue + "_" + mode + ".csv"
+            if os.path.isfile(fileName):
+                mutex.lock()
+                self.overwrite_confirm.emit(fileName)
+                waiting_for_input.wait(mutex)
+                mutex.unlock()
+                if self.response:
+                    # mutex.unlock()
                     self.write_file(sql, fileName)
-                    tempf.close()
-
-            # Proceed with normal file processing when grouping is not selected
+                elif self.response == False:
+                    # mutex.unlock()
+                    continue
+                else:
+                    raise Exception("Chameleon didn't get an answer")
             else:
-                # Creating SQL snippets
-                # Added based ID SQL to ensure Object ID output
-                sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
-                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                sql += "substr(new.\"@type\",1,1) || new.\"@id\""
-                sql += ") AS url, new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
-                if mode != "highway":
-                    sql += "new.highway AS new_highway, "
-                else:
-                    if mode == "highway":
-                        sql += "new.name AS new_name, "
-                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-                sql += f"NULL AS \"notes\" FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
-
-                # Union all full left outer join SQL statements
-                sql += " UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
-                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                sql += "substr(new.\"@type\",1,1) || new.\"@id\""
-                sql += ") AS url, new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
-                if mode != "highway":
-                    sql += "new.highway AS new_highway, "
-                else:
-                    if mode == "highway":
-                        sql += "new.name AS new_name, "
-                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-                sql += f"NULL AS \"notes\" FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
-                sql += f"WHERE old.\"@id\" IS NULL AND length(old_{mode} || new_{mode}) > 0"
-
-                print(sql)
-                fileName = self.outputFileValue + "_" + mode + ".csv"
-                if os.path.isfile(fileName):
-                    mutex.lock()
-                    self.overwrite_confirm.emit(fileName)
-                    waiting_for_input.wait(mutex)
-                    mutex.unlock()
-                    if self.response:
-                        # mutex.unlock()
-                        self.write_file(sql, fileName)
-                    elif self.response == False:
-                        # mutex.unlock()
-                        continue
-                    else:
-                        raise Exception("Chameleon didn't get an answer")
-                else:
-                    self.write_file(sql, fileName)
+                self.write_file(sql, fileName)
+            if self.group_output:
+                tempf.close()
         # Signal the main thread that this thread is complete
         self.done.emit()
 
