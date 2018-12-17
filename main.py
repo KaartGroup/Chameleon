@@ -77,7 +77,8 @@ class Worker(QObject):
                 elif mode == "highway":
                     sql += "new.name AS new_name, "
                 sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
-                sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+                sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
+                sql += f"WHERE old.\"@id\" IS NULL AND length(old_{mode} || new_{mode}) > 0"
                 print(sql)
                 # Generate variable for output file path
 
@@ -144,7 +145,7 @@ class Worker(QObject):
                 else:
                     if mode == "highway":
                         sql += "new.name AS new_name, "
-                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
                 sql += f"NULL AS \"notes\" FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" WHERE old.{mode} NOT LIKE new.{mode}"
 
                 # Union all full left outer join SQL statements
@@ -153,12 +154,13 @@ class Worker(QObject):
                 sql += "substr(new.\"@type\",1,1) || new.\"@id\""
                 sql += ") AS url, new.\"@user\" AS user,substr(new.\"@timestamp\",1,10) AS timestamp, "
                 if mode != "highway":
-                    sql += "new.highway, "
+                    sql += "new.highway AS new_highway, "
                 else:
                     if mode == "highway":
-                        sql += "new.name, "
-                    sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
-                sql += f"NULL AS \"notes\" FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" WHERE old.\"@id\" IS NULL"
+                        sql += "new.name AS new_name, "
+                sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode}, "
+                sql += f"NULL AS \"notes\" FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
+                sql += f"WHERE old.\"@id\" IS NULL AND length(old_{mode} || new_{mode}) > 0"
 
                 print(sql)
                 fileName = self.outputFileValue + "_" + mode + ".csv"
@@ -166,11 +168,15 @@ class Worker(QObject):
                     mutex.lock()
                     self.overwrite_confirm.emit(fileName)
                     waiting_for_input.wait(mutex)
-                    if self.response == False:
-                        continue
-                    elif self.response:
-                        self.write_file(sql, fileName)
                     mutex.unlock()
+                    if self.response:
+                        # mutex.unlock()
+                        self.write_file(sql, fileName)
+                    elif self.response == False:
+                        # mutex.unlock()
+                        continue
+                    else:
+                        raise Exception("Chameleon didn't get an answer")
                 else:
                     self.write_file(sql, fileName)
         # Signal the main thread that this thread is complete
