@@ -117,12 +117,16 @@ class Worker(QObject):
                     mutex.lock()
                     self.overwrite_confirm.emit(fileName)
                     waiting_for_input.wait(mutex)
-                    if self.response == False:
-                        continue
-                    elif self.response:
-                        self.write_file(sql, fileName)
-                    tempf.close()
                     mutex.unlock()
+                    if self.response:
+                        # mutex.unlock()
+                        self.write_file(sql, fileName)
+                    elif self.response == False:
+                        # mutex.unlock()
+                        continue
+                    else:
+                        raise Exception("Chameleon didn't get an answer")
+                    tempf.close()
                 else:
                     self.write_file(sql, fileName)
                     tempf.close()
