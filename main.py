@@ -118,9 +118,9 @@ class Worker(QObject):
                 sql += "group_concat(id)) AS url, count(id) AS count, group_concat(distinct user) AS users, max(timestamp) AS latest_timestamp, "
                 if mode != "highway":
                     sql += "highway, "
-                sql += f"(old_{mode} || \"→\" || new_{mode}) AS {mode}_change, "
-                sql += f"NULL AS \"notes\" FROM {tempf.name} AS new"
-                sql += f" GROUP BY (old_{mode} || \"→\" || new_{mode})"
+                sql += f"old_{mode},new_{mode}, "
+                sql += f"NULL AS \"notes\" FROM {tempf.name} "
+                sql += f"GROUP BY old_{mode},new_{mode}"
                 print(sql)
 
                 # Proceed with generating tangible output for user
