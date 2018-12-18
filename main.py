@@ -117,7 +117,7 @@ class Worker(QObject):
                 sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
                 sql += "group_concat(id)) AS url, count(id) AS count, group_concat(distinct user) AS users, max(timestamp) AS latest_timestamp, "
                 if mode != "highway":
-                    sql += "new_highway, "
+                    sql += "highway, "
                 sql += f"(old_{mode} || \"→\" || new_{mode}) AS {mode}_change, "
                 sql += f"NULL AS \"notes\" FROM {tempf.name} AS new"
                 sql += f" GROUP BY (old_{mode} || \"→\" || new_{mode})"
