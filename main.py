@@ -60,36 +60,36 @@ class Worker(QObject):
                 print(f'Temporary file generated at {tempf.name}.')
             # Creating SQL snippets
             # Added based ID SQL to ensure Object ID output
-            sql = "SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+            sql = "SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS id, "
             if not self.group_output:
                 sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                sql += "substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
-            sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
+                sql += "substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS url, "
+            sql += "ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\",old.\"@timestamp\"),1,10) AS timestamp, "
             if mode != "highway":
-                sql += "new.highway AS new_highway, "
+                sql += "ifnull(new.highway,old.highway) AS highway, "
             if mode != "name":
-                sql += "new.name AS new_name, "
-            sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
+                sql += "ifnull(new.name,old.name) AS name, "
+            sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
             if not self.group_output:
                 sql += ", NULL AS \"notes\" "
-            sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON new.\"@id\" = old.\"@id\" "
-            sql += f"WHERE old.{mode} NOT LIKE new.{mode} AND length(old_{mode} || new_{mode}) > 0 "
+            sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON old.\"@id\" = new.\"@id\" "
+            sql += f"WHERE old_{mode} NOT LIKE new_{mode} "
 
             # Union all full left outer join SQL statements
-            sql += "UNION ALL SELECT substr(new.\"@type\",1,1) || new.\"@id\" AS id, "
+            sql += "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
             if not self.group_output:
                 sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
                 sql += "substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
             sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
             if mode != "highway":
-                sql += "new.highway AS new_highway, "
+                sql += "new.highway AS highway, "
             if mode != "name":
-                sql += "new.name AS new_name, "
-            sql += f"old.{mode} AS old_{mode}, new.{mode} AS new_{mode} "
+                sql += "new.name AS name, "
+            sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
             if not self.group_output:
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
-            sql += f"WHERE old.\"@id\" IS NULL AND length(old_{mode} || new_{mode}) > 0"
+            sql += f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{mode},'')) > 0"
             print(sql)
             # Generate variable for output file path
             if self.group_output:
