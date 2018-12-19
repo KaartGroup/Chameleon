@@ -296,10 +296,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
             self.work_thread.started.connect(self.worker.firstwork)
 
-        # finally:
-        # Re-enable run button when function complete,
-        # even if it doesn't complete successfully
-
+    # Re-enable run button when function complete
     def finished(self):
         self.runButton.setEnabled(1)
         self.work_thread.quit()
