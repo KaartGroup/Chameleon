@@ -9,3 +9,4 @@ build/
 dist/
 .vscode/settings.json
 .eggs/
+.DS_Store
