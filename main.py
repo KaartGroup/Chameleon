@@ -297,6 +297,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
             self.work_thread.started.connect(self.worker.firstwork)
 
+<<<<<<< HEAD
         # finally:
         # Re-enable run button when function complete,
         # even if it doesn't complete successfully
@@ -309,6 +310,9 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
                 MainApp.run_query(self)
 
+=======
+    # Re-enable run button when function complete
+>>>>>>> b89e70e95a706bc7084a4809f4d437d8698b28d3
     def finished(self):
         self.runButton.setEnabled(1)
         self.work_thread.quit()
