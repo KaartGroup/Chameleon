@@ -251,6 +251,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.runButton.setEnabled(1)
 
     def run_query(self):
+        print("run method entered")
         self.work_thread = QThread()
         self.worker = Worker()
         self.worker.done.connect(self.finished)
@@ -295,7 +296,18 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
         self.work_thread.started.connect(self.worker.firstwork)
 
-    # Re-enable run button when function complete
+        # finally:
+        # Re-enable run button when function complete,
+        # even if it doesn't complete successfully
+
+    # allow hotkey 'Return' or 'Enter' on keyboard
+    # to be pressed in lieu of clicking Run button.
+
+    def keyPressEvent(self, event):
+        if self.runButton.isEnabled():
+            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
+                MainApp.run_query(self)
+
     def finished(self):
         self.runButton.setEnabled(1)
         self.work_thread.quit()
