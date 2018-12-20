@@ -251,7 +251,6 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.runButton.setEnabled(1)
 
     def run_query(self):
-        print("run method entered")
         self.work_thread = QThread()
         self.worker = Worker()
         self.worker.done.connect(self.finished)
@@ -262,7 +261,9 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.worker.outputFileValue = self.outputFileNameBox.text()
         # Check for spaces in file names
         spaceExpression = re.compile("^\\S+\\s+\\S+$")
-        if spaceExpression.match(self.worker.oldFileValue) or spaceExpression.match(self.worker.newFileValue) or spaceExpression.match(self.worker.outputFileValue):
+        if spaceExpression.match(self.worker.oldFileValue) or \
+           spaceExpression.match(self.worker.newFileValue) or \
+           spaceExpression.match(self.worker.outputFileValue):
             # Popup here
             self.spaceWarning = QtWidgets.QMessageBox()
             self.spaceWarning.setIcon(QMessageBox.Critical)
@@ -302,12 +303,12 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
     # allow hotkey 'Return' or 'Enter' on keyboard
     # to be pressed in lieu of clicking Run button.
-
-    def keyPressEvent(self, event):
+    def enter_key_event(self, event):
         if self.runButton.isEnabled():
             if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
                 MainApp.run_query(self)
 
+    # Re-enable run button when function complete
     def finished(self):
         self.runButton.setEnabled(1)
         self.work_thread.quit()
