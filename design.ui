@@ -25,13 +25,19 @@
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>1000</height>
+    <height>336</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>Chameleon</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="sizeConstraint">
      <enum>QLayout::SetMinimumSize</enum>
@@ -73,6 +79,9 @@
           <width>320</width>
           <height>0</height>
          </size>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
@@ -126,6 +135,9 @@
           <height>0</height>
          </size>
         </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
        </widget>
       </item>
       <item>
@@ -171,11 +183,56 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>320</width>
+          <width>0</width>
           <height>0</height>
          </size>
         </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
        </widget>
+      </item>
+      <item>
+       <spacer name="prefixSuffixSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>2</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="fileSuffix">
+        <property name="text">
+         <string>_{mode}.csv</string>
+        </property>
+        <property name="margin">
+         <number>0</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="suffixSelectSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>3</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
       </item>
       <item>
        <widget class="QToolButton" name="outputFileSelectButton">
@@ -187,7 +244,13 @@
      </layout>
     </item>
     <item>
-     <widget class="QFrame" name="frame">
+     <widget class="QFrame" name="tagFrame">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
@@ -208,7 +271,13 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QGroupBox" name="groupBox">
+        <widget class="QGroupBox" name="tagGroupBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="title">
           <string>Tags to analyze</string>
          </property>
@@ -229,7 +298,7 @@
            <number>0</number>
           </property>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <layout class="QHBoxLayout" name="refHLayout">
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -274,7 +343,7 @@
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <layout class="QHBoxLayout" name="int_refHLayout">
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -319,7 +388,7 @@
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <layout class="QHBoxLayout" name="nameHLayout">
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -364,7 +433,7 @@
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <layout class="QHBoxLayout" name="highwayHLayout">
             <property name="leftMargin">
              <number>0</number>
             </property>
