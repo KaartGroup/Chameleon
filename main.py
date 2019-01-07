@@ -272,29 +272,28 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.spaceWarning.setEscapeButton(QMessageBox.Ok)
             self.spaceWarning.exec()
             return
+        self.runButton.setEnabled(0)
+        # Define set of selected modes
+        self.worker.modes = set()
+        if self.refBox.isChecked():
+            self.worker.modes |= {"ref"}
+        if self.int_refBox.isChecked():
+            self.worker.modes |= {"int_ref"}
+        if self.nameBox.isChecked():
+            self.worker.modes |= {"name"}
+        # Handle highway separately
+        if self.highwayBox.isChecked():
+            self.worker.modes |= {"highway"}
+        print(self.worker.modes)
+        if self.groupingCheckBox.isChecked():
+            self.worker.group_output = True
         else:
-            self.runButton.setEnabled(0)
-            # Define set of selected modes
-            self.worker.modes = set()
-            if self.refBox.isChecked():
-                self.worker.modes |= {"ref"}
-            if self.int_refBox.isChecked():
-                self.worker.modes |= {"int_ref"}
-            if self.nameBox.isChecked():
-                self.worker.modes |= {"name"}
-            # Handle highway separately
-            if self.highwayBox.isChecked():
-                self.worker.modes |= {"highway"}
-            print(self.worker.modes)
-            if self.groupingCheckBox.isChecked():
-                self.worker.group_output = True
-            else:
-                self.worker.group_output = False
-            self.worker.overwrite_confirm.connect(self.overwrite_message)
-            self.worker.moveToThread(self.work_thread)
-            self.work_thread.start()
+            self.worker.group_output = False
+        self.worker.overwrite_confirm.connect(self.overwrite_message)
+        self.worker.moveToThread(self.work_thread)
+        self.work_thread.start()
 
-            self.work_thread.started.connect(self.worker.firstwork)
+        self.work_thread.started.connect(self.worker.firstwork)
 
     # Re-enable run button when function complete
     def finished(self):
