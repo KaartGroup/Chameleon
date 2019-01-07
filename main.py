@@ -308,6 +308,17 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
                 MainApp.run_query(self)
 
+        # finally:
+        # Re-enable run button when function complete,
+        # even if it doesn't complete successfully
+
+    # allow hotkey 'Return' or 'Enter' on keyboard
+    # to be pressed in lieu of clicking Run button.
+    def enter_key_event(self, event):
+        if self.runButton.isEnabled():
+            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
+                MainApp.run_query(self)
+
     # Re-enable run button when function complete
     def finished(self):
         self.runButton.setEnabled(1)
