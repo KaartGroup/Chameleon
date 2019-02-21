@@ -302,24 +302,15 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.work_thread.started.connect(self.worker.firstwork)
 
         # instantiate progress bar class
-        progressbar = ProgressBar()
+        self.progressbar = ProgressBar()
         # show progress bar
-        progressbar.show()
+        self.progressbar.show()
         # the bar
-        for i in range(0, 50):
+        for i in range(0, 100):
             time.sleep(0.01)
-            progressbar.setValue(((i + 1) / 50) * 50)
+            self.progressbar.setValue(((i + 1) / 100) * 100)
             QApplication.processEvents()
-        # close the progress bar
-        progressbar.close()
 
-        # untoggle all radio buttons
-        self.refBox.setChecked(False)
-        self.int_refBox.setChecked(False)
-        self.nameBox.setChecked(False)
-        self.highwayBox.setChecked(False)
-        self.groupingCheckBox.setChecked(False)
-        QMessageBox.information(self, "Message", "Complete!")
     # allow hotkey 'Return' or 'Enter' on keyboard
     # to be pressed in lieu of clicking Run button.
 
@@ -344,6 +335,16 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.runButton.setEnabled(1)
         self.work_thread.quit()
         self.work_thread.wait()
+        # close the progress bar
+        self.progressbar.close()
+
+        # untoggle all radio buttons
+        self.refBox.setChecked(False)
+        self.int_refBox.setChecked(False)
+        self.nameBox.setChecked(False)
+        self.highwayBox.setChecked(False)
+        self.groupingCheckBox.setChecked(False)
+        QMessageBox.information(self, "Message", "Complete!")
 
     def overwrite_message(self, fileName):
         mutex.lock()
