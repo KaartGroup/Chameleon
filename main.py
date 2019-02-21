@@ -2,19 +2,23 @@
 
 import errno
 import os
+import time
 import re
 import sys
 import tempfile
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QApplication
 from PyQt5.QtCore import QThread, pyqtSignal, QObject, pyqtSlot
 # Loads and saves settings to YAML
 from ruamel.yaml import YAML
 # Does the processing
 from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
 import design  # Import generated UI file
+
+from ProgressBar import ProgressBar
+
 # Required by the yaml module b/c of namespace conflicts
 yaml = YAML(typ='safe')
 
@@ -163,7 +167,7 @@ class Worker(QObject):
                 output_params)
             q_output_printer.print_output(
                 outputFile, sys.stderr, q_output)
-            print("Complete")
+            # print("Complete")
             # Insert completion feedback here
 
 
@@ -297,12 +301,28 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
         self.work_thread.started.connect(self.worker.firstwork)
 
-        # finally:
-        # Re-enable run button when function complete,
-        # even if it doesn't complete successfully
+        # instantiate progress bar class
+        progressbar = ProgressBar()
+        # show progress bar
+        progressbar.show()
+        # the bar
+        for i in range(0, 50):
+            time.sleep(0.01)
+            progressbar.setValue(((i + 1) / 50) * 50)
+            QApplication.processEvents()
+        # close the progress bar
+        progressbar.close()
 
+        # untoggle all radio buttons
+        self.refBox.setChecked(False)
+        self.int_refBox.setChecked(False)
+        self.nameBox.setChecked(False)
+        self.highwayBox.setChecked(False)
+        self.groupingCheckBox.setChecked(False)
+        QMessageBox.information(self, "Message", "Complete!")
     # allow hotkey 'Return' or 'Enter' on keyboard
     # to be pressed in lieu of clicking Run button.
+
     def enter_key_event(self, event):
         if self.runButton.isEnabled():
             if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
