@@ -312,6 +312,18 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.worker.oldFileValue = self.oldFileNameBox.text()
         self.worker.newFileValue = self.newFileNameBox.text()
         self.worker.outputFileValue = self.outputFileNameBox.text()
+        # Wrap the file references in the Path object
+        old_file_path = Path(self.worker.oldFileValue)
+        new_file_path = Path(self.worker.newFileValue)
+        # Check if either old or new file/directory exists. If not, notify user.
+        if not old_file_path.is_file() or not new_file_path.is_file():
+            self.file_warning = QtWidgets.QMessageBox()
+            self.file_warning.setIcon(QMessageBox.Critical)
+            self.file_warning.setText("File or directory not found!")
+            self.file_warning.setInformativeText("Check if your file or "
+            "directory exists.")
+            self.file_warning.exec()
+            return
         # Check for spaces in file names
         spaceExpression = re.compile("^\\S+\\s+\\S+$")
         if spaceExpression.match(self.worker.oldFileValue) or \
