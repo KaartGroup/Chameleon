@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
-import errno
-import os
-import time
-import re
-import sys
-import tempfile
+import errno, os, time, re, sys, tempfile
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
@@ -18,7 +13,8 @@ from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
 import design  # Import generated UI file
 
 from ProgressBar import ProgressBar
-
+from pathlib import Path
+import os.path
 # Required by the yaml module b/c of namespace conflicts
 yaml = YAML(typ='safe')
 
@@ -28,8 +24,13 @@ waiting_for_input = QtCore.QWaitCondition()
 history_location = user_config_dir(
     "Chameleon 2", "Kaart") + "/history.yaml"
 
-
 class Worker(QObject):
+    """
+
+    Worker class, code inside slot should execute in a separate thread.
+    Displays file paths, executes comparison function, writes and saves file.
+
+    """
     done = pyqtSignal()
     overwrite_confirm = pyqtSignal(str)
     # modes = set()
@@ -41,6 +42,15 @@ class Worker(QObject):
     # Create a file for each chosen mode
     @pyqtSlot()
     def firstwork(self):
+        """
+        Saves file path for future loading, create a directory if one does not
+        already exist. Groups JOSM tags with SQL and generates suitable output.
+
+        Raises
+        ------
+        OSError
+            If history path does not exist and returns a system-related error.
+        """
         # Saving paths to config for future loading
         # Make directory if it doesn't exist
         if not os.path.exists(os.path.dirname(history_location)):
@@ -150,6 +160,16 @@ class Worker(QObject):
         self.done.emit()
 
     def write_file(self, sql, fileName):
+        """
+        Handles writing formatted file using data grabbed by SQL query.
+
+        Parameters
+        ----------
+        sql : str
+            Query that selects JOSM URL for tag grouping
+        fileName : str
+            File name in csv format
+        """
         with open(fileName, "w") as outputFile:
             print(f"Writing {fileName}")
             input_params = QInputParams(
@@ -167,13 +187,23 @@ class Worker(QObject):
                 output_params)
             q_output_printer.print_output(
                 outputFile, sys.stderr, q_output)
-            # print("Complete")
+            print("Complete")
             # Insert completion feedback here
 
-
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
+    """
+
+    Main PyQT window class that allows communication between UI and backend.
+    Passes QMainWindow parameter to provide main application window, establish
+    event handling with signal/slot connection.
+
+    """
 
     def __init__(self, parent=None):
+        """
+        Loads history file path, establish event handling with signal/slot
+        connection.
+        """
         super().__init__()
         self.setupUi(self)
 
@@ -214,6 +244,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.highwayBox.stateChanged.connect(self.checkbox_checker)
 
     def open_old_file(self):
+        """
+        Adds functionality to the Open Old File (...) button, opens the
+        '/downloads' system path to find csv file.
+        """
         if re.match("\\S+", self.oldFileNameBox.text()):
             oldFileDir = self.oldFileNameBox.text()
         else:
@@ -225,6 +259,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.oldFileNameBox.insert(oldFileName)
 
     def open_new_file(self):
+        """
+        Adds functionality to the Open New File (...) button, opens the
+        '/downloads' system path to find csv file.
+        """
         if re.match("\\S+", self.newFileNameBox.text()):
             newFileDir = self.newFileNameBox.text()
         else:
@@ -236,6 +274,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.newFileNameBox.insert(newFileName)
 
     def output_file(self):
+        """
+        Adds functionality to the Output File (...) button, opens the
+        '/downloads' system path for user to name an output file.
+        """
         if re.match("\\S+", self.newFileNameBox.text()):
             outputFileDir = os.path.dirname(self.outputFileNameBox.text())
         else:
@@ -249,12 +291,19 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.outputFileNameBox.insert(outputFileName)
 
     def checkbox_checker(self):
-        if not self.refBox.isChecked() and not self.int_refBox.isChecked() and not self.nameBox.isChecked() and not self.highwayBox.isChecked():
-            self.runButton.setEnabled(0)
-        else:
+        """ Only enables run button if atleast one Tags box is checked. """
+        is_checked = [self.refBox.isChecked(), self.int_refBox.isChecked(),
+                  self.nameBox.isChecked(), self.highwayBox.isChecked()]
+        self.runButton.setEnabled(0)
+        if any(is_checked):
             self.runButton.setEnabled(1)
 
     def run_query(self):
+        """
+        Allows run button to execute based on selected tag parameters.
+        Also Enables/disables run button while executing function and allows
+        progress bar functionality. Checks for file/directory validity and spacing.
+        """
         self.work_thread = QThread()
         self.worker = Worker()
         self.worker.done.connect(self.finished)
@@ -298,40 +347,38 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.worker.overwrite_confirm.connect(self.overwrite_message)
         self.worker.moveToThread(self.work_thread)
         self.work_thread.start()
-
         self.work_thread.started.connect(self.worker.firstwork)
 
         # instantiate progress bar class
         self.progressbar = ProgressBar()
         # show progress bar
         self.progressbar.show()
-        # the bar
+        # loop to step through bar
         for i in range(0, 100):
             time.sleep(0.01)
             self.progressbar.setValue(((i + 1) / 100) * 100)
             QApplication.processEvents()
 
-    # allow hotkey 'Return' or 'Enter' on keyboard
-    # to be pressed in lieu of clicking Run button.
-
     def enter_key_event(self, event):
-        if self.runButton.isEnabled():
-            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
-                MainApp.run_query(self)
+        """
+        Allows 'Return' or 'Enter' on keyboard to be pressed in lieu of
+        clicking run button.
 
-        # finally:
-        # Re-enable run button when function complete,
-        # even if it doesn't complete successfully
-
-    # allow hotkey 'Return' or 'Enter' on keyboard
-    # to be pressed in lieu of clicking Run button.
-    def enter_key_event(self, event):
+        Parameters
+        ----------
+        event : class
+            Event which handles keystroke input
+        """
         if self.runButton.isEnabled():
-            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
+            if event.key() == QtCore.Qt.Key_Return:
                 MainApp.run_query(self)
 
     # Re-enable run button when function complete
     def finished(self):
+        """
+        Helper method finalizes run process: re-enable run button, uncheck
+        boxes, and notify user of run process completion.
+        """
         self.runButton.setEnabled(1)
         self.work_thread.quit()
         self.work_thread.wait()
@@ -347,6 +394,14 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         QMessageBox.information(self, "Message", "Complete!")
 
     def overwrite_message(self, fileName):
+        """
+        Display user notification box for overwrite file option.
+
+        Parameters
+        ----------
+        fileName : str
+            File (named by user) to be saved and written.
+        """
         mutex.lock()
         overwritePrompt = QtWidgets.QMessageBox()
         overwritePrompt.setIcon(QMessageBox.Question)
@@ -359,8 +414,11 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         waiting_for_input.wakeAll()
         mutex.unlock()
 
-
 def main():
+    """
+    Creates a new instance of the QtWidget application, sets the form to be
+    out MainWIndow (design) and executes the application.
+    """
     app = QtWidgets.QApplication(sys.argv)
     # Enable High DPI display with PyQt5
     QtWidgets.QApplication.setAttribute(
@@ -373,4 +431,5 @@ def main():
 
 
 if __name__ == '__main__':
+    """ Will only be executed when this module is run directly. """
     main()

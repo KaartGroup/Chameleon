@@ -5,21 +5,52 @@ from ProgressBarUI import Ui_Form
 
 
 class ProgressBar(QtWidgets.QDialog, Ui_Form):
+    """
+
+    Class representing Chameleon progress bar, initiating UI and functionality.
+
+    """
     def __init__(self, desc=None, parent=None):
+        """
+        Parameters
+        ----------
+        desc : str
+            The title of the progress bar window (default is None)
+        """
         super(ProgressBar, self).__init__(parent)
         self.setupUi(self)
         self.show()
         if desc != None:
             self.setDescription(desc)
 
-    def setValue(self, val):  # Sets value
+    def setValue(self, val):
+        """
+        Sets the value for the stepping necessary to move the progress bar.
+
+        Parameters
+        ----------
+        val : int
+            The int value to be set on the progress bar
+        """
         self.progressBar.setProperty("value", val)
 
-    def setDescription(self, desc):  # Sets Pbar window title
+    def setDescription(self, desc):
+        """
+        Sets the title for the progress bar window
+
+        Parameters
+        ----------
+        desc : str
+            The title of the progress bar window
+        """
         self.setWindowTitle(desc)
 
 
 def main():
+    """
+    Creates a new instance of the QtWidget application, sets the form to be
+    out MainWIndow (design) and executes the application.
+    """
     # A new instance of QApplication
     app = QtWidgets.QApplication(sys.argv)
     # We set the form to be our MainWindow (design)
@@ -27,5 +58,6 @@ def main():
     app.exec_()                                 # and execute the app
 
 
-if __name__ == '__main__':                      # if we're running file directly and not importing it
-    main()                                      # run the main function
+if __name__ == '__main__':
+     """ Executes only if we're running file directly and not importing it. """
+     main()
