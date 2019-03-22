@@ -17,7 +17,7 @@ class ProgressBar(QtWidgets.QDialog, UIForm):
             The title of the progress bar window (default is None)
         """
         super(ProgressBar, self).__init__(parent)
-        self.setup_UI(self)
+        self.setup_ui(self)
         self.show()
         if desc != None:
             self.set_description(desc)
