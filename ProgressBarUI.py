@@ -2,8 +2,22 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 class UIForm(object):
+    """
 
+    UI class for the progress bar.
+
+    """
     def setup_ui(self, Form):
+        """
+        Builds the widget tree on the parent widget.
+        Sets up the appearance for progress bar box; 
+        dimensions, text, and GUI form.
+
+        Parameters
+        ---------
+        Form : QObject
+            PyQt object for UI functionality
+        """
         Form.setObjectName("Form")
         Form.resize(250, 84)
         self.progressBar = QtWidgets.QProgressBar(Form)
@@ -23,5 +37,14 @@ class UIForm(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslate_ui(self, Form):
+        """
+        Member function that handles translation of string 
+        properties of form.
+
+        Parameters
+        ---------
+        Form : QObject
+            PyQt object for UI functionality
+        """
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Processing..."))
