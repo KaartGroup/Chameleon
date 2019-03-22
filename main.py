@@ -138,28 +138,28 @@ class Worker(QObject):
                 print(sql)
 
                 # Proceed with generating tangible output for user
-            fileName = self.outputFileValue + "_" + mode + ".csv"
-            if os.path.isfile(fileName):
+            file_name = self.outputFileValue + "_" + mode + ".csv"
+            if os.path.isfile(file_name):
                 mutex.lock()
-                self.overwrite_confirm.emit(fileName)
+                self.overwrite_confirm.emit(file_name)
                 waiting_for_input.wait(mutex)
                 mutex.unlock()
                 if self.response:
                     # mutex.unlock()
-                    self.write_file(sql, fileName)
+                    self.write_file(sql, file_name)
                 elif self.response == False:
                     # mutex.unlock()
                     continue
                 else:
                     raise Exception("Chameleon didn't get an answer")
             else:
-                self.write_file(sql, fileName)
+                self.write_file(sql, file_name)
             if self.group_output:
                 tempf.close()
         # Signal the main thread that this thread is complete
         self.done.emit()
 
-    def write_file(self, sql, fileName):
+    def write_file(self, sql, file_name):
         """
         Handles writing formatted file using data grabbed by SQL query.
 
@@ -167,11 +167,11 @@ class Worker(QObject):
         ----------
         sql : str
             Query that selects JOSM URL for tag grouping
-        fileName : str
+        file_name : str
             File name in csv format
         """
-        with open(fileName, "w") as outputFile:
-            print(f"Writing {fileName}")
+        with open(file_name, "w") as outputFile:
+            print(f"Writing {file_name}")
             input_params = QInputParams(
                 skip_header=True,
                 delimiter='\t'
@@ -215,20 +215,20 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         # self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test")
         # self.refBox.setChecked(1)
         # end debugging
-        oldFileName = ''
-        newFileName = ''
-        outputFileName = ''
+        old_file_name = ''
+        new_file_name = ''
+        output_file_name = ''
 
         # Check for history file and load if exists
         try:
             with open(history_location, 'r') as history_read:
                 loaded = yaml.load(history_read)
-                oldFileName = loaded.get('oldFileName')
-                newFileName = loaded.get('newFileName')
-                outputFileName = loaded.get('outputFileName')
-                self.oldFileNameBox.insert(oldFileName)
-                self.newFileNameBox.insert(newFileName)
-                self.outputFileNameBox.insert(outputFileName)
+                old_file_name = loaded.get('oldFileName')
+                new_file_name = loaded.get('newFileName')
+                output_file_name = loaded.get('outputFileName')
+                self.oldFileNameBox.insert(old_file_name)
+                self.newFileNameBox.insert(new_file_name)
+                self.outputFileNameBox.insert(output_file_name)
         # If file doesn't exist, fail silently
         except:
             pass
@@ -249,14 +249,14 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         '/downloads' system path to find csv file.
         """
         if re.match("\\S+", self.oldFileNameBox.text()):
-            oldFileDir = self.oldFileNameBox.text()
+            old_file_dir = self.oldFileNameBox.text()
         else:
-            oldFileDir = os.path.expanduser("~/Downloads")
-        oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select CSV file with old data", oldFileDir, "CSV (*.csv)")
-        if oldFileName:
+            old_file_dir = os.path.expanduser("~/Downloads")
+        old_file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Select CSV file with old data", old_file_dir, "CSV (*.csv)")
+        if old_file_name:
             self.oldFileNameBox.clear()
-            self.oldFileNameBox.insert(oldFileName)
+            self.oldFileNameBox.insert(old_file_name)
 
     def open_new_file(self):
         """
@@ -264,14 +264,14 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         '/downloads' system path to find csv file.
         """
         if re.match("\\S+", self.newFileNameBox.text()):
-            newFileDir = self.newFileNameBox.text()
+            new_file_dir = self.newFileNameBox.text()
         else:
-            newFileDir = os.path.expanduser("~/Downloads")
-        newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select CSV file with new data", newFileDir, "CSV (*.csv)")
-        if newFileName:
+            new_file_dir = os.path.expanduser("~/Downloads")
+        new_file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Select CSV file with new data", new_file_dir, "CSV (*.csv)")
+        if new_file_name:
             self.newFileNameBox.clear()
-            self.newFileNameBox.insert(newFileName)
+            self.newFileNameBox.insert(new_file_name)
 
     def output_file(self):
         """
@@ -279,16 +279,16 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         '/downloads' system path for user to name an output file.
         """
         if re.match("\\S+", self.newFileNameBox.text()):
-            outputFileDir = os.path.dirname(self.outputFileNameBox.text())
+            output_file_dir = os.path.dirname(self.outputFileNameBox.text())
         else:
-            outputFileDir = os.path.expanduser("~/Documents")
-        outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Enter output file prefix", outputFileDir)
-        if outputFileName:
-            if ".csv" in outputFileName:
-                outputFileName = outputFileName.replace('.csv', '')
+            output_file_dir = os.path.expanduser("~/Documents")
+        output_file_name, _filter = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Enter output file prefix", output_file_dir)
+        if output_file_name:
+            if ".csv" in output_file_name:
+                output_file_name = output_file_name.replace('.csv', '')
             self.outputFileNameBox.clear()
-            self.outputFileNameBox.insert(outputFileName)
+            self.outputFileNameBox.insert(output_file_name)
 
     def checkbox_checker(self):
         """ Only enables run button if atleast one Tags box is checked. """
@@ -325,10 +325,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.file_warning.exec()
             return
         # Check for spaces in file names
-        spaceExpression = re.compile("^\\S+\\s+\\S+$")
-        if spaceExpression.match(self.worker.oldFileValue) or \
-           spaceExpression.match(self.worker.newFileValue) or \
-           spaceExpression.match(self.worker.outputFileValue):
+        space_expression = re.compile("^\\S+\\s+\\S+$")
+        if space_expression.match(self.worker.oldFileValue) or \
+           space_expression.match(self.worker.newFileValue) or \
+           space_expression.match(self.worker.outputFileValue):
             # Popup here
             self.spaceWarning = QtWidgets.QMessageBox()
             self.spaceWarning.setIcon(QMessageBox.Critical)
@@ -362,13 +362,13 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.work_thread.started.connect(self.worker.firstwork)
 
         # instantiate progress bar class
-        self.progressbar = ProgressBar()
+        self.progress_bar = ProgressBar()
         # show progress bar
-        self.progressbar.show()
+        self.progress_bar.show()
         # loop to step through bar
         for i in range(0, 100):
             time.sleep(0.01)
-            self.progressbar.setValue(((i + 1) / 100) * 100)
+            self.progress_bar.set_value(((i + 1) / 100) * 100)
             QApplication.processEvents()
 
     def enter_key_event(self, event):
@@ -395,7 +395,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.work_thread.quit()
         self.work_thread.wait()
         # close the progress bar
-        self.progressbar.close()
+        self.progress_bar.close()
 
         # untoggle all radio buttons
         self.refBox.setChecked(False)
@@ -415,13 +415,13 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             File (named by user) to be saved and written.
         """
         mutex.lock()
-        overwritePrompt = QtWidgets.QMessageBox()
-        overwritePrompt.setIcon(QMessageBox.Question)
-        overwritePromptResponse = overwritePrompt.question(
-            self, '', f"{fileName} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
-        if overwritePromptResponse == overwritePrompt.No:
+        overwrite_prompt = QtWidgets.QMessageBox()
+        overwrite_prompt.setIcon(QMessageBox.Question)
+        overwrite_prompt_response = overwrite_prompt.question(
+            self, '', f"{fileName} exists. Do you want to overwrite?", overwrite_prompt.No | overwrite_prompt.Yes)
+        if overwrite_prompt_response == overwrite_prompt.No:
             self.worker.response = False
-        elif overwritePromptResponse == overwritePrompt.Yes:
+        elif overwrite_prompt_response == overwrite_prompt.Yes:
             self.worker.response = True
         waiting_for_input.wakeAll()
         mutex.unlock()

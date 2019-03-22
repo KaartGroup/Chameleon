@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_Form(object):
-    def setupUi(self, Form):
+class UIForm(object):
+    def setup_UI(self, Form):
         Form.setObjectName("Form")
         Form.resize(250, 84)
         self.progressBar = QtWidgets.QProgressBar(Form)
@@ -18,9 +18,9 @@ class Ui_Form(object):
         self.progressBar.setMaximumSize(QtCore.QSize(200, 60))
         self.progressBar.setProperty("value", 0)
         self.progressBar.setObjectName("progressBar")
-        self.retranslateUi(Form)
+        self.retranslate_UI(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
-    def retranslateUi(self, Form):
+    def retranslate_UI(self, Form):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Progress bar"))
+        Form.setWindowTitle(_translate("Form", "Processing..."))

@@ -1,10 +1,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
-from ProgressBarUI import Ui_Form
+from ProgressBarUI import UIForm
 
-
-class ProgressBar(QtWidgets.QDialog, Ui_Form):
+class ProgressBar(QtWidgets.QDialog, UIForm):
     """
 
     Class representing Chameleon progress bar, initiating UI and functionality.
@@ -18,12 +17,12 @@ class ProgressBar(QtWidgets.QDialog, Ui_Form):
             The title of the progress bar window (default is None)
         """
         super(ProgressBar, self).__init__(parent)
-        self.setupUi(self)
+        self.setup_UI(self)
         self.show()
         if desc != None:
-            self.setDescription(desc)
+            self.set_description(desc)
 
-    def setValue(self, val):
+    def set_value(self, val):
         """
         Sets the value for the stepping necessary to move the progress bar.
 
@@ -34,7 +33,7 @@ class ProgressBar(QtWidgets.QDialog, Ui_Form):
         """
         self.progressBar.setProperty("value", val)
 
-    def setDescription(self, desc):
+    def set_description(self, desc):
         """
         Sets the title for the progress bar window
 
