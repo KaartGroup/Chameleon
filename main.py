@@ -223,9 +223,9 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         try:
             with open(history_location, 'r') as history_read:
                 loaded = yaml.load(history_read)
-                old_file_name = loaded.get('old_file_name')
-                new_file_name = loaded.get('new_file_name')
-                output_file_name = loaded.get('output_file_name')
+                old_file_name = loaded.get('oldFileName')
+                new_file_name = loaded.get('newFileName')
+                output_file_name = loaded.get('outputFileName')
                 self.oldFileNameBox.insert(old_file_name)
                 self.newFileNameBox.insert(new_file_name)
                 self.outputFileNameBox.insert(output_file_name)
