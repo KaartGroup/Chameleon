@@ -332,24 +332,24 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         old_file_path = Path(self.worker.oldFileValue)
         new_file_path = Path(self.worker.newFileValue)
         # Check if either old or new file/directory exists. If not, notify user.
-        self.file_warning = QtWidgets.QMessageBox()
-        self.file_warning.setIcon(QMessageBox.Critical)
-        if not old_file_path.is_file() and not new_file_path.is_file():
-            self.file_warning.setText(
-                "File or directories not found!")        
-        elif not old_file_path.is_file():
-            self.file_warning.setText(
-                "Old file or directory\n%s\nnot found!" 
-                % (self.oldFileNameBox.text()))
-        elif not new_file_path.is_file():
-            self.file_warning.setText(
-                "New file or directory\n%s\nnot found!" 
-                % (self.newFileNameBox.text()))
-
-        self.file_warning.setInformativeText(
-            "Check if your file or directory(s) exists.")
-        self.file_warning.exec()
-        return
+        if not old_file_path.is_file() or not new_file_path.is_file():
+            self.file_warning = QtWidgets.QMessageBox()
+            self.file_warning.setIcon(QMessageBox.Critical)
+            if not old_file_path.is_file() and not new_file_path.is_file():
+                self.file_warning.setText(
+                    "File or directories not found!")      
+            elif not old_file_path.is_file():
+                self.file_warning.setText(
+                    "Old file or directory\n%s\nnot found!" 
+                    % (self.oldFileNameBox.text()))
+            elif not new_file_path.is_file():
+                self.file_warning.setText(
+                    "New file or directory\n%s\nnot found!" 
+                    % (self.newFileNameBox.text()))
+            self.file_warning.setInformativeText(
+            "Check if your file or directory(s) exists.")  
+            self.file_warning.exec()
+            return
         # Define set of selected modes
         self.worker.modes = set()
         if self.refBox.isChecked():
