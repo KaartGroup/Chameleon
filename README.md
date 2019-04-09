@@ -68,9 +68,9 @@ Tabulated OSM data is required for using Chameleon 2. CSVs can be obtained from 
 ![direct-download](./direct-download.png)
 
  Sample Query for extracting Overpass snapshot OSM data:
- - Modify "[date:"YYYY-MM-DDT00:00:00Z"]" for desire snapshot
- - Modify "{geocodeArea:Country_Name}" for desire location
- - Modify "way["highway"~"motorway|trunk|primary|secondary|tertiary|_link"]" for desire way objects
+ - Modify `[date:"YYYY-MM-DDT00:00:00Z"]` for desire snapshot
+ - Modify `{geocodeArea:Country_Name}` for desire location
+ - Modify `way["highway"~"motorway|trunk|primary|secondary|tertiary|_link"]` for desire way objects
 
 ```
 [out:csv(::type,::id,name,::user,::timestamp,::version,highway,ref,int_ref)][timeout:25000][maxsize:800000000][date:"YYYY-MM-DDT00:00:00Z"];
