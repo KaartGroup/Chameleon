@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
-import errno
-import os
-import time
-import re
-import sys
-import tempfile
+import errno, os, time, re, sys, tempfile
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
@@ -18,7 +13,8 @@ from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
 import design  # Import generated UI file
 
 from ProgressBar import ProgressBar
-
+from pathlib import Path
+import os.path
 # Required by the yaml module b/c of namespace conflicts
 yaml = YAML(typ='safe')
 
@@ -28,8 +24,13 @@ waiting_for_input = QtCore.QWaitCondition()
 history_location = user_config_dir(
     "Chameleon 2", "Kaart") + "/history.yaml"
 
-
 class Worker(QObject):
+    """
+
+    Worker class, code inside slot should execute in a separate thread.
+    Displays file paths, executes comparison function, writes and saves file.
+
+    """
     done = pyqtSignal()
     overwrite_confirm = pyqtSignal(str)
     # modes = set()
@@ -41,6 +42,15 @@ class Worker(QObject):
     # Create a file for each chosen mode
     @pyqtSlot()
     def firstwork(self):
+        """
+        Saves file path for future loading, create a directory if one does not
+        already exist. Groups JOSM tags with SQL and generates suitable output.
+
+        Raises
+        ------
+        OSError
+            If history path does not exist and returns a system-related error.
+        """
         # Saving paths to config for future loading
         # Make directory if it doesn't exist
         if not os.path.exists(os.path.dirname(history_location)):
@@ -69,12 +79,14 @@ class Worker(QObject):
                 sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
                 sql += "substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS url, "
             sql += "ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\",old.\"@timestamp\"),1,10) AS timestamp, "
+            sql += "ifnull(new.\"@version\",old.\"@version\") AS version, "
             if mode != "highway":
                 sql += "ifnull(new.highway,old.highway) AS highway, "
             if mode != "name":
                 sql += "ifnull(new.name,old.name) AS name, "
             sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
             if not self.group_output:
+                sql += ", \"modified\" AS \"action\" "
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON old.\"@id\" = new.\"@id\" "
             sql += f"WHERE old_{mode} NOT LIKE new_{mode} "
@@ -85,12 +97,14 @@ class Worker(QObject):
                 sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
                 sql += "substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
             sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
+            sql += "new.\"@version\" AS version, "
             if mode != "highway":
                 sql += "new.highway AS highway, "
             if mode != "name":
                 sql += "new.name AS name, "
             sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
             if not self.group_output:
+                sql += ", \"added\" AS \"action\" "
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
             sql += f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{mode},'')) > 0"
@@ -128,30 +142,40 @@ class Worker(QObject):
                 print(sql)
 
                 # Proceed with generating tangible output for user
-            fileName = self.outputFileValue + "_" + mode + ".csv"
-            if os.path.isfile(fileName):
+            file_name = self.outputFileValue + "_" + mode + ".csv"
+            if os.path.isfile(file_name):
                 mutex.lock()
-                self.overwrite_confirm.emit(fileName)
+                self.overwrite_confirm.emit(file_name)
                 waiting_for_input.wait(mutex)
                 mutex.unlock()
                 if self.response:
                     # mutex.unlock()
-                    self.write_file(sql, fileName)
+                    self.write_file(sql, file_name)
                 elif self.response == False:
                     # mutex.unlock()
                     continue
                 else:
                     raise Exception("Chameleon didn't get an answer")
             else:
-                self.write_file(sql, fileName)
+                self.write_file(sql, file_name)
             if self.group_output:
                 tempf.close()
         # Signal the main thread that this thread is complete
         self.done.emit()
 
-    def write_file(self, sql, fileName):
-        with open(fileName, "w") as outputFile:
-            print(f"Writing {fileName}")
+    def write_file(self, sql, file_name):
+        """
+        Handles writing formatted file using data grabbed by SQL query.
+
+        Parameters
+        ----------
+        sql : str
+            Query that selects JOSM URL for tag grouping
+        file_name : str
+            File name in csv format
+        """
+        with open(file_name, "w") as outputFile:
+            print(f"Writing {file_name}")
             input_params = QInputParams(
                 skip_header=True,
                 delimiter='\t'
@@ -167,13 +191,23 @@ class Worker(QObject):
                 output_params)
             q_output_printer.print_output(
                 outputFile, sys.stderr, q_output)
-            # print("Complete")
+            print("Complete")
             # Insert completion feedback here
 
-
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
+    """
+
+    Main PyQT window class that allows communication between UI and backend.
+    Passes QMainWindow parameter to provide main application window, establish
+    event handling with signal/slot connection.
+
+    """
 
     def __init__(self, parent=None):
+        """
+        Loads history file path, establish event handling with signal/slot
+        connection.
+        """
         super().__init__()
         self.setupUi(self)
 
@@ -185,20 +219,20 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         # self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test")
         # self.refBox.setChecked(1)
         # end debugging
-        oldFileName = ''
-        newFileName = ''
-        outputFileName = ''
+        old_file_name = ''
+        new_file_name = ''
+        output_file_name = ''
 
         # Check for history file and load if exists
         try:
             with open(history_location, 'r') as history_read:
                 loaded = yaml.load(history_read)
-                oldFileName = loaded.get('oldFileName')
-                newFileName = loaded.get('newFileName')
-                outputFileName = loaded.get('outputFileName')
-                self.oldFileNameBox.insert(oldFileName)
-                self.newFileNameBox.insert(newFileName)
-                self.outputFileNameBox.insert(outputFileName)
+                old_file_name = loaded.get('oldFileName')
+                new_file_name = loaded.get('newFileName')
+                output_file_name = loaded.get('outputFileName')
+                self.oldFileNameBox.insert(old_file_name)
+                self.newFileNameBox.insert(new_file_name)
+                self.outputFileNameBox.insert(output_file_name)
         # If file doesn't exist, fail silently
         except:
             pass
@@ -214,47 +248,66 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.highwayBox.stateChanged.connect(self.checkbox_checker)
 
     def open_old_file(self):
+        """
+        Adds functionality to the Open Old File (...) button, opens the
+        '/downloads' system path to find csv file.
+        """
         if re.match("\\S+", self.oldFileNameBox.text()):
-            oldFileDir = self.oldFileNameBox.text()
+            old_file_dir = self.oldFileNameBox.text()
         else:
-            oldFileDir = os.path.expanduser("~/Downloads")
-        oldFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select CSV file with old data", oldFileDir, "CSV (*.csv)")
-        if oldFileName:
+            old_file_dir = os.path.expanduser("~/Downloads")
+        old_file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Select CSV file with old data", old_file_dir, "CSV (*.csv)")
+        if old_file_name:
             self.oldFileNameBox.clear()
-            self.oldFileNameBox.insert(oldFileName)
+            self.oldFileNameBox.insert(old_file_name)
 
     def open_new_file(self):
+        """
+        Adds functionality to the Open New File (...) button, opens the
+        '/downloads' system path to find csv file.
+        """
         if re.match("\\S+", self.newFileNameBox.text()):
-            newFileDir = self.newFileNameBox.text()
+            new_file_dir = self.newFileNameBox.text()
         else:
-            newFileDir = os.path.expanduser("~/Downloads")
-        newFileName, _filter = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select CSV file with new data", newFileDir, "CSV (*.csv)")
-        if newFileName:
+            new_file_dir = os.path.expanduser("~/Downloads")
+        new_file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Select CSV file with new data", new_file_dir, "CSV (*.csv)")
+        if new_file_name:
             self.newFileNameBox.clear()
-            self.newFileNameBox.insert(newFileName)
+            self.newFileNameBox.insert(new_file_name)
 
     def output_file(self):
+        """
+        Adds functionality to the Output File (...) button, opens the
+        '/downloads' system path for user to name an output file.
+        """
         if re.match("\\S+", self.newFileNameBox.text()):
-            outputFileDir = os.path.dirname(self.outputFileNameBox.text())
+            output_file_dir = os.path.dirname(self.outputFileNameBox.text())
         else:
-            outputFileDir = os.path.expanduser("~/Documents")
-        outputFileName, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Enter output file prefix", outputFileDir)
-        if outputFileName:
-            if ".csv" in outputFileName:
-                outputFileName = outputFileName.replace('.csv', '')
+            output_file_dir = os.path.expanduser("~/Documents")
+        output_file_name, _filter = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Enter output file prefix", output_file_dir)
+        if output_file_name:
+            if ".csv" in output_file_name:
+                output_file_name = output_file_name.replace('.csv', '')
             self.outputFileNameBox.clear()
-            self.outputFileNameBox.insert(outputFileName)
+            self.outputFileNameBox.insert(output_file_name)
 
     def checkbox_checker(self):
-        if not self.refBox.isChecked() and not self.int_refBox.isChecked() and not self.nameBox.isChecked() and not self.highwayBox.isChecked():
-            self.runButton.setEnabled(0)
-        else:
+        """ Only enables run button if atleast one Tags box is checked. """
+        is_checked = [self.refBox.isChecked(), self.int_refBox.isChecked(),
+                  self.nameBox.isChecked(), self.highwayBox.isChecked()]
+        self.runButton.setEnabled(0)
+        if any(is_checked):
             self.runButton.setEnabled(1)
 
     def run_query(self):
+        """
+        Allows run button to execute based on selected tag parameters.
+        Also Enables/disables run button while executing function and allows
+        progress bar functionality. Checks for file/directory validity and spacing.
+        """
         self.work_thread = QThread()
         self.worker = Worker()
         self.worker.done.connect(self.finished)
@@ -264,10 +317,10 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.worker.newFileValue = self.newFileNameBox.text()
         self.worker.outputFileValue = self.outputFileNameBox.text()
         # Check for spaces in file names
-        spaceExpression = re.compile("^\\S+\\s+\\S+$")
-        if spaceExpression.match(self.worker.oldFileValue) or \
-           spaceExpression.match(self.worker.newFileValue) or \
-           spaceExpression.match(self.worker.outputFileValue):
+        space_expression = re.compile("^\\S+\\s+\\S+$")
+        if space_expression.match(self.worker.oldFileValue) or \
+           space_expression.match(self.worker.newFileValue) or \
+           space_expression.match(self.worker.outputFileValue):
             # Popup here
             self.spaceWarning = QtWidgets.QMessageBox()
             self.spaceWarning.setIcon(QMessageBox.Critical)
@@ -278,7 +331,29 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.spaceWarning.setEscapeButton(QMessageBox.Ok)
             self.spaceWarning.exec()
             return
-        self.runButton.setEnabled(0)
+
+        # Wrap the file references in Path object to prepare "file not found" warning
+        old_file_path = Path(self.worker.oldFileValue)
+        new_file_path = Path(self.worker.newFileValue)
+        # Check if either old or new file/directory exists. If not, notify user.
+        if not old_file_path.is_file() or not new_file_path.is_file():
+            self.file_warning = QtWidgets.QMessageBox()
+            self.file_warning.setIcon(QMessageBox.Critical)
+            if not old_file_path.is_file() and not new_file_path.is_file():
+                self.file_warning.setText(
+                    "File or directories not found!")      
+            elif not old_file_path.is_file():
+                self.file_warning.setText(
+                    "Old file or directory\n%s\nnot found!" 
+                    % (self.oldFileNameBox.text()))
+            elif not new_file_path.is_file():
+                self.file_warning.setText(
+                    "New file or directory\n%s\nnot found!" 
+                    % (self.newFileNameBox.text()))
+            self.file_warning.setInformativeText(
+            "Check if your file or directory(s) exists.")  
+            self.file_warning.exec()
+            return
         # Define set of selected modes
         self.worker.modes = set()
         if self.refBox.isChecked():
@@ -298,45 +373,43 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.worker.overwrite_confirm.connect(self.overwrite_message)
         self.worker.moveToThread(self.work_thread)
         self.work_thread.start()
-
         self.work_thread.started.connect(self.worker.firstwork)
 
         # instantiate progress bar class
-        self.progressbar = ProgressBar()
+        self.progress_bar = ProgressBar()
         # show progress bar
-        self.progressbar.show()
-        # the bar
+        self.progress_bar.show()
+        # loop to step through bar
         for i in range(0, 100):
             time.sleep(0.01)
-            self.progressbar.setValue(((i + 1) / 100) * 100)
+            self.progress_bar.set_value(((i + 1) / 100) * 100)
             QApplication.processEvents()
 
-    # allow hotkey 'Return' or 'Enter' on keyboard
-    # to be pressed in lieu of clicking Run button.
-
     def enter_key_event(self, event):
-        if self.runButton.isEnabled():
-            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
-                MainApp.run_query(self)
+        """
+        Allows 'Return' or 'Enter' on keyboard to be pressed in lieu of
+        clicking run button.
 
-        # finally:
-        # Re-enable run button when function complete,
-        # even if it doesn't complete successfully
-
-    # allow hotkey 'Return' or 'Enter' on keyboard
-    # to be pressed in lieu of clicking Run button.
-    def enter_key_event(self, event):
+        Parameters
+        ----------
+        event : class
+            Event which handles keystroke input
+        """
         if self.runButton.isEnabled():
-            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
+            if event.key() == QtCore.Qt.Key_Return:
                 MainApp.run_query(self)
 
     # Re-enable run button when function complete
     def finished(self):
+        """
+        Helper method finalizes run process: re-enable run button, uncheck
+        boxes, and notify user of run process completion.
+        """
         self.runButton.setEnabled(1)
         self.work_thread.quit()
         self.work_thread.wait()
         # close the progress bar
-        self.progressbar.close()
+        self.progress_bar.close()
 
         # untoggle all radio buttons
         self.refBox.setChecked(False)
@@ -347,20 +420,31 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         QMessageBox.information(self, "Message", "Complete!")
 
     def overwrite_message(self, fileName):
+        """
+        Display user notification box for overwrite file option.
+
+        Parameters
+        ----------
+        fileName : str
+            File (named by user) to be saved and written.
+        """
         mutex.lock()
-        overwritePrompt = QtWidgets.QMessageBox()
-        overwritePrompt.setIcon(QMessageBox.Question)
-        overwritePromptResponse = overwritePrompt.question(
-            self, '', f"{fileName} exists. Do you want to overwrite?", overwritePrompt.No | overwritePrompt.Yes)
-        if overwritePromptResponse == overwritePrompt.No:
+        overwrite_prompt = QtWidgets.QMessageBox()
+        overwrite_prompt.setIcon(QMessageBox.Question)
+        overwrite_prompt_response = overwrite_prompt.question(
+            self, '', f"{fileName} exists. Do you want to overwrite?", overwrite_prompt.No | overwrite_prompt.Yes)
+        if overwrite_prompt_response == overwrite_prompt.No:
             self.worker.response = False
-        elif overwritePromptResponse == overwritePrompt.Yes:
+        elif overwrite_prompt_response == overwrite_prompt.Yes:
             self.worker.response = True
         waiting_for_input.wakeAll()
         mutex.unlock()
 
-
 def main():
+    """
+    Creates a new instance of the QtWidget application, sets the form to be
+    out MainWIndow (design) and executes the application.
+    """
     app = QtWidgets.QApplication(sys.argv)
     # Enable High DPI display with PyQt5
     QtWidgets.QApplication.setAttribute(
@@ -373,4 +457,5 @@ def main():
 
 
 if __name__ == '__main__':
+    """ Will only be executed when this module is run directly. """
     main()
