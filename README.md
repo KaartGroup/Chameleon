@@ -9,7 +9,7 @@
 
 ## Description
 
-Cross-platform GUI development expanding upon Chameleon 1 functionalities. This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities include detecting changes in ref, int_ref, name, and highway tags from OSM data. Chameleon 2 enables change grouping and multi-analytical capability for processing multiple user options at once. This project is under ongoing development, and Chameleon 2 is currently in Alpha stage.
+Cross-platform GUI development expanding upon Chameleon 1 functionalities. This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities include detecting changes in `ref`, `int_ref`, `name`, and `highway` tags from OSM data. Some metadata OSM tags are default outputs of Chameleon 2, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon 2 also enables change grouping and multi-analytical capability for processing multiple user options at once. This project is under ongoing development, and Chameleon 2 is currently in Alpha stage.
 
 ## Installation
 
@@ -63,7 +63,7 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 
 ## Overpass Turbo
 
-Tabulated OSM data is required for using Chameleon 2. CSVs can be obtained from overpass-turbo.de. User will need two snapshots of OSM data. Overpass Turbo output should be exported using the "raw data directly from <u>Overpass API</u>" option:
+Tabulated OSM data is required for using Chameleon 2. CSVs can be obtained from overpass-turbo.de. Default tags that are used by Chameleon 2 processing includes `type`, `id`, `name`, `user`, `timestamp`, `version`. User will need two snapshots of the OSM data with all of the above-listed tags to process OSM data with Chameleon 2. Overpass Turbo output should be exported using the "raw data directly from <u>Overpass API</u>" option:
 
 ![direct-download](./direct-download.png)
 
@@ -73,7 +73,7 @@ Tabulated OSM data is required for using Chameleon 2. CSVs can be obtained from 
  - Modify "way["highway"~"motorway|trunk|primary|secondary|tertiary|_link"]" for desire way objects
 
 ```
-[out:csv(::type,::id,name,::user,::timestamp,highway,ref,int_ref)][timeout:25000][maxsize:800000000][date:"YYYY-MM-DDT00:00:00Z"];
+[out:csv(::type,::id,name,::user,::timestamp,::version,highway,ref,int_ref)][timeout:25000][maxsize:800000000][date:"YYYY-MM-DDT00:00:00Z"];
 {{geocodeArea:Country_Name}}->.searchArea;
 (
   way["highway"~"motorway|trunk|primary|secondary|tertiary|_link"](area.searchArea);
