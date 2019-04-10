@@ -226,28 +226,13 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
-        # defaults for debugging
-        # self.oldFileNameBox.insert(
-        #     "/Users/primaryuser/Downloads/algeria_old.csv")
-        # self.newFileNameBox.insert(
-        #     "/Users/primaryuser/Downloads/algeria_cur.csv")
-        # self.outputFileNameBox.insert("/Users/primaryuser/Desktop/test")
-        # self.refBox.setChecked(1)
-        # end debugging
-        old_file_name = ''
-        new_file_name = ''
-        output_file_name = ''
-
         # Check for history file and load if exists
         try:
             with open(HISTORY_LOCATION, 'r') as history_read:
                 loaded = yaml.load(history_read)
-                old_file_name = loaded.get('oldFileName')
-                new_file_name = loaded.get('newFileName')
-                output_file_name = loaded.get('outputFileName')
-                self.oldFileNameBox.insert(old_file_name)
-                self.newFileNameBox.insert(new_file_name)
-                self.outputFileNameBox.insert(output_file_name)
+                self.oldFileNameBox.insert(loaded.get('oldFileName', ''))
+                self.newFileNameBox.insert(loaded.get('newFileName', ''))
+                self.outputFileNameBox.insert(loaded.get('outputFileName', ''))
         # If file doesn't exist, fail silently
         except FileNotFoundError:
             pass
