@@ -28,7 +28,7 @@ yaml = YAML(typ='safe')
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
 
-history_location = user_config_dir(
+HISTORY_LOCATION = user_config_dir(
     "Chameleon 2", "Kaart") + "/history.yaml"
 
 
@@ -61,13 +61,13 @@ class Worker(QObject):
         """
         # Saving paths to config for future loading
         # Make directory if it doesn't exist
-        if not os.path.exists(os.path.dirname(history_location)):
+        if not os.path.exists(os.path.dirname(HISTORY_LOCATION)):
             try:
-                os.makedirs(os.path.dirname(history_location))
+                os.makedirs(os.path.dirname(HISTORY_LOCATION))
             except OSError as exc:
                 if exc.errno != errno.EEXIST:
                     raise
-        with open(history_location, 'w') as history_write:
+        with open(HISTORY_LOCATION, 'w') as history_write:
             history_write.write("oldFileName: " +
                                 self.oldFileValue + "\n")
             history_write.write("newFileName: " +
@@ -240,7 +240,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
         # Check for history file and load if exists
         try:
-            with open(history_location, 'r') as history_read:
+            with open(HISTORY_LOCATION, 'r') as history_read:
                 loaded = yaml.load(history_read)
                 old_file_name = loaded.get('oldFileName')
                 new_file_name = loaded.get('newFileName')
