@@ -89,3 +89,5 @@ out meta;
 
 ## Contributors
 @austin61293, @dericke, @geografer
+
+The current software is licensed under [`GPL3`](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE).
