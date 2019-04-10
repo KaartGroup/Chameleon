@@ -83,6 +83,7 @@ class Worker(QObject):
                 print(f'Temporary file generated at {tempf.name}.')
             # Creating SQL snippets
             # Added based ID SQL to ensure Object ID output
+            # LEFT OUTER JOIN to isolate instances of old NOT LIKE new
             sql = "SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS id, "
             if not self.group_output:
                 sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
@@ -93,14 +94,16 @@ class Worker(QObject):
                 sql += "ifnull(new.highway,old.highway) AS highway, "
             if mode != "name":
                 sql += "ifnull(new.name,old.name) AS name, "
-            sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
+            sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode}, "
             if not self.group_output:
-                sql += ", \"modified\" AS \"action\" "
+                # Differentiate between objects that are modified and deleted
+                sql += f"CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
+                sql += "ELSE \"deleted\" END action"
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON old.\"@id\" = new.\"@id\" "
             sql += f"WHERE old_{mode} NOT LIKE new_{mode} "
 
-            # Union all full left outer join SQL statements
+            # UNION FULL LEFT OUTER JOIN to isolated instances of new objects
             sql += "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
             if not self.group_output:
                 sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
@@ -113,10 +116,12 @@ class Worker(QObject):
                 sql += "new.name AS name, "
             sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
             if not self.group_output:
-                sql += ", \"added\" AS \"action\" "
+                # 'action' defaults to 'new' to capture 'added' and 'split' objects
+                sql += ", \"new\" AS \"action\" "
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
-            sql += f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{mode},'')) > 0"
+            sql += f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{mode},'')) > 0 "
+
             print(sql)
             # Generate variable for output file path
             if self.group_output:
@@ -150,7 +155,7 @@ class Worker(QObject):
                 sql += f"GROUP BY old_{mode},new_{mode}"
                 print(sql)
 
-                # Proceed with generating tangible output for user
+            # Proceed with generating tangible output for user
             file_name = self.outputFileValue + "_" + mode + ".csv"
             if os.path.isfile(file_name):
                 mutex.lock()
