@@ -97,8 +97,8 @@ class Worker(QObject):
             sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode}, "
             if not self.group_output:
                 # Differentiate between objects that are modified and deleted
-                sql += f"CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
-                sql += "ELSE \"deleted\" END action"
+                sql += "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
+                sql += "ELSE \"deleted\" END \"action\" "
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON old.\"@id\" = new.\"@id\" "
             sql += f"WHERE old_{mode} NOT LIKE new_{mode} "
@@ -144,15 +144,16 @@ class Worker(QObject):
 
                 print(
                     f"Completed intermediate processing for {mode}.")
-
+                
                 # Grouping function with q
                 sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
                 sql += "group_concat(id)) AS url, count(id) AS count, group_concat(distinct user) AS users, max(timestamp) AS latest_timestamp, "
+                # sql += "min(version) AS version, "
                 if mode != "highway":
                     sql += "highway, "
-                sql += f"old_{mode},new_{mode}, "
+                sql += f"old_{mode},new_{mode}, " # group_concat(distinct action) AS actions, "
                 sql += f"NULL AS \"notes\" FROM {tempf.name} "
-                sql += f"GROUP BY old_{mode},new_{mode}"
+                sql += f"GROUP BY old_{mode},new_{mode}" #,action"
                 print(sql)
 
             # Proceed with generating tangible output for user
