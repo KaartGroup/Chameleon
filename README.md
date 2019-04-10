@@ -88,6 +88,6 @@ out meta;
 - Public version will be available with future releases of Chameleon 2.
 
 ## Contributors
-@austin61293, @dericke, @geografer
+@austin61293, @dericke, @geografer, @LiuTwo
 
 The Chameleon 2 software is licensed under [`GPL3`](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE).
