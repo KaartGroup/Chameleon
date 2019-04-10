@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 
-import errno, os, time, re, sys, tempfile
+import errno
+import os
+import os.path
+import re
+import sys
+import tempfile
+import time
+from pathlib import Path
+
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QMessageBox, QApplication
-from PyQt5.QtCore import QThread, pyqtSignal, QObject, pyqtSlot
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QApplication, QMessageBox
 # Loads and saves settings to YAML
 from ruamel.yaml import YAML
-# Does the processing
-from q import QTextAsData, QInputParams, QOutputParams, QOutputPrinter
-import design  # Import generated UI file
 
+import design  # Import generated UI file
 from ProgressBar import ProgressBar
-from pathlib import Path
-import os.path
+# Does the processing
+from q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData
+
 # Required by the yaml module b/c of namespace conflicts
 yaml = YAML(typ='safe')
 
@@ -23,6 +30,7 @@ waiting_for_input = QtCore.QWaitCondition()
 
 history_location = user_config_dir(
     "Chameleon 2", "Kaart") + "/history.yaml"
+
 
 class Worker(QObject):
     """
@@ -70,7 +78,8 @@ class Worker(QObject):
             if self.group_output:
                 # Generating temporary output files (max size 100 MB)
                 tempf = tempfile.NamedTemporaryFile(
-                    mode='w', buffering=-1, encoding=None, newline=None, suffix=".csv", prefix=None, dir=None, delete=True)
+                    mode='w', buffering=-1, encoding=None, newline=None,
+                    suffix=".csv", prefix=None, dir=None, delete=True)
                 print(f'Temporary file generated at {tempf.name}.')
             # Creating SQL snippets
             # Added based ID SQL to ensure Object ID output
@@ -156,7 +165,7 @@ class Worker(QObject):
                 if self.response:
                     # mutex.unlock()
                     self.write_file(sql, file_name)
-                elif self.response == False:
+                elif self.response is False:
                     # mutex.unlock()
                     continue
                 else:
@@ -199,6 +208,7 @@ class Worker(QObject):
             print("Complete")
             # Insert completion feedback here
 
+
 class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     """
 
@@ -239,7 +249,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 self.newFileNameBox.insert(new_file_name)
                 self.outputFileNameBox.insert(output_file_name)
         # If file doesn't exist, fail silently
-        except:
+        except FileNotFoundError:
             pass
         self.checkbox_checker()
         # Connecting signals to slots
@@ -252,6 +262,8 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.nameBox.stateChanged.connect(self.checkbox_checker)
         self.highwayBox.stateChanged.connect(self.checkbox_checker)
 
+    # These next two functions could probably be consolidated into one,
+    # taking the calling box as an argument
     def open_old_file(self):
         """
         Adds functionality to the Open Old File (...) button, opens the
@@ -260,10 +272,11 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         if re.match("\\S+", self.oldFileNameBox.text()):
             old_file_dir = self.oldFileNameBox.text()
         else:
+            # If no previous location, default to Downloads folder
             old_file_dir = os.path.expanduser("~/Downloads")
         old_file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
             self, "Select CSV file with old data", old_file_dir, "CSV (*.csv)")
-        if old_file_name:
+        if old_file_name:  # Clear the box before adding the new path
             self.oldFileNameBox.clear()
             self.oldFileNameBox.insert(old_file_name)
 
@@ -275,10 +288,11 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         if re.match("\\S+", self.newFileNameBox.text()):
             new_file_dir = self.newFileNameBox.text()
         else:
+            # If no previous location, default to Downloads folder
             new_file_dir = os.path.expanduser("~/Downloads")
         new_file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
             self, "Select CSV file with new data", new_file_dir, "CSV (*.csv)")
-        if new_file_name:
+        if new_file_name:  # Clear the box before adding the new path
             self.newFileNameBox.clear()
             self.newFileNameBox.insert(new_file_name)
 
@@ -290,10 +304,12 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         if re.match("\\S+", self.newFileNameBox.text()):
             output_file_dir = os.path.dirname(self.outputFileNameBox.text())
         else:
+            # If no previous location, default to Documents folder
             output_file_dir = os.path.expanduser("~/Documents")
         output_file_name, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir)
-        if output_file_name:
+        if output_file_name:  # Clear the box before adding the new path
+            # Since this is a prefix, the user shouldn't be adding their own extension
             if ".csv" in output_file_name:
                 output_file_name = output_file_name.replace('.csv', '')
             self.outputFileNameBox.clear()
@@ -302,7 +318,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def checkbox_checker(self):
         """ Only enables run button if atleast one Tags box is checked. """
         is_checked = [self.refBox.isChecked(), self.int_refBox.isChecked(),
-                  self.nameBox.isChecked(), self.highwayBox.isChecked()]
+                      self.nameBox.isChecked(), self.highwayBox.isChecked()]
         self.runButton.setEnabled(0)
         if any(is_checked):
             self.runButton.setEnabled(1)
@@ -346,17 +362,17 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.file_warning.setIcon(QMessageBox.Critical)
             if not old_file_path.is_file() and not new_file_path.is_file():
                 self.file_warning.setText(
-                    "File or directories not found!")      
+                    "File or directories not found!")
             elif not old_file_path.is_file():
                 self.file_warning.setText(
-                    "Old file or directory\n%s\nnot found!" 
+                    "Old file or directory\n%s\nnot found!"
                     % (self.oldFileNameBox.text()))
             elif not new_file_path.is_file():
                 self.file_warning.setText(
-                    "New file or directory\n%s\nnot found!" 
+                    "New file or directory\n%s\nnot found!"
                     % (self.newFileNameBox.text()))
             self.file_warning.setInformativeText(
-            "Check if your file or directory(s) exists.")  
+                "Check if your file or directory(s) exists.")
             self.file_warning.exec()
             return
         # Define set of selected modes
@@ -437,13 +453,15 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         overwrite_prompt = QtWidgets.QMessageBox()
         overwrite_prompt.setIcon(QMessageBox.Question)
         overwrite_prompt_response = overwrite_prompt.question(
-            self, '', f"{fileName} exists. Do you want to overwrite?", overwrite_prompt.No | overwrite_prompt.Yes)
+            self, '', f"{fileName} exists. Do you want to overwrite?",
+            overwrite_prompt.No | overwrite_prompt.Yes)
         if overwrite_prompt_response == overwrite_prompt.No:
             self.worker.response = False
         elif overwrite_prompt_response == overwrite_prompt.Yes:
             self.worker.response = True
         waiting_for_input.wakeAll()
         mutex.unlock()
+
 
 def main():
     """
@@ -462,5 +480,4 @@ def main():
 
 
 if __name__ == '__main__':
-    """ Will only be executed when this module is run directly. """
     main()
