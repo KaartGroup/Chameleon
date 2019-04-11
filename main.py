@@ -95,10 +95,10 @@ class Worker(QObject):
             if mode != "name":
                 sql += "ifnull(new.name,old.name) AS name, "
             sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode}, "
+            sql += "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
+            sql += "ELSE \"deleted\" END \"action\" "
             if not self.group_output:
                 # Differentiate between objects that are modified and deleted
-                sql += "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
-                sql += "ELSE \"deleted\" END \"action\" "
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON old.\"@id\" = new.\"@id\" "
             sql += f"WHERE old_{mode} NOT LIKE new_{mode} "
@@ -115,9 +115,9 @@ class Worker(QObject):
             if mode != "name":
                 sql += "new.name AS name, "
             sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
+            sql += ", \"new\" AS \"action\" "
             if not self.group_output:
                 # 'action' defaults to 'new' to capture 'added' and 'split' objects
-                sql += ", \"new\" AS \"action\" "
                 sql += ", NULL AS \"notes\" "
             sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
             sql += f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{mode},'')) > 0 "
@@ -144,16 +144,15 @@ class Worker(QObject):
 
                 print(
                     f"Completed intermediate processing for {mode}.")
-                
                 # Grouping function with q
                 sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
                 sql += "group_concat(id)) AS url, count(id) AS count, group_concat(distinct user) AS users, max(timestamp) AS latest_timestamp, "
-                # sql += "min(version) AS version, "
+                sql += "min(version) AS version, "
                 if mode != "highway":
                     sql += "highway, "
-                sql += f"old_{mode},new_{mode}, " # group_concat(distinct action) AS actions, "
+                sql += f"old_{mode},new_{mode}, group_concat(DISTINCT action) AS actions, "
                 sql += f"NULL AS \"notes\" FROM {tempf.name} "
-                sql += f"GROUP BY old_{mode},new_{mode}" #,action"
+                sql += f"GROUP BY old_{mode},new_{mode},action;"
                 print(sql)
 
             # Proceed with generating tangible output for user
