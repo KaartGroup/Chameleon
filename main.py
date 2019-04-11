@@ -292,7 +292,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         Adds functionality to the Output File (...) button, opens the
         '/downloads' system path for user to name an output file.
         """
-        if re.match("\\S+", self.newFileNameBox.text()):
+        if re.match("\\S+", self.outputFileNameBox.text()):
             output_file_dir = os.path.dirname(self.outputFileNameBox.text())
         else:
             # If no previous location, default to Documents folder
