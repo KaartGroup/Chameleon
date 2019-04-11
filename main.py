@@ -49,7 +49,7 @@ class Worker(QObject):
     # def mode_loop(self):
     # Create a file for each chosen mode
     @pyqtSlot()
-    def firstwork(self):
+    def build_query(self):
         """
         Saves file path for future loading, create a directory if one does not
         already exist. Groups JOSM tags with SQL and generates suitable output.
@@ -384,7 +384,7 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.worker.overwrite_confirm.connect(self.overwrite_message)
         self.worker.moveToThread(self.work_thread)
         self.work_thread.start()
-        self.work_thread.started.connect(self.worker.firstwork)
+        self.work_thread.started.connect(self.worker.build_query)
 
         # instantiate progress bar class
         self.progress_bar = ProgressBar()
