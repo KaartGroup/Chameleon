@@ -1,7 +1,9 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 from ProgressBarUI import UIForm
+
 
 class ProgressBar(QtWidgets.QDialog, UIForm):
     """
@@ -9,6 +11,7 @@ class ProgressBar(QtWidgets.QDialog, UIForm):
     Class representing Chameleon progress bar, initiating UI and functionality.
 
     """
+
     def __init__(self, desc=None, parent=None):
         """
         Parameters
@@ -19,7 +22,7 @@ class ProgressBar(QtWidgets.QDialog, UIForm):
         super(ProgressBar, self).__init__(parent)
         self.setup_ui(self)
         self.show()
-        if desc != None:
+        if desc is not None:
             self.set_description(desc)
 
     def set_value(self, val):
@@ -58,5 +61,4 @@ def main():
 
 
 if __name__ == '__main__':
-     """ Executes only if we're running file directly and not importing it. """
-     main()
+    main()

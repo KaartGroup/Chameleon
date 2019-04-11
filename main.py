@@ -84,43 +84,48 @@ class Worker(QObject):
             # Creating SQL snippets
             # Added based ID SQL to ensure Object ID output
             # LEFT OUTER JOIN to isolate instances of old NOT LIKE new
-            sql = "SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS id, "
+            sql = ("SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || "
+                   "ifnull(new.\"@id\",old.\"@id\")) AS id, ")
             if not self.group_output:
-                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                sql += "substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS url, "
-            sql += "ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\",old.\"@timestamp\"),1,10) AS timestamp, "
-            sql += "ifnull(new.\"@version\",old.\"@version\") AS version, "
+                sql += ("('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                        "substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || "
+                        "ifnull(new.\"@id\",old.\"@id\")) AS url, ")
+            sql += ("ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\","
+                    "old.\"@timestamp\"),1,10) AS timestamp, "
+                    "ifnull(new.\"@version\",old.\"@version\") AS version, ")
             if mode != "highway":
                 sql += "ifnull(new.highway,old.highway) AS highway, "
             if mode != "name":
                 sql += "ifnull(new.name,old.name) AS name, "
-            sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode}, "
-            sql += "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
-            sql += "ELSE \"deleted\" END \"action\" "
+            sql += (f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode}, "
+                    "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
+                    "ELSE \"deleted\" END \"action\" ")
             if not self.group_output:
                 # Differentiate between objects that are modified and deleted
                 sql += ", NULL AS \"notes\" "
-            sql += f"FROM {self.oldFileValue} AS old LEFT OUTER JOIN {self.newFileValue} AS new ON old.\"@id\" = new.\"@id\" "
-            sql += f"WHERE old_{mode} NOT LIKE new_{mode} "
+            sql += (f"FROM {self.oldFileValue} AS old "
+                    f"LEFT OUTER JOIN {self.newFileValue} AS new ON old.\"@id\" = new.\"@id\" "
+                    f"WHERE old_{mode} NOT LIKE new_{mode} ")
 
             # UNION FULL LEFT OUTER JOIN to isolated instances of new objects
             sql += "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
             if not self.group_output:
-                sql += "('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                sql += "substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
-            sql += "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
-            sql += "new.\"@version\" AS version, "
+                sql += ("('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                        "substr(new.\"@type\",1,1) || new.\"@id\") AS url, ")
+            sql += ("new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
+                    "new.\"@version\" AS version, ")
             if mode != "highway":
                 sql += "new.highway AS highway, "
             if mode != "name":
                 sql += "new.name AS name, "
-            sql += f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode} "
-            sql += ", \"new\" AS \"action\" "
+            sql += (f"ifnull(old.{mode},'') AS old_{mode}, ifnull(new.{mode},'') AS new_{mode}, "
+                    "\"new\" AS \"action\" ")
             if not self.group_output:
                 # 'action' defaults to 'new' to capture 'added' and 'split' objects
                 sql += ", NULL AS \"notes\" "
-            sql += f"FROM {self.newFileValue} AS new LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
-            sql += f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{mode},'')) > 0 "
+            sql += (f"FROM {self.newFileValue} AS new "
+                    f"LEFT OUTER JOIN {self.oldFileValue} AS old ON new.\"@id\" = old.\"@id\" "
+                    f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{mode},'')) > 0 ")
 
             print(sql)
             # Generate variable for output file path
@@ -145,14 +150,15 @@ class Worker(QObject):
                 print(
                     f"Completed intermediate processing for {mode}.")
                 # Grouping function with q
-                sql = "SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                sql += "group_concat(id)) AS url, count(id) AS count, group_concat(distinct user) AS users, max(timestamp) AS latest_timestamp, "
-                sql += "min(version) AS version, "
+                sql = ("SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
+                       "group_concat(id)) AS url, count(id) AS count,"
+                       "group_concat(distinct user) AS users,max(timestamp) AS latest_timestamp,"
+                       "min(version) AS version, ")
                 if mode != "highway":
-                    sql += "highway, "
-                sql += f"old_{mode},new_{mode}, group_concat(DISTINCT action) AS actions, "
-                sql += f"NULL AS \"notes\" FROM {tempf.name} "
-                sql += f"GROUP BY old_{mode},new_{mode},action;"
+                    sql += "highway,"
+                sql += (f"old_{mode},new_{mode}, group_concat(DISTINCT action) AS actions, "
+                        f"NULL AS \"notes\" FROM {tempf.name} "
+                        f"GROUP BY old_{mode},new_{mode},action;")
                 print(sql)
 
             # Proceed with generating tangible output for user
@@ -368,7 +374,6 @@ class MainApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.worker.modes |= {"int_ref"}
         if self.nameBox.isChecked():
             self.worker.modes |= {"name"}
-        # Handle highway separately
         if self.highwayBox.isChecked():
             self.worker.modes |= {"highway"}
         print(self.worker.modes)
