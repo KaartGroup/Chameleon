@@ -1,3 +1,6 @@
 pytest
 nose
 coverage
+appdirs
+PyQt5
+ruamel.yaml

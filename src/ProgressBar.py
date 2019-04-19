@@ -2,7 +2,7 @@ import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ProgressBarUI import UIForm
+from src.ProgressBarUI import UIForm
 
 
 class ProgressBar(QtWidgets.QDialog, UIForm):

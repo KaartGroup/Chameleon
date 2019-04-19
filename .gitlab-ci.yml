@@ -1,8 +1,15 @@
 image: python:3
-test_main:
-  script:
+before_script:
+  - apt-get update -qy
+  - apt-get install python3-pyqt5 -y
+  # - apt-get install python3-pyqt5.qtmultimedia -y
   - pip install -r requirements.txt
-  - pytest
+  - pyuic5 src/design.ui -o src/design.py
+test_main:
+  variables:
+    QT_QPA_PLATFORM: "offscreen"
+  script:
+  - python -m pytest test
   #- nosetests -c .noserc -q --cover-html-dir=build --cover-html
   #- coverage report -m
   #coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
