@@ -12,3 +12,5 @@ dist/
 .DS_Store
 main.spec
 test_main.pyc
+.pytest_cache/
+.vscode/
