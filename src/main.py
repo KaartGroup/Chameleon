@@ -294,8 +294,13 @@ class MainApp(QtWidgets.QMainWindow, src.design.Ui_MainWindow):
         destination = self.box_controls[sender]
         if re.match("\\S+", destination.text()):
             file_dir = destination.text()
+        # If the target box is empty, look for a value in each of the boxes
+        elif re.match("\\S+", self.oldFileNameBox.text()):
+            file_dir = self.oldFileNameBox.text()
+        elif re.match("\\S+", self.newFileNameBox.text()):
+            file_dir = self.newFileNameBox.text()
+        # If no previous location, default to Downloads folder
         else:
-            # If no previous location, default to Downloads folder
             file_dir = os.path.expanduser("~/Downloads")
         file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
             self, f"Select CSV file with {self.box_text[sender]} data", file_dir, "CSV (*.csv)")
@@ -323,8 +328,8 @@ class MainApp(QtWidgets.QMainWindow, src.design.Ui_MainWindow):
             self.outputFileNameBox.insert(output_file_name)
 
     def checkbox_checker(self):
-        """ 
-        Only enables run button if atleast one Tags box is checked. 
+        """
+        Only enables run button if atleast one Tags box is checked.
         """
         is_checked = [self.refBox.isChecked(), self.int_refBox.isChecked(),
                       self.nameBox.isChecked(), self.highwayBox.isChecked()]
@@ -333,31 +338,32 @@ class MainApp(QtWidgets.QMainWindow, src.design.Ui_MainWindow):
             self.runButton.setEnabled(1)
 
     def dialog_critical(self, text, info):
-        """ 
-        Method to pop-up critical error box 
-        
+        """
+        Method to pop-up critical error box
+
         Parameters
         ----------
         text, info : str
-            Optional error box text. 
+            Optional error box text.
         """
         dialog = QMessageBox(self)
         dialog.setText(text)
         dialog.setIcon(QMessageBox.Critical)
         dialog.setInformativeText(info)
         dialog.exec()
-        
+
     def run_query(self):
         """
         Allows run button to execute based on selected tag parameters.
         Also Enables/disables run button while executing function and allows
         progress bar functionality. Checks for file/directory validity and spacing.
         """
-        # Disable run button while running
-        files = dict()
-        files['old'] = self.oldFileNameBox.text()
-        files['new'] = self.newFileNameBox.text()
-        files['output'] = self.outputFileNameBox.text()
+        # Load field values into dict
+        files = {
+            'old': self.oldFileNameBox.text(),
+            'new': self.newFileNameBox.text(),
+            'output': self.outputFileNameBox.text()
+        }
         # Check for spaces in file names
         space_expression = re.compile("^\\S+\\s+\\S+$")
         if space_expression.match(files['old']) or \
