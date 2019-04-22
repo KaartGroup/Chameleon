@@ -214,24 +214,29 @@ class Worker(QObject):
         file_name : str
             File name in csv format
         """
-        with open(file_name, "w") as output_file:
-            print(f"Writing {file_name}")
-            input_params = QInputParams(
-                skip_header=True,
-                delimiter='\t'
-            )
-            output_params = QOutputParams(
-                delimiter='\t',
-                output_header=True
-            )
-            q_engine = QTextAsData()
-            q_output = q_engine.execute(
-                sql, input_params)
-            q_output_printer = QOutputPrinter(
-                output_params)
-            q_output_printer.print_output(
-                output_file, sys.stderr, q_output)
+        try:
+            with open(file_name, "w") as output_file:
+                print(f"Writing {file_name}")
+                input_params = QInputParams(
+                    skip_header=True,
+                    delimiter='\t'
+                )
+                output_params = QOutputParams(
+                    delimiter='\t',
+                    output_header=True
+                )
+                q_engine = QTextAsData()
+                q_output = q_engine.execute(
+                    sql, input_params)
+                q_output_printer = QOutputPrinter(
+                    output_params)
+                q_output_printer.print_output(
+                    output_file, sys.stderr, q_output)
+        except PermissionError:
+            return False
+        else:
             print("Complete")
+            return True
             # Insert completion feedback here
 
 
@@ -378,6 +383,7 @@ class MainApp(QtWidgets.QMainWindow, src.design.Ui_MainWindow):
         # Wrap the file references in Path object to prepare "file not found" warning
         old_file_path = Path(files['old'])
         new_file_path = Path(files['new'])
+        output_file_path = Path(files['output'])
         # Check if either old or new file/directory exists. If not, notify user.
         if not old_file_path.is_file() or not new_file_path.is_file():
             if not old_file_path.is_file() and not new_file_path.is_file():
@@ -388,6 +394,12 @@ class MainApp(QtWidgets.QMainWindow, src.design.Ui_MainWindow):
             elif not new_file_path.is_file():
                 self.dialog_critical(
                     "New file or directory not found!", "")
+            return
+        # Check if output directory is writable
+        if not os.access(output_file_path.parents[0], os.W_OK):
+            self.dialog_critical(
+                "Output directory not writeable!", ""
+            )
             return
         modes = set()
         if self.refBox.isChecked():
