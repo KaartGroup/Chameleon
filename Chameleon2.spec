@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['main.py'],
+a = Analysis(['src/main.py'],
              pathex=['/Users/primaryuser/chameleon-2'],
              binaries=[],
              datas=[],
