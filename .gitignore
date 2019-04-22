@@ -9,7 +9,6 @@ __pycache__/
 .eggs/
 .pytest_cache/
 .vscode/
-.vscode/settings.json
 *.pyc
 build/
 dist/
