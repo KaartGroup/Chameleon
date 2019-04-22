@@ -4,3 +4,4 @@ coverage
 appdirs
 PyQt5
 ruamel.yaml
+PyYAML
