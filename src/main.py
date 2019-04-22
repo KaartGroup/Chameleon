@@ -9,13 +9,14 @@ import tempfile
 import time
 from pathlib import Path
 
+# Loads and saves settings to YAML
+# from ruamel.yaml import YAML
+import yaml
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir  # , user_log_dir
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMessageBox
-# Loads and saves settings to YAML
-from ruamel.yaml import YAML
 
 import src.design  # Import generated UI file
 from src.ProgressBar import ProgressBar
@@ -23,7 +24,7 @@ from src.ProgressBar import ProgressBar
 from src.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData
 
 # Required by the yaml module b/c of namespace conflicts
-yaml = YAML(typ='safe')
+# yaml = YAML(typ='safe')
 
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
