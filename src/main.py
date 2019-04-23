@@ -32,7 +32,7 @@ waiting_for_input = QtCore.QWaitCondition()
 
 CONFIG_DIR = Path(user_config_dir(
     "Chameleon 2", "Kaart"))
-HISTORY_LOCATION = CONFIG_DIR.joinpath("/history.yaml")
+HISTORY_LOCATION = CONFIG_DIR.joinpath("history.yaml")
 
 
 class Worker(QObject):
