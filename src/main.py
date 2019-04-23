@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-
+"""
+Opens a window with fields for input and selectors, which in turn opens a worker to process the
+input files with `q` and create output .csv files.
+"""
 import errno
 import os
 import os.path
