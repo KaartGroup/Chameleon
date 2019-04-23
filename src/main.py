@@ -262,8 +262,8 @@ class MainApp(QtWidgets.QMainWindow, src.design.Ui_MainWindow):
 
         # Check for history file and load if exists
         try:
-            with open(HISTORY_LOCATION, 'r') as history_read:
-                loaded = yaml.load(history_read)
+            with HISTORY_LOCATION.open('r') as f:
+                loaded = yaml.load(f)
                 if isinstance(loaded, dict):
                     self.oldFileNameBox.insert(loaded.get('old', ''))
                     self.newFileNameBox.insert(loaded.get('new', ''))
