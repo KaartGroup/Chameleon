@@ -29,8 +29,10 @@ from src.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
 
-HISTORY_LOCATION = user_config_dir(
-    "Chameleon 2", "Kaart") + "/history.yaml"
+
+CONFIG_DIR = Path(user_config_dir(
+    "Chameleon 2", "Kaart"))
+HISTORY_LOCATION = CONFIG_DIR.joinpath("/history.yaml")
 
 
 class Worker(QObject):
@@ -64,20 +66,20 @@ class Worker(QObject):
         """
         # Saving paths to config for future loading
         # Make directory if it doesn't exist
-        if not os.path.exists(os.path.dirname(HISTORY_LOCATION)):
+        if not CONFIG_DIR.is_dir():
             try:
-                os.makedirs(os.path.dirname(HISTORY_LOCATION))
+                CONFIG_DIR.mkdir()
             except OSError as exc:
                 if exc.errno != errno.EEXIST:
                     raise
-        with open(HISTORY_LOCATION, 'w') as history_write:
-            if self.files:
-                yaml.dump(self.files, history_write)
-                # history_write.write("oldFileName: " +
+        if self.files:
+            with HISTORY_LOCATION.open('w') as f:
+                yaml.dump(self.files, f)
+                # f.write("oldFileName: " +
                 #                     self.old_file_value + "\n")
-                # history_write.write("newFileName: " +
+                # f.write("newFileName: " +
                 #                     self.new_file_value + "\n")
-                # history_write.write("outputFileName: " +
+                # f.write("outputFileName: " +
                 #                     self.output_file_value + "\n")
         for mode in self.modes:
             self.execute_query(mode, self.files, self.group_output)
