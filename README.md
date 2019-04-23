@@ -1,5 +1,5 @@
 # Chameleon 2
-![chameleon-logo](./chameleonalpha.png)
+![chameleon-logo](./resources/chameleonalpha.png)
 
 - - -
 
