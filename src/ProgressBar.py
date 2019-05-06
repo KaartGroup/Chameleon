@@ -47,6 +47,12 @@ class ProgressBar(QtWidgets.QDialog, UIForm):
         """
         self.setWindowTitle(desc)
 
+    def _reset(self):
+        """
+        Resets QProgressBar object.
+        """
+        self.progressBar.reset()
+
 
 def main():
     """

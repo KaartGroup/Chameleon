@@ -6,7 +6,9 @@ block_cipher = None
 a = Analysis(['src/main.py'],
              pathex=['/Users/primaryuser/chameleon-2'],
              binaries=[],
-             datas=[],
+             datas=[
+                 ('src/OSMtag.yaml', 'data')
+             ],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
