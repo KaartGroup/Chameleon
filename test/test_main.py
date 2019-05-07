@@ -44,7 +44,7 @@ class TestBuildQuery(unittest.TestCase):
             "ELSE \"deleted\" END \"action\" , "
             "NULL AS \"notes\" "
             f"FROM {self.files['old']} AS old "
-            "LEFT OUTER JOIN {self.files['new']} AS new ON old.\"@id\" = new.\"@id\" "
+            f"LEFT OUTER JOIN {self.files['new']} AS new ON old.\"@id\" = new.\"@id\" "
             "WHERE old_name NOT LIKE new_name "
             "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
             "('http://localhost:8111/load_object?new_layer=true&objects=' || substr(new.\"@type\",1,1) || new.\"@id\") AS url, "

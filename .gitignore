@@ -13,5 +13,6 @@ __pycache__/
 build/
 dist/
 main.spec
-q_output_test.py
 output_test.csv
+q_output_test.py
+test/output_name.csv
