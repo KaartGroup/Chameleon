@@ -10,20 +10,24 @@ from PyQt5.QtTest import QTest
 
 import src.main
 
-
 # from pathlib import Path
-
-
 # TEST_FOLDER = Path("test")
 
 app = QtWidgets.QApplication(['.'])
 
 
 class TestBuildQuery(unittest.TestCase):
+    """
+    Unittesting for Worker class comparing sample csv and code outputs.
+    This test validates sql query and analysis outputs.
+    """
     # def __init__(self):
     #     super().__init__()
 
     def setUp(self):
+        """
+        Definition of testing vars for TestBuildQuery class.
+        """
         self.maxDiff = None
         self.files = {
             "old": "test/old.csv",
@@ -56,12 +60,18 @@ class TestBuildQuery(unittest.TestCase):
         self.func = src.main.Worker("name", self.files, False)
 
     def test_build_query_ungrouped(self):
+        """
+        Comparison of sql query used for ungrouped analysis.
+        """
         # print(gold_sql)
         test_sql = self.func.build_query("name", self.files, False)
         # print(test_sql)
         self.assertEqual(test_sql, self.gold_sql)
 
     def test_write_file_ungrouped(self):
+        """
+        Comparison of sample and code csv outputs.
+        """
         self.func.write_file(self.gold_sql, self.file_name, "name")
         with open(self.file_name, "r") as f:
             test_file = f.read()
@@ -71,7 +81,16 @@ class TestBuildQuery(unittest.TestCase):
 
 
 class TestGUI(unittest.TestCase):
+    """
+    Unittest for MainApp class validating UI functionalities.
+    This test verifies button function, user input values and backend
+    UI display parameters for the application.
+    """
+
     def setUp(self):
+        """
+        Definition of testing vars for TestGUI class.
+        """
         self.mainapp = src.main.MainApp()
         self.favorite_location = Path('test/test_favorites.yaml')
         self.fav_btn = [self.mainapp.popTag1, self.mainapp.popTag2,
@@ -79,24 +98,38 @@ class TestGUI(unittest.TestCase):
         self.mainapp.fav_btn_populate(self.favorite_location, self.fav_btn)
 
     def test_add_to_list(self):
+        """
+        Verifies 'Add' button function for search bar.
+        """
         self.mainapp.searchBox.insert("highway")
         QTest.mouseClick(self.mainapp.searchButton, Qt.LeftButton)
         self.assertGreater(len(self.mainapp.listWidget.findItems(
             "highway", Qt.MatchExactly)), 0)
 
     def test_add_special_char_to_list(self):
+        """
+        Verifies 'Add' button function for user input with
+        special characters.
+        """
         self.mainapp.searchBox.insert("addr:housenumber")
         QTest.mouseClick(self.mainapp.searchButton, Qt.LeftButton)
         self.assertGreater(len(self.mainapp.listWidget.findItems(
             "addr:housenumber", Qt.MatchExactly)), 0)
 
     def test_add_spaces_to_list(self):
+        """
+        Verifies space and empty values are ignored by
+        the 'Add' function.
+        """
         self.mainapp.listWidget.clear()
         self.mainapp.searchBox.insert("   ")
         QTest.mouseClick(self.mainapp.searchButton, Qt.LeftButton)
         self.assertEqual(self.mainapp.listWidget.count(), 0)
 
     def test_remove_from_list(self):
+        """
+        Verifies 'Delete' button function for QListWidget.
+        """
         self.mainapp.listWidget.addItems(["name", "highway", "ref"])
         # nameitem = QtWidgets.QListWidgetItem("name")
         nameitems = self.mainapp.listWidget.findItems("name", Qt.MatchExactly)
@@ -113,12 +146,20 @@ class TestGUI(unittest.TestCase):
             len(self.mainapp.listWidget.findItems("highway", Qt.MatchExactly)), 0)
 
     def test_clear_list_widget(self):
+        """
+        Verifies 'Clear' button function for wiping items
+        in QListWidget.
+        """
         self.mainapp.listWidget.addItems(
             ["name", "highway", "ref", "building", "addr:housenumber", "addr:street"])
         QTest.mouseClick(self.mainapp.clearListButton, Qt.LeftButton)
         self.assertEqual(self.mainapp.listWidget.count(), 0)
 
     def test_fav_btn_populate(self):
+        """
+        Verifies all favorite buttons are populated with
+        the correct default and history values.
+        """
         self.assertEqual(self.mainapp.popTag1.text(), "name")
         self.assertEqual(self.mainapp.popTag2.text(), "highway")
         self.assertEqual(self.mainapp.popTag3.text(), "addr:place")
@@ -126,6 +167,10 @@ class TestGUI(unittest.TestCase):
         self.assertEqual(self.mainapp.popTag5.text(), "addr:housenumber")
 
     def test_fav_btn_click(self):
+        """
+        Verifies favorite button function and reception
+        of favorite values by the QListWidget.
+        """
         self.assertEqual(self.mainapp.listWidget.count(), 0)
         self.assertEqual(self.mainapp.popTag1.text(), "name")
         print("Clicking fav button 1")
