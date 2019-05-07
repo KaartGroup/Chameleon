@@ -24,7 +24,7 @@ from appdirs import user_config_dir, user_log_dir
 from PyQt5 import QtCore, QtWidgets, QtGui
 # from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QMessageBox, QCompleter
+from PyQt5.QtWidgets import QApplication, QMessageBox, QCompleter, QAction
 
 import src.design  # Import generated UI file
 from src.ProgressBar import ProgressBar
@@ -320,7 +320,34 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         """
         super().__init__()
         self.setupUi(self)
-        # self._want_to_close = False # closeEvent() Trial 2
+        # Window and Menu bar customization
+        self.setWindowTitle("Chameleon 2")
+        if getattr(sys, 'frozen', False):
+            logo = Path(sys._MEIPASS).parents[0].joinpath(
+                sys._MEIPASS, "chameleon.icns")
+            logo2 = str(Path.resolve(logo))
+        else:
+            logo = Path(__file__).parents[1].joinpath(
+                "chameleon.icns")
+            logo2 = str(Path.resolve(logo))
+        self.setWindowIcon(QtGui.QIcon(logo2))
+
+        # Define Qactions for menu bar
+        # About action for File menu
+        infoAction = QAction("&About Chameleon 2", self)
+        infoAction.setShortcut("Ctrl+I")
+        infoAction.setStatusTip('Software description.')
+        infoAction.triggered.connect(self.about_menu)
+        # Exit action for File menu
+        extractAction = QAction("&Exit Chameleon 2", self)
+        extractAction.setShortcut("Ctrl+Q")
+        extractAction.setStatusTip('Close application.')
+        extractAction.triggered.connect(self.close)
+        # Declare menu bar settings
+        mainMenu = self.menuBar()
+        fileMenu = mainMenu.addMenu('&File')
+        fileMenu.addAction(infoAction)
+        fileMenu.addAction(extractAction)
 
         # Logging initialization of Chameleon 2
         date = datetime.date.today()
@@ -407,6 +434,30 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             self.newFileSelectButton: self.newFileNameBox
         }
 
+    def about_menu(self, path: str):
+        """
+        Handles about page information.
+        """
+        about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
+        # logo = QtGui.QIcon(QtGui.QPixmap(path))
+        # about.setIcon(logo)
+        about.setText('''
+        <style>
+                    h1 {
+                        color: %s;
+                        font-family: "Futura-Light", sans-serif;
+                        font-weight: 400;
+                    }
+                    p { font-size: 10px; }
+                    h4 { font-size: 6px; }
+                </style>
+                <h1>Chameleon 2</h1>
+                <p>This application compares two Overpass API CSV datasets
+                and returns an output of the differences between the snapshots.</p>
+                <h4><i>Credit: SeaKaart tools team</i></h4>'''
+        )
+        about.exec()
+
     def history_loader(self, history_path: Path, old_box: QtWidgets.QLineEdit, new_box: QtWidgets.QLineEdit, output_box: QtWidgets.QLineEdit):
         """
         Loads previous entries from YAML file and loads into selected fields
@@ -425,7 +476,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Check for history file and load if exists
         try:
             with history_path.open('r') as f:
-                loaded = yaml.safe_load(f)
+                loaded=yaml.safe_load(f)
                 if isinstance(loaded, dict):
                     old_box.insert(loaded.get('old', ''))
                     new_box.insert(loaded.get('new', ''))
@@ -447,9 +498,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
 
         """
         # Holds the button values until they are inserted
-        set_list = []
+        set_list=[]
         # We use these when there aren't enough favorites
-        default_tags = ['highway', 'name', 'ref',
+        default_tags=['highway', 'name', 'ref',
                         'addr:housenumber', 'addr:street']
         # Holds our place as we step through the list above
         def_index = 0
