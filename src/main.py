@@ -634,17 +634,20 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Casting list into dictionary with counts
         # Counter() sorts in reverse order (highest first)
         # Counter() generates a counter collections object
-        pop_counter = Counter(run_list)
-        dict_counter = dict()
-        sorted_counter = dict()
+        # pop_counter = Counter(run_list)
+        dict_counter = dict(Counter(run_list).items())
+        # dict_counter = dict()
+        # sorted_counter = dict()
         # Cast Counter collection into dictionary
-        for k, v in pop_counter.items():
-            dict_counter[k] = v
+        # for k, v in pop_counter.items():
+        #     dict_counter[k] = v
         # Combining history counter with new counter
         sum_counter = dict(Counter(dict_counter) + Counter(cur_counter))
         # Sorting counter collections into dictionary
-        for k, v in sorted(sum_counter.items(), key=lambda item: item[1], reverse=True):
-            sorted_counter[k] = v
+        # for k, v in sorted(sum_counter.items(), key=lambda item: item[1], reverse=True):
+        #     sorted_counter[k] = v
+        sorted_counter = dict(
+            sorted(sum_counter.items(), key=lambda item: item[1], reverse=True))
         # Saving tag counts to config directory
         try:
             with counter_location.open('w') as file:
