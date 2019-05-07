@@ -1,11 +1,9 @@
 import unittest
-import time
 
 from pathlib import Path
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtTest import QTest
 
 import src.main
