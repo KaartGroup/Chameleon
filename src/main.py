@@ -24,15 +24,12 @@ from appdirs import user_config_dir, user_log_dir
 from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QCompleter, QMessageBox
+from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QMessageBox
 
 import src.design  # Import generated UI file
 from src.ProgressBar import ProgressBar
 # Does the processing
 from src.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData
-
-# Required by the yaml module b/c of namespace conflicts
-# yaml = YAML(typ='safe')
 
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
@@ -306,7 +303,35 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         """
         super().__init__()
         self.setupUi(self)
-        # self._want_to_close = False # closeEvent() Trial 2
+        # Set up application logo on main window
+        self.setWindowTitle("Chameleon 2")
+        if getattr(sys, 'frozen', False):
+            logo = Path(sys._MEIPASS).parents[0].joinpath(
+                sys._MEIPASS, "chameleon.icns")
+            logo2 = str(Path.resolve(logo))
+        else:
+            logo = Path(__file__).parents[1].joinpath(
+                "chameleon.icns")
+            logo2 = str(Path.resolve(logo))
+        self.setWindowIcon(QtGui.QIcon(logo2))
+
+        # Menu bar customization
+        # Define Qactions for menu bar
+        # About action for File menu
+        info_action = QAction("&About Chameleon 2", self)
+        info_action.setShortcut("Ctrl+I")
+        info_action.setStatusTip('Software description.')
+        info_action.triggered.connect(self.about_menu)
+        # Exit action for File menu
+        extract_action = QAction("&Exit Chameleon 2", self)
+        extract_action.setShortcut("Ctrl+Q")
+        extract_action.setStatusTip('Close application.')
+        extract_action.triggered.connect(self.close)
+        # Declare menu bar settings
+        main_menu = self.menuBar()
+        file_menu = main_menu.addMenu('&File')
+        file_menu.addAction(info_action)
+        file_menu.addAction(extract_action)
 
         # Logging initialization of Chameleon 2
         logging.info(f"Chameleon 2 started at {datetime.now()}.")
@@ -389,6 +414,34 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             self.newFileSelectButton: self.newFileNameBox
         }
 
+    def about_menu(self, path: str):
+        """
+        Handles about page information.
+
+        Parameters
+        ----------
+        path: str
+            File path to application logo
+        """
+        about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
+        # logo = QtGui.QIcon(QtGui.QPixmap(path))
+        # about.setIcon(logo)
+        about.setText('''
+        <style>
+                    h1 {
+                        color: %s;
+                        font-family: "Futura-Light", sans-serif;
+                        font-weight: 400;
+                    }
+                    p { font-size: 10px; }
+                    h4 { font-size: 6px; }
+                </style>
+                <h1>Chameleon 2</h1>
+                <p>This application compares two Overpass API CSV datasets
+                and returns an output of the differences between the snapshots.</p>
+                <h4><i>Credit: SeaKaart tools team</i></h4>''')
+        about.exec()
+
     def history_loader(self, history_path: Path, old_box: QtWidgets.QLineEdit,
                        new_box: QtWidgets.QLineEdit, output_box: QtWidgets.QLineEdit):
         """
@@ -427,7 +480,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             Location of YAML file with favorite values to be loaded
         fav_btn : list
             List of buttons to be populated with values
-
         """
         # Holds the button values until they are inserted
         set_list = []
