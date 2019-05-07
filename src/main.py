@@ -4,7 +4,6 @@ Opens a window with fields for input and selectors, which in turn opens
 a worker object to process the input files with `q` and create output
 in .csv format.
 """
-import datetime
 import errno
 import logging
 import os
@@ -14,6 +13,7 @@ import sys
 import tempfile
 import time
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 # Loads and saves settings to YAML
@@ -53,9 +53,8 @@ if not LOG_DIR.is_dir():
             print(f"Cannot create log directory: {exc}.")
     else:
         # Initialize Worker class logging
-        LOG_DATE = datetime.date.today()
         LOG_PATH = str(LOG_DIR.joinpath(
-            f"Chameleon2_{LOG_DATE}.log"))
+            f"Chameleon2_{datetime.now().date()}.log"))
         logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
 
 
@@ -78,13 +77,6 @@ class Worker(QObject):
         self.group_output = group_output
         self.response = None
 
-    # modes = set()
-    # def __init__(self, parent=None):
-    #     super().__init__()
-
-    # @pyqtSlot()
-    # def mode_loop(self):
-    # Create a file for each chosen mode
     @pyqtSlot()
     def run(self):
         """
@@ -101,12 +93,6 @@ class Worker(QObject):
         if self.files:
             with HISTORY_LOCATION.open('w') as file:
                 yaml.dump(self.files, file)
-                # f.write("oldFileName: " +
-                #                     self.old_file_value + "\n")
-                # f.write("newFileName: " +
-                #                     self.new_file_value + "\n")
-                # f.write("outputFileName: " +
-                #                     self.output_file_value + "\n")
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             for mode in self.modes:
@@ -323,8 +309,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # self._want_to_close = False # closeEvent() Trial 2
 
         # Logging initialization of Chameleon 2
-        cur_time = datetime.datetime.now().time()
-        logging.info(f"Chameleon 2 started at {LOG_DATE} {cur_time}.")
+        logging.info(f"Chameleon 2 started at {datetime.now()}.")
 
         # Sets run button to not enabled
         self.run_checker()
@@ -353,7 +338,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             # print( 'os.getcwd is', os.getcwd() )
 
         try:
-            # with open(ftl, 'r') as f:
             with ftl.open() as file:
                 completer_list = yaml.safe_load(file)
                 # Debug print(completer_list)
@@ -365,7 +349,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Load in tags from external file
         if completer_list is None:
             completer_list = []
-        # self.completer_list = completer_list
         self.auto_completer(completer_list)
 
         # YAML file loaders
