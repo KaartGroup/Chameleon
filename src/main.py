@@ -320,7 +320,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         """
         super().__init__()
         self.setupUi(self)
-        # Window and Menu bar customization
+        # Set up application logo on main window
         self.setWindowTitle("Chameleon 2")
         if getattr(sys, 'frozen', False):
             logo = Path(sys._MEIPASS).parents[0].joinpath(
@@ -332,6 +332,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             logo2 = str(Path.resolve(logo))
         self.setWindowIcon(QtGui.QIcon(logo2))
 
+        # Menu bar customization
         # Define Qactions for menu bar
         # About action for File menu
         infoAction = QAction("&About Chameleon 2", self)
@@ -437,6 +438,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
     def about_menu(self, path: str):
         """
         Handles about page information.
+
+        Parameters
+        ----------
+        path: str
+            File path to application logo
         """
         about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
         # logo = QtGui.QIcon(QtGui.QPixmap(path))
@@ -495,7 +501,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             Location of YAML file with favorite values to be loaded
         fav_btn : list
             List of buttons to be populated with values
-
         """
         # Holds the button values until they are inserted
         set_list=[]
