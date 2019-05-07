@@ -4,27 +4,27 @@ Opens a window with fields for input and selectors, which in turn opens
 a worker object to process the input files with `q` and create output
 in .csv format.
 """
+import datetime
 import errno
+import logging
 import os
 import os.path
 import re
 import sys
 import tempfile
 import time
-import datetime
-import logging
-from pathlib import Path, PurePath
 from collections import Counter
+from pathlib import Path
 
 # Loads and saves settings to YAML
 # from ruamel.yaml import YAML
 import yaml
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QMessageBox, QCompleter
+from PyQt5.QtWidgets import QApplication, QCompleter, QMessageBox
 
 import src.design  # Import generated UI file
 from src.ProgressBar import ProgressBar
@@ -53,10 +53,10 @@ if not LOG_DIR.is_dir():
             print(f"Cannot create log directory: {exc}.")
     else:
         # Initialize Worker class logging
-        log_date = datetime.date.today()
-        log_path = str(Path.resolve(LOG_DIR).joinpath(
-            f"Chameleon2_{log_date}.log"))
-        logging.basicConfig(filename=log_path, level=logging.DEBUG)
+        LOG_DATE = datetime.date.today()
+        LOG_PATH = str(LOG_DIR.joinpath(
+            f"Chameleon2_{LOG_DATE}.log"))
+        logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
 
 
 class Worker(QObject):
@@ -99,8 +99,8 @@ class Worker(QObject):
                 if exc.errno != errno.EEXIST:
                     raise
         if self.files:
-            with HISTORY_LOCATION.open('w') as f:
-                yaml.dump(self.files, f)
+            with HISTORY_LOCATION.open('w') as file:
+                yaml.dump(self.files, file)
                 # f.write("oldFileName: " +
                 #                     self.old_file_value + "\n")
                 # f.write("newFileName: " +
@@ -323,9 +323,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # self._want_to_close = False # closeEvent() Trial 2
 
         # Logging initialization of Chameleon 2
-        date = datetime.date.today()
-        time = datetime.datetime.now().time()
-        logging.info(f"Chameleon 2 started at {date} {time}.")
+        cur_time = datetime.datetime.now().time()
+        logging.info(f"Chameleon 2 started at {LOG_DATE} {cur_time}.")
 
         # Sets run button to not enabled
         self.run_checker()
@@ -355,8 +354,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
 
         try:
             # with open(ftl, 'r') as f:
-            with ftl.open() as f:
-                completer_list = yaml.safe_load(f)
+            with ftl.open() as file:
+                completer_list = yaml.safe_load(file)
                 # Debug print(completer_list)
         except FileNotFoundError:
             logging.error(
@@ -407,7 +406,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             self.newFileSelectButton: self.newFileNameBox
         }
 
-    def history_loader(self, history_path: Path, old_box: QtWidgets.QLineEdit, new_box: QtWidgets.QLineEdit, output_box: QtWidgets.QLineEdit):
+    def history_loader(self, history_path: Path, old_box: QtWidgets.QLineEdit,
+                       new_box: QtWidgets.QLineEdit, output_box: QtWidgets.QLineEdit):
         """
         Loads previous entries from YAML file and loads into selected fields
 
@@ -424,8 +424,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         """
         # Check for history file and load if exists
         try:
-            with history_path.open('r') as f:
-                loaded = yaml.safe_load(f)
+            with history_path.open('r') as file:
+                loaded = yaml.safe_load(file)
                 if isinstance(loaded, dict):
                     old_box.insert(loaded.get('old', ''))
                     new_box.insert(loaded.get('new', ''))
