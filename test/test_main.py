@@ -1,5 +1,4 @@
 import unittest
-
 from pathlib import Path
 
 from PyQt5 import QtWidgets
@@ -41,9 +40,11 @@ class TestBuildQuery(unittest.TestCase):
             "ifnull(new.\"@version\",old.\"@version\") AS version, "
             "ifnull(new.highway,old.highway) AS highway, "
             "ifnull(old.\"name\",'') AS old_name, ifnull(new.\"name\",'') AS new_name, "
-            "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" ELSE \"deleted\" END \"action\" , "
+            "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
+            "ELSE \"deleted\" END \"action\" , "
             "NULL AS \"notes\" "
-            f"FROM {self.files['old']} AS old LEFT OUTER JOIN {self.files['new']} AS new ON old.\"@id\" = new.\"@id\" "
+            f"FROM {self.files['old']} AS old "
+            "LEFT OUTER JOIN {self.files['new']} AS new ON old.\"@id\" = new.\"@id\" "
             "WHERE old_name NOT LIKE new_name "
             "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
             "('http://localhost:8111/load_object?new_layer=true&objects=' || substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
@@ -71,10 +72,10 @@ class TestBuildQuery(unittest.TestCase):
         Comparison of sample and code csv outputs.
         """
         self.func.write_file(self.gold_sql, self.file_name, "name")
-        with open(self.file_name, "r") as f:
-            test_file = f.read()
-        with open("test/test_name.csv", "r") as f:
-            gold_file = f.read()
+        with open(self.file_name, "r") as file:
+            test_file = file.read()
+        with open("test/test_name.csv", "r") as file:
+            gold_file = file.read()
         self.assertMultiLineEqual(test_file, gold_file)
 
 
