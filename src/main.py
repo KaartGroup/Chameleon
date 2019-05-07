@@ -186,7 +186,8 @@ class Worker(QObject):
         if group_output:
             tempf.close()
 
-    def build_query(self, mode: str, files: dict, group_output: bool) -> str:
+    @staticmethod
+    def build_query(mode: str, files: dict, group_output: bool) -> str:
         """
         Constructs the SQL string from user input
         """
@@ -242,7 +243,8 @@ class Worker(QObject):
         # print(sql)
         return sql
 
-    def write_file(self, sql: str, file_name: str, mode: str) -> bool:
+    @staticmethod
+    def write_file(sql: str, file_name: str, mode: str) -> bool:
         """
         Handles writing formatted file using data grabbed by SQL query.
 
@@ -271,8 +273,8 @@ class Worker(QObject):
                     output_params)
                 q_output_printer.print_output(
                     output_file, sys.stderr, q_output)
-        except PermissionError:
-            logging.error(f"{PermissionError}.")
+        except PermissionError as e:
+            logging.error(str(e))
             return False
         else:
             # Logging q errors when try fails.
@@ -366,7 +368,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             with ftl.open() as file:
                 completer_list = yaml.safe_load(file)
                 # Debug print(completer_list)
-        except (FileNotFoundError, PermissionError) as e:
+        except OSError as e:
             logging.error(f"Autocomplete intialization failed: {e}.")
             print("Couldn't load autocomplete file.")
 
@@ -449,7 +451,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 <h4><i>Credit: SeaKaart tools team</i></h4>''')
         about.exec()
 
-    def history_loader(self, history_path: Path, old_box: QtWidgets.QLineEdit,
+    @staticmethod
+    def history_loader(history_path: Path, old_box: QtWidgets.QLineEdit,
                        new_box: QtWidgets.QLineEdit, output_box: QtWidgets.QLineEdit):
         """
         Loads previous entries from YAML file and loads into selected fields
@@ -472,7 +475,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 new_box.insert(loaded.get('new', ''))
                 output_box.insert(loaded.get('output', ''))
 
-    def fav_btn_populate(self, favorite_path: Path, fav_btn: list):
+    @staticmethod
+    def fav_btn_populate(favorite_path: Path, fav_btn: list):
         """
         Populates the listed buttons with favorites from the given file
 
@@ -626,7 +630,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 cur_counter = yaml.safe_load(counter_read)
                 print(f"counter.yaml history: {cur_counter}.")
         # If file doesn't exist, fail silently
-        except (FileNotFoundError, PermissionError) as e:
+        except OSError as e:
             logging.error(e)
 
         # Casting list into dictionary with counts
@@ -664,7 +668,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 yaml.dump(rank_tags, favorite_write)
                 print(f"favorites.yaml dump with: {rank_tags}.")
         # If file doesn't exist, fail silently
-        except (FileNotFoundError, PermissionError):
+        except OSError:
             pass
 
     def open_input_file(self):
