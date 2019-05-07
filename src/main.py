@@ -16,8 +16,6 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-# Loads and saves settings to YAML
-# from ruamel.yaml import YAML
 import yaml
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
@@ -115,7 +113,7 @@ class Worker(QObject):
             If history path does not exist and returns a system-related error.
         """
         # Clean up tags with : that cannot be escaped with sqlite3
-        purge_mode = mode.replace(":", "_")
+        sanitized_mode = mode.replace(":", "_")
 
         # Creating SQL snippets
         if group_output:
@@ -155,16 +153,16 @@ class Worker(QObject):
                    "min(version) AS version, ")
             if mode != "highway":
                 sql += "highway,"
-            sql += (f"old_{purge_mode},new_{purge_mode}, group_concat(DISTINCT action) AS actions, "
+            sql += (f"old_{sanitized_mode},new_{sanitized_mode}, group_concat(DISTINCT action) AS actions, "
                     f"NULL AS \"notes\" FROM {tempf.name} "
-                    f"GROUP BY old_{purge_mode},new_{purge_mode},action;")
+                    f"GROUP BY old_{sanitized_mode},new_{sanitized_mode},action;")
             logging.debug(
                 f"Grouped enabled, Processing group sql query: {sql}.")
             self.mode_done.emit(mode)
             # print(sql)
 
         # Proceed with generating tangible output for user
-        file_name = f"{files['output']}_{purge_mode}.csv"
+        file_name = f"{files['output']}_{sanitized_mode}.csv"
         if os.path.isfile(file_name):
             self.overwrite_confirm.emit(file_name)
             mutex.lock()
@@ -192,7 +190,7 @@ class Worker(QObject):
         Constructs the SQL string from user input
         """
         # Clean up tags with : that cannot be escaped with sqlite3
-        purge_mode = mode.replace(":", "_")
+        sanitized_mode = mode.replace(":", "_")
         # Added based ID SQL to ensure Object ID output
         # LEFT OUTER JOIN to isolate instances of old NOT LIKE new
         sql = ("SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || "
@@ -208,8 +206,8 @@ class Worker(QObject):
             sql += "ifnull(new.highway,old.highway) AS highway, "
         if mode != "name":
             sql += "ifnull(new.name,old.name) AS name, "
-        sql += (f"ifnull(old.\"{mode}\",'') AS old_{purge_mode}, "
-                f"ifnull(new.\"{mode}\",'') AS new_{purge_mode}, "
+        sql += (f"ifnull(old.\"{mode}\",'') AS old_{sanitized_mode}, "
+                f"ifnull(new.\"{mode}\",'') AS new_{sanitized_mode}, "
                 "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
                 "ELSE \"deleted\" END \"action\" ")
         if not group_output:
@@ -217,7 +215,7 @@ class Worker(QObject):
             sql += ", NULL AS \"notes\" "
         sql += (f"FROM {files['old']} AS old "
                 f"LEFT OUTER JOIN {files['new']} AS new ON old.\"@id\" = new.\"@id\" "
-                f"WHERE old_{purge_mode} NOT LIKE new_{purge_mode} ")
+                f"WHERE old_{sanitized_mode} NOT LIKE new_{sanitized_mode} ")
 
         # UNION FULL LEFT OUTER JOIN to isolated instances of new objects
         sql += "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
@@ -230,15 +228,15 @@ class Worker(QObject):
             sql += "new.highway AS highway, "
         if mode != "name":
             sql += "new.name AS name, "
-        sql += (f"ifnull(old.\"{mode}\",'') AS old_{purge_mode}, "
-                f"ifnull(new.\"{mode}\",'') AS new_{purge_mode}, "
+        sql += (f"ifnull(old.\"{mode}\",'') AS old_{sanitized_mode}, "
+                f"ifnull(new.\"{mode}\",'') AS new_{sanitized_mode}, "
                 "\"new\" AS \"action\" ")
         if not group_output:
             # 'action' defaults to 'new' to capture 'added' and 'split' objects
             sql += ", NULL AS \"notes\" "
         sql += (f"FROM {files['new']} AS new "
                 f"LEFT OUTER JOIN {files['old']} AS old ON new.\"@id\" = old.\"@id\" "
-                f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{purge_mode},'')) > 0")
+                f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{sanitized_mode},'')) > 0")
         logging.debug(f"Processing sql query: {sql}")
         # print(sql)
         return sql
@@ -273,7 +271,7 @@ class Worker(QObject):
                     output_params)
                 q_output_printer.print_output(
                     output_file, sys.stderr, q_output)
-        except PermissionError as e:
+        except OSError as e:
             logging.error(str(e))
             return False
         else:
@@ -403,12 +401,12 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.outputFileSelectButton.clicked.connect(self.output_file)
         self.runButton.clicked.connect(self.run_query)
         self.runButton.clicked.connect(self.list_sender)
-        self.popTag1.clicked.connect(self.tag_sender)
-        self.popTag2.clicked.connect(self.tag_sender)
-        self.popTag3.clicked.connect(self.tag_sender)
-        self.popTag4.clicked.connect(self.tag_sender)
-        self.popTag5.clicked.connect(self.tag_sender)
-        self.searchButton.clicked.connect(self.tag_sender)
+        self.popTag1.clicked.connect(self.add_tag)
+        self.popTag2.clicked.connect(self.add_tag)
+        self.popTag3.clicked.connect(self.add_tag)
+        self.popTag4.clicked.connect(self.add_tag)
+        self.popTag5.clicked.connect(self.add_tag)
+        self.searchButton.clicked.connect(self.add_tag)
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
 
@@ -540,7 +538,20 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 raise IndexError(f"Index {fav_btn.index(btn)} of fav_btn doesn't exist! "
                                  f"Attempted to insert from{set_list}.") from e
 
-    def tag_sender(self):
+    def auto_completer(self, tags: list):
+        """
+        Autocompletion of user searches in searchBox.
+        Utilizes resource file for associated autocomplete options.
+        """
+        # Needs to have tags reference a resource file of OSM tags
+        # Check current autocomplete list
+        logging.info(
+            f"A total of {len(tags)} tags was added to auto-complete.")
+        print(f"A total of {len(tags)} tags was added to auto-complete.")
+        completer = QCompleter(tags)
+        self.searchBox.setCompleter(completer)
+
+    def add_tag(self):
         """
         Adds user defined tags into processing list on QListWidget.
         """
@@ -566,19 +577,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.listWidget.addItem(label)
         self.run_checker()
         self.listWidget.repaint()
-
-    def auto_completer(self, tags: list):
-        """
-        Autocompletion of user searches in searchBox.
-        Utilizes resource file for associated autocomplete options.
-        """
-        # Needs to have tags reference a resource file of OSM tags
-        # Check current autocomplete list
-        logging.info(
-            f"A total of {len(tags)} tags was added to auto-complete.")
-        print(f"A total of {len(tags)} tags was added to auto-complete.")
-        completer = QCompleter(tags)
-        self.searchBox.setCompleter(completer)
 
     def delete_tag(self):
         """
@@ -616,18 +614,18 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             tag_list.append(self.listWidget.item(i).text())
         return tag_list
 
-    def document_tag(self):
+    @staticmethod
+    def document_tag(run_list: list, counter_location: Path, favorite_location: Path):
         """
         Python counter for tags that are frequently chosen by user.
         Document counter and favorites using yaml file storage.
         Function parses counter.yaml and dump into favorites.yaml.
         """
-        run_list = self.list_sender()
         cur_counter = dict()
         # Parse counter.yaml for user tag preference
         try:
-            with COUNTER_LOCATION.open('r') as counter_read:
-                cur_counter = yaml.safe_load(counter_read)
+            with counter_location.open('r') as file:
+                cur_counter = yaml.safe_load(file)
                 print(f"counter.yaml history: {cur_counter}.")
         # If file doesn't exist, fail silently
         except OSError as e:
@@ -649,11 +647,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             sorted_counter[k] = v
         # Saving tag counts to config directory
         try:
-            with COUNTER_LOCATION.open('w') as counter_write:
-                yaml.dump(sorted_counter, counter_write)
+            with counter_location.open('w') as file:
+                yaml.dump(sorted_counter, file)
                 print(f"counter.yaml dump with: {sorted_counter}.")
-        except IOError:
-            logging.error(f"{IOError}.")
+        except OSError as e:
+            logging.error(e)
             print("Couldn't write counter file.")
         # Ranking sorted dictionary
         rank_tags = dict()
@@ -664,7 +662,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         rank_tags = list(rank_tags.values())
         # Saving favorite tags to config directory
         try:
-            with FAVORITE_LOCATION.open('w') as favorite_write:
+            with favorite_location.open('w') as favorite_write:
                 yaml.dump(rank_tags, favorite_write)
                 print(f"favorites.yaml dump with: {rank_tags}.")
         # If file doesn't exist, fail silently
@@ -796,7 +794,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             )
             return
         # modes var needs to be type set()
-        self.document_tag()  # Execute favorite tracking
+        self.document_tag(self.list_sender(), COUNTER_LOCATION,
+                          FAVORITE_LOCATION)  # Execute favorite tracking
         modes = set(self.list_sender())
         logging.info(f"Modes to be processed: {modes}.")
         print(f"Modes to be processed: {modes}.")
