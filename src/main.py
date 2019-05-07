@@ -366,9 +366,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
             with ftl.open() as file:
                 completer_list = yaml.safe_load(file)
                 # Debug print(completer_list)
-        except FileNotFoundError:
-            logging.error(
-                f"Autocomplete intialization failed: {FileNotFoundError}.")
+        except (FileNotFoundError, PermissionError) as e:
+            logging.error(f"Autocomplete intialization failed: {e}.")
             print("Couldn't load autocomplete file.")
 
         # Load in tags from external file
@@ -378,8 +377,16 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
 
         # YAML file loaders
         # Load file paths into boxes from previous session
-        self.history_loader(HISTORY_LOCATION, self.oldFileNameBox,
-                            self.newFileNameBox, self.outputFileNameBox)
+
+        # Check for history file and load if exists
+        try:
+            self.history_loader(HISTORY_LOCATION, self.oldFileNameBox,
+                                self.newFileNameBox, self.outputFileNameBox)
+        # If file doesn't exist, fail silently
+        except FileNotFoundError:
+            logging.error(f"History file could not be found.")
+        except PermissionError:
+            logging.error(f"History file found but not readable.")
 
         # List all of our buttons to populate so we can iterate through them
         self.fav_btn = [self.popTag1, self.popTag2,
@@ -458,17 +465,12 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         output_box : QLineEdit
             Field for the output file location prefix
         """
-        # Check for history file and load if exists
-        try:
-            with history_path.open('r') as file:
-                loaded = yaml.safe_load(file)
-                if isinstance(loaded, dict):
-                    old_box.insert(loaded.get('old', ''))
-                    new_box.insert(loaded.get('new', ''))
-                    output_box.insert(loaded.get('output', ''))
-        # If file doesn't exist, fail silently
-        except FileNotFoundError:
-            logging.error(f"{FileNotFoundError}.")
+        with history_path.open('r') as file:
+            loaded = yaml.safe_load(file)
+            if isinstance(loaded, dict):
+                old_box.insert(loaded.get('old', ''))
+                new_box.insert(loaded.get('new', ''))
+                output_box.insert(loaded.get('output', ''))
 
     def fav_btn_populate(self, favorite_path: Path, fav_btn: list):
         """
@@ -496,9 +498,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 # Load in popular tags from history file
                 # Default values are taken if history file does not exist
                 fav_list = yaml.safe_load(favorite_read)  # dict()
-        except FileNotFoundError:
-            logging.error(f"{FileNotFoundError}.")
+        except FileNotFoundError as e:
+            logging.error(e)
+            print("favorites.yaml could not be found")
+        except PermissionError as e:
+            logging.error(e)
             print("favorites.yaml could not be opened")
+
         else:  # Don't bother doing anything with favorites if the file couldn't be read
             logging.info(
                 f"Fav history is: {fav_list} with type: {type(fav_list)}.")
@@ -620,8 +626,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 cur_counter = yaml.safe_load(counter_read)
                 print(f"counter.yaml history: {cur_counter}.")
         # If file doesn't exist, fail silently
-        except FileNotFoundError:
-            logging.error(f"{FileNotFoundError}.")
+        except (FileNotFoundError, PermissionError) as e:
+            logging.error(e)
+
         # Casting list into dictionary with counts
         # Counter() sorts in reverse order (highest first)
         # Counter() generates a counter collections object
@@ -657,7 +664,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
                 yaml.dump(rank_tags, favorite_write)
                 print(f"favorites.yaml dump with: {rank_tags}.")
         # If file doesn't exist, fail silently
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass
 
     def open_input_file(self):
