@@ -16,7 +16,7 @@ from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
 
-import yaml
+import oyaml as yaml
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -625,7 +625,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Parse counter.yaml for user tag preference
         try:
             with counter_location.open('r') as file:
-                cur_counter = yaml.safe_load(file)
+                cur_counter = OrderedDict(yaml.safe_load(file))
                 print(f"counter.yaml history: {cur_counter}.")
         # If file doesn't exist, fail silently
         except OSError as e:
@@ -644,7 +644,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Saving tag counts to config directory
         try:
             with counter_location.open('w') as file:
-                yaml.dump(sorted_counter, file)
+                yaml.dump(dict(sorted_counter), file)
                 print(f"counter.yaml dump with: {sorted_counter}.")
         except OSError as e:
             logging.error(e)
