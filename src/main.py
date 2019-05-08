@@ -12,7 +12,7 @@ import re
 import sys
 import tempfile
 import time
-from collections import Counter
+from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
 
@@ -634,20 +634,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Casting list into dictionary with counts
         # Counter() sorts in reverse order (highest first)
         # Counter() generates a counter collections object
-        # pop_counter = Counter(run_list)
         dict_counter = dict(Counter(run_list).items())
-        # dict_counter = dict()
-        # sorted_counter = dict()
-        # Cast Counter collection into dictionary
-        # for k, v in pop_counter.items():
-        #     dict_counter[k] = v
         # Combining history counter with new counter
         sum_counter = dict(Counter(dict_counter) + Counter(cur_counter))
-        # Sorting counter collections into dictionary
-        # for k, v in sorted(sum_counter.items(), key=lambda item: item[1], reverse=True):
-        #     sorted_counter[k] = v
-        sorted_counter = dict(
-            sorted(sum_counter.items(), key=lambda item: item[1], reverse=True))
+        # Sorting counter collections into ordered dictionary
+        sorted_counter = OrderedDict(
+            sorted(sum_counter.items(), key=lambda x: x[1], reverse=True))
+        rank_tags = list(sorted_counter.keys())
         # Saving tag counts to config directory
         try:
             with counter_location.open('w') as file:
@@ -656,21 +649,15 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         except OSError as e:
             logging.error(e)
             print("Couldn't write counter file.")
-        # Ranking sorted dictionary
-        rank_tags = dict()
-        rank = 1
-        for k in sorted_counter:
-            rank_tags[rank] = k
-            rank += 1
-        rank_tags = list(rank_tags.values())
         # Saving favorite tags to config directory
         try:
-            with favorite_location.open('w') as favorite_write:
-                yaml.dump(rank_tags, favorite_write)
+            with favorite_location.open('w') as file:
+                yaml.dump(rank_tags, file)
                 print(f"favorites.yaml dump with: {rank_tags}.")
         # If file doesn't exist, fail silently
-        except OSError:
-            pass
+        except OSError as e:
+            logging.error(e)
+            print("Couldn't write favorite file.")
 
     def open_input_file(self):
         """
