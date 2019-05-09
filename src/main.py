@@ -307,13 +307,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.setWindowTitle("Chameleon 2")
         if getattr(sys, 'frozen', False):
             logo = Path(sys._MEIPASS).parents[0].joinpath(
-                sys._MEIPASS, "chameleon.icns")
-            logo2 = str(Path.resolve(logo))
+                sys._MEIPASS, "chameleonalpha.png")
+            logo_path = str(Path.resolve(logo))
         else:
             logo = Path(__file__).parents[1].joinpath(
-                "chameleon.icns")
-            logo2 = str(Path.resolve(logo))
-        self.setWindowIcon(QtGui.QIcon(logo2))
+                "resources/chameleonalpha.png")
+            logo_path = str(Path.resolve(logo))
+        self.setWindowIcon(QtGui.QIcon(logo_path))
+        self.logo = logo_path
 
         # Menu bar customization
         # Define Qactions for menu bar
@@ -430,24 +431,21 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         path: str
             File path to application logo
         """
-        about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
-        # logo = QtGui.QIcon(QtGui.QPixmap(path))
-        # about.setIcon(logo)
+        logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
+        about = QMessageBox(self, icon=logo, textFormat=QtCore.Qt.RichText)
+        about.setWindowTitle("About Chameleon 2")
+        about.setIconPixmap(QtGui.QPixmap(
+            self.logo).scaled(160, 160, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         about.setText('''
-        <style>
-                    h1 {
-                        color: %s;
-                        font-family: "Futura-Light", sans-serif;
-                        font-weight: 400;
-                    }
-                    p { font-size: 10px; }
-                    h4 { font-size: 6px; }
-                </style>
-                <h1>Chameleon 2</h1>
-                <p>This application compares two Overpass API CSV datasets
-                and returns an output of the differences between the snapshots.</p>
-                <h4><i>Credit: SeaKaart tools team</i></h4>''')
-        about.exec()
+                    <h2><center>Chameleon 2</center></h2>
+                    <p>This application compares two Overpass API CSV datasets
+                    and returns an output of the differences between the snapshots.<br><br>
+                    Product of <a href="http://kaartgroup.com/">Kaart</a> made by SeaKaart tools team.<br>
+                    Licensed under <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL3</a>.</p>''')
+        about.setInformativeText(
+            "<i>Credits: <a href=https://github.com/harelba/q>q</a>, <a href=https://github.com/ActiveState/appdirs>appdir</a>, "
+            "<a href=https://yaml.readthedocs.io/en/latest>yaml</a>, and <a href=https://www.pyinstaller.org>pyinstaller</a>.</i>")
+        about.show()
 
     @staticmethod
     def history_loader(history_path: Path, old_box: QtWidgets.QLineEdit,
