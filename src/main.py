@@ -305,6 +305,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.setupUi(self)
         # Set up application logo on main window
         self.setWindowTitle("Chameleon 2")
+        # Differentiate sys settings between pre and post-bundling
         if getattr(sys, 'frozen', False):
             logo = Path(sys._MEIPASS).parents[0].joinpath(
                 sys._MEIPASS, "chameleonalpha.png")
