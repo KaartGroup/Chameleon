@@ -293,6 +293,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
     """
     # Sets up signal and var for pbar
     pbar_update = pyqtSignal()
+    clear_search_box = pyqtSignal()
     # Declare progress bar var for values
     pbar_inc = 0
 
@@ -409,7 +410,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
         # Clears the search box after an item is selected from the autocomplete list
-        self.searchBox.completer().activated.connect(
+        self.clear_search_box.connect(
             self.searchBox.clear, QtCore.Qt.QueuedConnection)
 
         # Labelling strings for filename boxes
@@ -569,13 +570,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Add item to list only if condition passes
         if label in current_list:
             self.listWidget.item(current_list.index(label)).setSelected(True)
-            self.searchBox.clear()
-            self.listWidget.repaint()
             print('Please enter an unique tag.')
-            return
-        print('Adding to list: ' + label)
-        self.listWidget.addItem(label)
-        self.searchBox.clear()
+        else:
+            self.listWidget.addItem(label)
+            print('Adding to list: ' + label)
+        self.clear_search_box.emit()
         self.run_checker()
         self.listWidget.repaint()
 
