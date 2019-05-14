@@ -626,7 +626,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Parse counter.yaml for user tag preference
         try:
             with counter_location.open('r') as file:
-                cur_counter = OrderedDict(yaml.safe_load(file))
+                cur_counter = OrderedDict(yaml.load(file))
                 print(f"counter.yaml history: {cur_counter}.")
         # If file doesn't exist, fail silently
         except OSError as e:
