@@ -1,7 +1,6 @@
-pytest
-nose
-coverage
 appdirs
+coverage
+nose
+oyaml
 PyQt5
-ruamel.yaml
-PyYAML
+pytest
