@@ -569,11 +569,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         # Add item to list only if condition passes
         if label in current_list:
             self.listWidget.item(current_list.index(label)).setSelected(True)
+            self.searchBox.clear()
             self.listWidget.repaint()
             print('Please enter an unique tag.')
             return
         print('Adding to list: ' + label)
         self.listWidget.addItem(label)
+        self.searchBox.clear()
         self.run_checker()
         self.listWidget.repaint()
 
