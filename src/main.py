@@ -403,14 +403,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.outputFileSelectButton.clicked.connect(self.output_file)
         self.runButton.clicked.connect(self.run_query)
         self.runButton.clicked.connect(self.list_sender)
-        self.popTag1.clicked.connect(self.add_tag)
-        self.popTag2.clicked.connect(self.add_tag)
-        self.popTag3.clicked.connect(self.add_tag)
-        self.popTag4.clicked.connect(self.add_tag)
-        self.popTag5.clicked.connect(self.add_tag)
+        for i in self.fav_btn:
+            i.clicked.connect(self.add_tag)
         self.searchButton.clicked.connect(self.add_tag)
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
+        # Clears the search box after an item is selected from the autocomplete list
+        self.searchBox.completer().activated.connect(
+            self.searchBox.clear, QtCore.Qt.QueuedConnection)
 
         # Labelling strings for filename boxes
         self.box_text = {
