@@ -27,7 +27,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QMessageBox
 import src.design  # Import generated UI file
 from src.ProgressBar import ProgressBar
 # Does the processing
-from src.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData
+from src.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData, QOutput
 
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
@@ -46,12 +46,15 @@ if not LOG_DIR.is_dir():
     except OSError as exc:
         if exc.errno != errno.EEXIST:
             print(f"Cannot create log directory: {exc}.")
-    else:
+if LOG_DIR.is_dir():
+    try:
         # Initialize Worker class logging
         LOG_PATH = str(LOG_DIR.joinpath(
             f"Chameleon2_{datetime.now().date()}.log"))
         logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
-
+    except:
+        print(f"Log file could not be generated at {LOG_PATH}.")
+        pass
 
 class Worker(QObject):
     """
@@ -63,6 +66,8 @@ class Worker(QObject):
     done = pyqtSignal()
     mode_done = pyqtSignal(str)
     overwrite_confirm = pyqtSignal(str)
+    dialog_critical = pyqtSignal(str, str)
+    dialog_information = pyqtSignal(str, str)
 
     def __init__(self, modes: set, files: dict, group_output: bool):
         super().__init__()
@@ -71,38 +76,130 @@ class Worker(QObject):
         self.files = files
         self.group_output = group_output
         self.response = None
+        self.output_printer = QOutputPrinter(
+            QOutputParams(delimiter='\t', output_header=True))
+        self.input_params = QInputParams(skip_header=True, delimiter='\t')
 
     @pyqtSlot()
     def run(self):
         """
         Runs when thread started, saves history to file and calls other functions to write files.
         """
+        # self.progress_bar
         # Saving paths to config for future loading
         # Make directory if it doesn't exist
         if not CONFIG_DIR.is_dir():
             try:
                 CONFIG_DIR.mkdir()
-            except OSError as exc:
-                if exc.errno != errno.EEXIST:
-                    raise
+            except FileExistsError:
+                logging.debug("Config directory already exists")
+            except OSError as e:
+                logging.debug(f"Config directory could not be created: {e}")
         if self.files:
             with HISTORY_LOCATION.open('w') as file:
                 yaml.dump(self.files, file)
+        # For processing error messages
+        old_regex = re.compile(r":\s+\bold\b\.")
+        new_regex = re.compile(r":\s+\bnew\b\.")
+        error_list = []
+        success_list = []
+        has_highway = self.check_highway(self.files, self.input_params)
+        if has_highway:
+            print("Both source docs have a highway column")
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             for mode in self.modes:
                 logging.debug(f"Executing processing for {mode}.")
-                self.execute_query(mode, self.files, self.group_output)
+                sanitized_mode = mode.replace(":", "_")
+                result = self.execute_query(
+                    mode, self.files, self.group_output, has_highway)
+                # self.write_file(result, files['output'], self.output_printer)
+                # Check if query ran sucessfully
+                file_name = Path(
+                    f"{self.files['output']}_{sanitized_mode}.csv")
+                # File reading failed, usually because a nonexistent column
+                if result.status == 'error':
+                    # Build error message for later display
+                    error_message = str(result.error.exception)
+                    if old_regex.search(error_message):
+                        error_message = re.sub(
+                            old_regex, " in old data file: ", error_message)
+                    elif new_regex.search(error_message):
+                        error_message = re.sub(
+                            new_regex, " in new data file: ", error_message)
+                    error_message = error_message.capitalize()
+                    error_list.append(error_message)
+                    self.mode_done.emit(mode)
+                    continue
+                # Prompt and wait for confirmation before overwriting
+                if file_name.is_file():
+                    self.overwrite_confirm.emit(str(file_name))
+                    mutex.lock()
+                    try:
+                        # Don't check for a response until after the user has a chance to give one
+                        waiting_for_input.wait(mutex)
+                        if self.response is False:
+                            print(f"Skipping {mode}.")
+                            continue
+                        if self.response is None:
+                            raise Exception("Chameleon didn't get an answer.")
+                    finally:
+                        mutex.unlock()
+                print(f"Writing {file_name}")
+                try:
+                    with file_name.open("w") as output_file:
+                        self.output_printer.print_output(
+                            output_file, sys.stderr, result)
+                except OSError as e:
+                    logging.error(str(e))
+                    print("Write error")
+                else:
+                    success_list.append(mode)
+                    # Logging q errors when try fails.
+                    logging.debug(f"q_output details: {result}.")
+                    logging.debug(
+                        f"Processing for {mode} complete.")
+                    print(f"{file_name} written.")
+                    self.mode_done.emit(mode)
             # print(f"After run: {self.modes} with {type(self.modes)}.")
         finally:
             # print(f"End run: {self.modes} with {type(self.modes)}.")
             # print(f"Before clear: {self.modes} with {type(self.modes)}.")
             # Signal the main thread that this thread is complete
+            if error_list:
+                error_summary = ''
+                if len(error_list) > 1:
+                    headline = "Tags could not be queried"
+                    for i in error_list:
+                        error_summary += f"{i}\n"
+                if success_list:
+                    headline = "Some tags could not be queried"
+                    error_summary += "\nThe following tags completed successfully:\n"
+                    for i in success_list:
+                        error_summary += f"{i}\n"
+                if len(error_list) == 1:
+                    headline = "A tag could not be queried"
+                    error_summary = error_list[0]
+                self.dialog_critical.emit(
+                    headline, error_summary)
+            elif success_list:
+                self.dialog_information.emit("Success", "All tags completed!")
+            else:
+                self.dialog_information.emit("Nothing saved", "No files saved")
             self.modes.clear()
             # print(f"After clear: {self.modes} with {type(self.modes)}.")
             self.done.emit()
 
-    def execute_query(self, mode: str, files: dict, group_output: bool):
+    @staticmethod
+    def check_highway(files: dict, input_params: QInputParams) -> bool:
+        highway_check_old_sql = f"SELECT highway FROM {files['old']} LIMIT 1"
+        highway_check_new_sql = f"SELECT highway FROM {files['new']} LIMIT 1"
+        q_engine = QTextAsData()
+        return q_engine.execute(
+            highway_check_new_sql, input_params).status != 'error' and q_engine.execute(
+                highway_check_old_sql, input_params).status != 'error'
+
+    def execute_query(self, mode: str, files: dict, group_output=False, has_highway=False) -> QOutput:
         """
         Saves file path for future loading, create a directory if one does not
         already exist. Groups JOSM tags with SQL and generates suitable output.
@@ -114,32 +211,21 @@ class Worker(QObject):
         """
         # Clean up tags with : that cannot be escaped with sqlite3
         sanitized_mode = mode.replace(":", "_")
-
+        q_engine = QTextAsData()
         # Creating SQL snippets
+        sql = self.build_query(mode, files, group_output, has_highway)
         if group_output:
             # Generating temporary output files (max size 100 MB)
             tempf = tempfile.NamedTemporaryFile(
                 mode='w', buffering=-1, encoding=None, newline=None,
                 suffix=".csv", prefix=None, dir=None, delete=True)
-            print(f'Temporary file generated at {tempf.name}.')
-        sql = self.build_query(mode, files, group_output)
-        # Generate variable for output file path
-        if group_output:
             print(f"Writing to temp file.")
-            input_params = QInputParams(
-                skip_header=True,
-                delimiter='\t'
-            )
-            output_params = QOutputParams(
-                delimiter='\t',
-                output_header=True
-            )
-            q_engine = QTextAsData()
             q_output = q_engine.execute(
-                sql, input_params)
-            q_output_printer = QOutputPrinter(
-                output_params)
-            q_output_printer.print_output(
+                sql, self.input_params)
+            # print(q_output.data)
+            # grouped_output_printer = QOutputPrinter(
+            # QOutputParams(delimiter='\t', output_header=True))
+            self.output_printer.print_output(
                 tempf, sys.stderr, q_output)
 
             # Logging and printing debug statements for associated q errors
@@ -151,41 +237,22 @@ class Worker(QObject):
                    "group_concat(id)) AS url, count(id) AS count,"
                    "group_concat(distinct user) AS users,max(timestamp) AS latest_timestamp,"
                    "min(version) AS version, ")
-            if mode != "highway":
+            if mode != "highway" and has_highway:
                 sql += "highway,"
-            sql += (f"old_{sanitized_mode},new_{sanitized_mode}, group_concat(DISTINCT action) AS actions, "
+            sql += (f"old_{sanitized_mode},new_{sanitized_mode}, "
+                    "group_concat(DISTINCT action) AS actions, "
                     f"NULL AS \"notes\" FROM {tempf.name} "
                     f"GROUP BY old_{sanitized_mode},new_{sanitized_mode},action;")
             logging.debug(
                 f"Grouped enabled, Processing group sql query: {sql}.")
-            self.mode_done.emit(mode)
-            # print(sql)
-
         # Proceed with generating tangible output for user
-        file_name = f"{files['output']}_{sanitized_mode}.csv"
-        if os.path.isfile(file_name):
-            self.overwrite_confirm.emit(file_name)
-            mutex.lock()
-            try:
-                # Don't check for a response until after the user has a chance to give one
-                waiting_for_input.wait(mutex)
-                if self.response:
-                    self.write_file(sql, file_name, mode)
-                    self.mode_done.emit(mode)
-                elif self.response is False:
-                    return
-                else:
-                    raise Exception("Chameleon didn't get an answer.")
-            finally:
-                mutex.unlock()
-        else:
-            self.write_file(sql, file_name, mode)
-            self.mode_done.emit(mode)
+        result = q_engine.execute(sql, self.input_params)
         if group_output:
             tempf.close()
+        return result
 
     @staticmethod
-    def build_query(mode: str, files: dict, group_output: bool) -> str:
+    def build_query(mode: str, files: dict, group_output=False, has_highway=False) -> str:
         """
         Constructs the SQL string from user input
         """
@@ -202,16 +269,16 @@ class Worker(QObject):
         sql += ("ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\","
                 "old.\"@timestamp\"),1,10) AS timestamp, "
                 "ifnull(new.\"@version\",old.\"@version\") AS version, ")
-        if mode != "highway":
+        if mode != "highway" and has_highway:
             sql += "ifnull(new.highway,old.highway) AS highway, "
         if mode != "name":
             sql += "ifnull(new.name,old.name) AS name, "
         sql += (f"ifnull(old.\"{mode}\",'') AS old_{sanitized_mode}, "
                 f"ifnull(new.\"{mode}\",'') AS new_{sanitized_mode}, "
+                # Differentiate between objects that are modified and deleted
                 "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
                 "ELSE \"deleted\" END \"action\" ")
         if not group_output:
-            # Differentiate between objects that are modified and deleted
             sql += ", NULL AS \"notes\" "
         sql += (f"FROM {files['old']} AS old "
                 f"LEFT OUTER JOIN {files['new']} AS new ON old.\"@id\" = new.\"@id\" "
@@ -224,63 +291,21 @@ class Worker(QObject):
                     "substr(new.\"@type\",1,1) || new.\"@id\") AS url, ")
         sql += ("new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
                 "new.\"@version\" AS version, ")
-        if mode != "highway":
+        if mode != "highway" and has_highway:
             sql += "new.highway AS highway, "
         if mode != "name":
             sql += "new.name AS name, "
         sql += (f"ifnull(old.\"{mode}\",'') AS old_{sanitized_mode}, "
                 f"ifnull(new.\"{mode}\",'') AS new_{sanitized_mode}, "
+                # 'action' defaults to 'new' to capture 'added' and 'split' objects
                 "\"new\" AS \"action\" ")
         if not group_output:
-            # 'action' defaults to 'new' to capture 'added' and 'split' objects
             sql += ", NULL AS \"notes\" "
         sql += (f"FROM {files['new']} AS new "
                 f"LEFT OUTER JOIN {files['old']} AS old ON new.\"@id\" = old.\"@id\" "
                 f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{sanitized_mode},'')) > 0")
         logging.debug(f"Processing sql query: {sql}")
-        # print(sql)
         return sql
-
-    @staticmethod
-    def write_file(sql: str, file_name: str, mode: str) -> bool:
-        """
-        Handles writing formatted file using data grabbed by SQL query.
-
-        Parameters
-        ----------
-        sql : str
-            Query that selects JOSM URL for tag grouping
-        file_name : str
-            File name in csv format
-        """
-        try:
-            with open(file_name, "w") as output_file:
-                print(f"Writing {file_name}")
-                input_params = QInputParams(
-                    skip_header=True,
-                    delimiter='\t'
-                )
-                output_params = QOutputParams(
-                    delimiter='\t',
-                    output_header=True
-                )
-                q_engine = QTextAsData()
-                q_output = q_engine.execute(
-                    sql, input_params)
-                q_output_printer = QOutputPrinter(
-                    output_params)
-                q_output_printer.print_output(
-                    output_file, sys.stderr, q_output)
-        except OSError as e:
-            logging.error(str(e))
-            return False
-        else:
-            # Logging q errors when try fails.
-            logging.debug(f"q_output details: {q_output}.")
-            logging.debug(f"Processing for {mode} ended.")
-            print("Complete")
-            return True
-            # Insert completion feedback here
 
 
 class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
@@ -726,6 +751,21 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         dialog.setInformativeText(info)
         dialog.exec()
 
+    def dialog_information(self, text: str, info: str):
+        """
+        Method to pop-up informational error box
+
+        Parameters
+        ----------
+        text, info : str
+            Optional error box text.
+        """
+        dialog = QMessageBox(self)
+        dialog.setText(text)
+        dialog.setIcon(QMessageBox.Information)
+        dialog.setInformativeText(info)
+        dialog.exec()
+
     def run_query(self):
         """
         Allows run button to execute based on selected tag parameters.
@@ -806,6 +846,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
         self.worker.overwrite_confirm.connect(self.overwrite_message)
+        self.worker.dialog_critical.connect(self.dialog_critical)
+        self.worker.dialog_information.connect(self.dialog_information)
         self.worker.moveToThread(self.work_thread)
         self.work_thread.started.connect(self.worker.run)
         self.work_thread.start()
@@ -900,7 +942,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         self.work_thread.wait()
         self.worker = None
         self.work_thread = None
-        QMessageBox.information(self, "Message", "Complete!")
         # Logging processing completion
         logging.info(f"All Chameleon 2 analysis processing completed.")
         self.run_checker()
