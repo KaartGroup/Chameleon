@@ -1,6 +1,8 @@
 import unittest
 from pathlib import Path
 
+import oyaml as yaml
+
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
@@ -63,20 +65,34 @@ class TestBuildQuery(unittest.TestCase):
         Comparison of sql query used for ungrouped analysis.
         """
         # print(gold_sql)
-        test_sql = self.func.build_query("name", self.files, False)
+        test_sql = self.func.build_query("name", self.files, False, True)
         # print(test_sql)
         self.assertEqual(test_sql, self.gold_sql)
 
-    def test_write_file_ungrouped(self):
-        """
-        Comparison of sample and code csv outputs.
-        """
-        self.func.write_file(self.gold_sql, self.file_name, "name")
-        with open(self.file_name, "r") as file:
-            test_file = file.read()
-        with open("test/test_name.csv", "r") as file:
-            gold_file = file.read()
-        self.assertMultiLineEqual(test_file, gold_file)
+    def test_execute_query_ungrouped(self):
+        test_output = (self.func.execute_query(
+            "name", self.files, False, True)).data
+        with open("test/test_ungrouped_q_output.yaml", 'r') as file:
+            gold_ungrouped_output = yaml.load(file)
+        self.assertEqual(test_output, gold_ungrouped_output)
+
+    def test_execute_query_grouped(self):
+        test_output = (self.func.execute_query(
+            "name", self.files, True, True)).data
+        with open("test/test_grouped_q_output.yaml", 'r') as file:
+            gold_grouped_output = yaml.load(file)
+        self.assertEqual(test_output, gold_grouped_output)
+
+    # def test_write_file_ungrouped(self):
+    #     """
+    #     Comparison of sample and code csv outputs.
+    #     """
+    #     self.func.write_file(self.gold_sql, self.file_name, "name")
+    #     with open(self.file_name, "r") as file:
+    #         test_file = file.read()
+    #     with open("test/test_name.csv", "r") as file:
+    #         gold_file = file.read()
+    #     self.assertMultiLineEqual(test_file, gold_file)
 
 
 class TestGUI(unittest.TestCase):
