@@ -222,6 +222,10 @@ class Worker(QObject):
             print(f"Writing to temp file.")
             q_output = q_engine.execute(
                 sql, self.input_params)
+            # If missing a tag, return early so the calling loop can grab the error
+            if q_output.status == 'error':
+                tempf.close()
+                return q_output
             # print(q_output.data)
             # grouped_output_printer = QOutputPrinter(
             # QOutputParams(delimiter='\t', output_header=True))
