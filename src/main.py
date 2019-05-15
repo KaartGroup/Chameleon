@@ -52,9 +52,9 @@ if LOG_DIR.is_dir():
         LOG_PATH = str(LOG_DIR.joinpath(
             f"Chameleon2_{datetime.now().date()}.log"))
         logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
-    except:
+    except OSError:
         print(f"Log file could not be generated at {LOG_PATH}.")
-        pass
+
 
 class Worker(QObject):
     """
