@@ -1,3 +1,7 @@
+"""
+Unit tests for the main.py file
+"""
+
 import unittest
 from pathlib import Path
 
@@ -54,7 +58,8 @@ class TestBuildQuery(unittest.TestCase):
             "new.\"@version\" AS version, new.highway AS highway, "
             "ifnull(old.\"name\",'') AS old_name, ifnull(new.\"name\",'') AS new_name, "
             "\"new\" AS \"action\" , NULL AS \"notes\" "
-            f"FROM {self.files['new']} AS new LEFT OUTER JOIN {self.files['old']} AS old ON new.\"@id\" = old.\"@id\" "
+            f"FROM {self.files['new']} AS new "
+            f"LEFT OUTER JOIN {self.files['old']} AS old ON new.\"@id\" = old.\"@id\" "
             "WHERE old.\"@id\" IS NULL AND length(ifnull(new_name,'')) > 0"
         )
         self.file_name = f"{self.files['output']}_name.csv"
@@ -70,6 +75,9 @@ class TestBuildQuery(unittest.TestCase):
         self.assertEqual(test_sql, self.gold_sql)
 
     def test_execute_query_ungrouped(self):
+        """
+        Tests that querying an output without grouping gives expected results
+        """
         test_output = (self.func.execute_query(
             "name", self.files, False, True)).data
         with open("test/test_ungrouped_q_output.yaml", 'r') as file:
@@ -77,12 +85,38 @@ class TestBuildQuery(unittest.TestCase):
         self.assertEqual(test_output, gold_ungrouped_output)
 
     def test_execute_query_grouped(self):
+        """
+        Tests that querying an output with grouping gives expected results
+        """
         test_output = (self.func.execute_query(
             "name", self.files, True, True)).data
         with open("test/test_grouped_q_output.yaml", 'r') as file:
             gold_grouped_output = yaml.load(file)
         self.assertEqual(test_output, gold_grouped_output)
 
+    def test_highway_missing_ungrouped(self):
+        """
+        Test that omitting a highway tag in the inputs does not block analysis in ungrouped mode
+        """
+        pass
+
+    def test_highway_missing_grouped(self):
+        """
+        Test that omitting a highway tag in the inputs does not block analysis in grouped mode
+        """
+        pass
+
+    def test_missing_tag_ungrouped(self):
+        """
+        Test that a missing tag gives a helpful error message in ungrouped mode
+        """
+        pass
+
+    def test_missing_tag_grouped(self):
+        """
+        Test that a missing tag gives a helpful error message in grouped mode
+        """
+        pass
     # def test_write_file_ungrouped(self):
     #     """
     #     Comparison of sample and code csv outputs.
@@ -120,6 +154,7 @@ class TestGUI(unittest.TestCase):
         QTest.mouseClick(self.mainapp.searchButton, Qt.LeftButton)
         self.assertGreater(len(self.mainapp.listWidget.findItems(
             "highway", Qt.MatchExactly)), 0)
+        self.assertIsNot(self.mainapp.searchBox.text, True)
 
     def test_add_special_char_to_list(self):
         """
