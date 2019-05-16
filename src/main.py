@@ -154,7 +154,14 @@ class Worker(QObject):
                     logging.error(str(e))
                     print("Write error")
                 else:
-                    success_list.append(mode)
+                    if len(result.data) == 0:
+                        success_message = (f"{mode} has no change.")
+                    else:
+                        success_message = (f"{mode} output with {len(result.data)} row")
+                        if len(result.data) > 1:
+                            success_message += "s"
+                        success_message += "."
+                    success_list.append(success_message)
                     # Logging q errors when try fails.
                     logging.debug(f"q_output details: {result}.")
                     logging.debug(
@@ -183,11 +190,15 @@ class Worker(QObject):
                 self.dialog_critical.emit(
                     headline, error_summary)
             elif success_list:
-                self.dialog_information.emit("Success", "All tags completed!")
+                summary = "All tags completed!<br> "
+                for item in success_list:
+                    summary = summary + item + "<br> "
+                self.dialog_information.emit("Success", summary)
             else:
                 self.dialog_information.emit("Nothing saved", "No files saved")
             self.modes.clear()
             # print(f"After clear: {self.modes} with {type(self.modes)}.")
+            print(success_list)
             self.done.emit()
 
     @staticmethod
