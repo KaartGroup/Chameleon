@@ -157,7 +157,8 @@ class Worker(QObject):
                     if len(result.data) == 0:
                         success_message = (f"{mode} has no change.")
                     else:
-                        success_message = (f"{mode} output with {len(result.data)} row")
+                        success_message = (
+                            f"{mode} output with {len(result.data)} row")
                         if len(result.data) > 1:
                             success_message += "s"
                         success_message += "."
@@ -203,6 +204,20 @@ class Worker(QObject):
 
     @staticmethod
     def check_highway(files: dict, input_params: QInputParams) -> bool:
+        """Set docstring here.
+
+        Parameters
+        ----------
+        files : dict:
+            Dictionary containing old and new file paths
+        input_params : QInputParams:
+            input params for files
+        Returns
+        -------
+        bool:
+            True if both files contain a highway column
+            False if one or none of the files contain a highway column
+        """
         highway_check_old_sql = f"SELECT highway FROM {files['old']} LIMIT 1"
         highway_check_new_sql = f"SELECT highway FROM {files['new']} LIMIT 1"
         q_engine = QTextAsData()
@@ -481,12 +496,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
         about.setText('''
                     <h2><center>Chameleon 2</center></h2>
                     <p>This application compares two Overpass API CSV datasets
-                    and returns an output of the differences between the snapshots.<br><br>
-                    Product of <a href="http://kaartgroup.com/">Kaart</a> made by SeaKaart tools team.<br>
+                    and returns an output of the differences between the snapshots.</p>
+                    <p>Product of <a href="http://kaartgroup.com/">Kaart</a> made by SeaKaart tools team.<br>
                     Licensed under <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL3</a>.</p>''')
         about.setInformativeText(
-            "<i>Credits: <a href=https://github.com/harelba/q>q</a>, <a href=https://github.com/ActiveState/appdirs>appdir</a>, "
-            "<a href=https://yaml.readthedocs.io/en/latest>yaml</a>, and <a href=https://www.pyinstaller.org>pyinstaller</a>.</i>")
+            "<i>Credits: <a href=https://github.com/harelba/q>q</a>, "
+            "<a href=https://github.com/ActiveState/appdirs>appdir</a>, "
+            "<a href=https://yaml.readthedocs.io/en/latest>yaml</a>, "
+            "and <a href=https://www.pyinstaller.org>pyinstaller</a>.</i>")
         about.show()
 
     @staticmethod
