@@ -98,25 +98,57 @@ class TestBuildQuery(unittest.TestCase):
         """
         Test that omitting a highway tag in the inputs does not block analysis in ungrouped mode
         """
-        pass
+        files = {
+            "old": "test/old_nohighway.csv",
+            "new": "test/new_nohighway.csv",
+            "output": "test/output"
+        }
+        test_output = (self.func.execute_query(
+            "name", files, False, False)).data
+        with open("test/test_ungrouped_q_output_nohighway.yaml", 'r') as file:
+            gold_ungrouped_output = yaml.load(file)
+        self.assertEqual(test_output, gold_ungrouped_output)
 
     def test_highway_missing_grouped(self):
         """
         Test that omitting a highway tag in the inputs does not block analysis in grouped mode
         """
-        pass
+        files = {
+            "old": "test/old_nohighway.csv",
+            "new": "test/new_nohighway.csv",
+            "output": "test/output"
+        }
+        test_output = (self.func.execute_query(
+            "name", files, True, False)).data
+        with open("test/test_grouped_q_output_nohighway.yaml", 'r') as file:
+            gold_grouped_output = yaml.load(file)
+        self.assertEqual(test_output, gold_grouped_output)
 
     def test_missing_tag_ungrouped(self):
         """
         Test that a missing tag gives a helpful error message in ungrouped mode
         """
-        pass
+        files = {
+            "old": "test/old_noname.csv",
+            "new": "test/new_noname.csv",
+            "output": "test/output"
+        }
+        test_output = (self.func.execute_query(
+            "name", files, False, False)).status
+        self.assertEqual(test_output, "error")
 
     def test_missing_tag_grouped(self):
         """
         Test that a missing tag gives a helpful error message in grouped mode
         """
-        pass
+        files = {
+            "old": "test/old_noname.csv",
+            "new": "test/new_noname.csv",
+            "output": "test/output"
+        }
+        test_output = (self.func.execute_query(
+            "name", files, True, False)).status
+        self.assertEqual(test_output, "error")
     # def test_write_file_ungrouped(self):
     #     """
     #     Comparison of sample and code csv outputs.
