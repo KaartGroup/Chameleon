@@ -3,11 +3,11 @@
 block_cipher = None
 
 added_files = [
-                ('src/OSMtag.yaml', 'data'),
+                ('chameleon2/OSMtag.yaml', 'data'),
                 ('resources/chameleonalpha.png', '.')
              ]
 
-a = Analysis(['src/main.py'],
+a = Analysis(['chameleon2/main.py'],
              pathex=['/Users/primaryuser/chameleon-2'],
              binaries=[],
              datas= added_files,
