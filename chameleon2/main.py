@@ -138,11 +138,9 @@ class Worker(QObject):
                     try:
                         # Don't check for a response until after the user has a chance to give one
                         waiting_for_input.wait(mutex)
-                        if self.response is False:
+                        if not self.response:
                             print(f"Skipping {mode}.")
                             continue
-                        if self.response is None:
-                            raise Exception("Chameleon didn't get an answer.")
                     finally:
                         mutex.unlock()
                 print(f"Writing {file_name}")
@@ -154,7 +152,7 @@ class Worker(QObject):
                     logging.error(str(e))
                     print("Write error")
                 else:
-                    if len(result.data) == 0:
+                    if not result.data:
                         success_message = (f"{mode} has no change.")
                     else:
                         success_message = (
@@ -173,38 +171,38 @@ class Worker(QObject):
         finally:
             # print(f"End run: {self.modes} with {type(self.modes)}.")
             # print(f"Before clear: {self.modes} with {type(self.modes)}.")
-            # Signal the main thread that this thread is complete
+
+            # Some tags failed
             if error_list:
-                error_summary = ''
-                if len(error_list) > 1:
-                    headline = "Tags could not be queried"
-                    for i in error_list:
-                        error_summary += f"{i}\n"
-                if success_list:
-                    headline = "Some tags could not be queried"
-                    error_summary += "\nThe following tags completed successfully:\n"
-                    for i in success_list:
-                        error_summary += f"{i}\n"
                 if len(error_list) == 1:
                     headline = "A tag could not be queried"
-                    error_summary = error_list[0]
+                    summary = error_list[0]
+                else:
+                    headline = "Tags could not be queried"
+                    summary = "\n".join(error_list)
+                if success_list:
+                    headline = "Some tags could not be queried"
+                    summary += "\nThe following tags completed successfully:\n"
+                    summary += "\n".join(success_list)
                 self.dialog_critical.emit(
-                    headline, error_summary)
+                    headline, summary)
+            # Nothing failed, everything suceeded
             elif success_list:
-                summary = "All tags completed!<br> "
-                for item in success_list:
-                    summary = summary + item + "<br> "
+                summary = "All tags completed!\n"
+                summary += "\n".join(success_list)
                 self.dialog_information.emit("Success", summary)
+            # Nothing succeeded and nothing failed, probably because user declined to overwrite
             else:
                 self.dialog_information.emit("Nothing saved", "No files saved")
             self.modes.clear()
             # print(f"After clear: {self.modes} with {type(self.modes)}.")
             print(success_list)
+            # Signal the main thread that this thread is complete
             self.done.emit()
 
     @staticmethod
     def check_highway(files: dict, input_params: QInputParams) -> bool:
-        """Set docstring here.
+        """
 
         Parameters
         ----------
@@ -312,10 +310,9 @@ class Worker(QObject):
             sql += ", NULL AS \"notes\" "
         sql += (f"FROM {files['old']} AS old "
                 f"LEFT OUTER JOIN {files['new']} AS new ON old.\"@id\" = new.\"@id\" "
-                f"WHERE old_{sanitized_mode} NOT LIKE new_{sanitized_mode} ")
-
-        # UNION FULL LEFT OUTER JOIN to isolated instances of new objects
-        sql += "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
+                f"WHERE old_{sanitized_mode} NOT LIKE new_{sanitized_mode} "
+                # UNION FULL LEFT OUTER JOIN to isolated instances of new objects
+                "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, ")
         if not group_output:
             sql += ("('http://localhost:8111/load_object?new_layer=true&objects=' || "
                     "substr(new.\"@type\",1,1) || new.\"@id\") AS url, ")
