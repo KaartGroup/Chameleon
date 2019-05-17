@@ -24,10 +24,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QMessageBox
 
-import src.design  # Import generated UI file
-from src.ProgressBar import ProgressBar
+import chameleon2.design  # Import generated UI file
+from chameleon2.ProgressBar import ProgressBar
 # Does the processing
-from src.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData, QOutput
+from chameleon2.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData, QOutput
 
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
@@ -338,7 +338,7 @@ class Worker(QObject):
         return sql
 
 
-class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, src.design.Ui_MainWindow):
+class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainWindow):
     """
 
     Main PyQT window class that allows communication between UI and backend.

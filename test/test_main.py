@@ -11,7 +11,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
 
-import src.main
+import chameleon2.main
 
 # from pathlib import Path
 # TEST_FOLDER = Path("test")
@@ -63,7 +63,7 @@ class TestBuildQuery(unittest.TestCase):
             "WHERE old.\"@id\" IS NULL AND length(ifnull(new_name,'')) > 0"
         )
         self.file_name = f"{self.files['output']}_name.csv"
-        self.func = src.main.Worker("name", self.files, False)
+        self.func = chameleon2.main.Worker("name", self.files, False)
 
     def test_build_query_ungrouped(self):
         """
@@ -140,7 +140,7 @@ class TestGUI(unittest.TestCase):
         """
         Definition of testing vars for TestGUI class.
         """
-        self.mainapp = src.main.MainApp()
+        self.mainapp = chameleon2.main.MainApp()
         self.favorite_location = Path('test/test_favorites.yaml')
         self.fav_btn = [self.mainapp.popTag1, self.mainapp.popTag2,
                         self.mainapp.popTag3, self.mainapp.popTag4, self.mainapp.popTag5]
