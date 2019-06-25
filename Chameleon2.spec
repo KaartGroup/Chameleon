@@ -43,6 +43,7 @@ app = BUNDLE(coll,
              icon='chameleon.icns',
              bundle_identifier=None,
              info_plist={
-            'NSHighResolutionCapable': 'True'
+            'NSHighResolutionCapable': 'True',
+            'NSRequiresAquaSystemAppearance': 'False'
             },
         )
