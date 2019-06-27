@@ -475,6 +475,16 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
             self.oldFileSelectButton: self.oldFileNameBox,
             self.newFileSelectButton: self.newFileNameBox
         }
+        # Tooltip descriptors
+        self.runButton.setToolTip('Execute process based on tag(s) selected.')
+        self.groupingCheckBox.setToolTip('Consolidate similar changes for listed tag(s)')
+        self.oldFileSelectButton.setToolTip('Browse for an earlier timestamped .csv file.')
+        self.newFileSelectButton.setToolTip('Browse for a later timestamped .csv file.')
+        self.outputFileSelectButton.setToolTip('Set save location for output file.')
+        self.searchBox.setToolTip('Type to search for an OSM tag.')
+        self.searchButton.setToolTip('Add selected tag to list.')
+        self.deleteItemButton.setToolTip('Delete tag from list.')
+        self.clearListButton.setToolTip('Clear tag(s) from current list.')
 
     def about_menu(self, path: str):
         """
@@ -995,29 +1005,25 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
             self.worker.response = True
         waiting_for_input.wakeAll()
 
-# Override closeEvent method from QWidget; for assigning custom closeEvent
-
-# Trial 1
-# def closeEvent(self, event):
-#     if can_exit:
-#         print("Chameleon 2 closed.")
-#         event.accept()
-#     else:
-#         print("Closing ignored.")
-#         event.ignore()
-
-# Trial 2
-# def closeEvent(self, event):
-#     quit_msg = "Are you sure you want to exit the program?"
-#     reply = QtGui.QMessageBox.question(self, 'Message',
-#                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-#     if self._want_to_close and reply == QtGui.QMessageBox.Yes:
-#         event.accept()
-#         super(MainApp, self).closeEvent(event)
-#     else:
-#         event.ignore()
-#         self.setWindowState(QtCore.Qt.WindowMinimized)
-
+    def closeEvent(self, event):
+        """
+        Overrides the closeEvent method to allow an exit prompt.
+        
+        Parameters
+        ----------
+        event : class
+            Event which handles the exit prompt.
+        """
+        exit_prompt = QtWidgets.QMessageBox()
+        exit_prompt.setIcon(QMessageBox.Question)
+        exit_response = exit_prompt.question(
+            self, '', "Are you sure you want to exit?",
+            exit_prompt.Yes, exit_prompt.No
+        )
+        if exit_response == exit_prompt.Yes:
+            event.accept()
+        else: 
+            event.ignore()
 
 def main():
     """
