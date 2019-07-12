@@ -4,6 +4,7 @@
 - - -
 
 [![pipeline status](https://gitlab.com/seakaart/chameleon-2/badges/master/pipeline.svg)](https://gitlab.com/seakaart/chameleon-2/commits/master)
+[![license](https://img.shields.io/badge/license-GPL3-blue.svg)](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE)
 
 - - -
 
@@ -89,5 +90,3 @@ out meta;
 
 ## Contributors
 @austin61293, @dericke, @geografer, @LiuTwo
-
-The Chameleon 2 software is licensed under [`GPL3`](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE).
