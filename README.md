@@ -4,6 +4,7 @@
 - - -
 
 [![pipeline status](https://gitlab.com/seakaart/chameleon-2/badges/master/pipeline.svg)](https://gitlab.com/seakaart/chameleon-2/commits/master)
+[![version#](https://img.shields.io/badge/version-2.3.3-lightgrey.svg)](https://gitlab.com/seakaart/chameleon-2/-/tags)
 [![license](https://img.shields.io/badge/license-GPL3-blue.svg)](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE)
 
 - - -
