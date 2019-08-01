@@ -7,7 +7,6 @@ in .csv format.
 import errno
 import logging
 import os
-import os.path
 import re
 import sys
 import tempfile
@@ -27,7 +26,8 @@ from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QMessageBox
 import chameleon2.design  # Import generated UI file
 from chameleon2.ProgressBar import ProgressBar
 # Does the processing
-from chameleon2.q import QInputParams, QOutputParams, QOutputPrinter, QTextAsData, QOutput
+from chameleon2.q import (QInputParams, QOutput, QOutputParams, QOutputPrinter,
+                          QTextAsData)
 
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
@@ -46,6 +46,8 @@ if not LOG_DIR.is_dir():
     except OSError as exc:
         if exc.errno != errno.EEXIST:
             print(f"Cannot create log directory: {exc}.")
+
+# If LOG_DIR was previously created, either in the preceeding block or on another run
 if LOG_DIR.is_dir():
     try:
         # Initialize Worker class logging
@@ -54,6 +56,20 @@ if LOG_DIR.is_dir():
         logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG)
     except OSError:
         print(f"Log file could not be generated at {LOG_PATH}.")
+    else:
+        # Clean up log file if it exceeds 15/1MB
+        # Sort and list existing log files
+        log_list = sorted([f for f in LOG_DIR.glob("*.log") if f.is_file()])
+        if len(log_list) > 15:
+            rm_count = len(log_list) - 15
+            clear_list = log_list[0:rm_count]
+            for file in clear_list:
+                try:
+                    print(f"removing...{file}")
+                    file.unlink()
+                except OSError as e:
+                    print(f"Error:", {e})
+                    logging.error(f"Log Checking ", {e}, " for ", {file})
 
 
 class Worker(QObject):
@@ -477,10 +493,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         }
         # Tooltip descriptors
         self.runButton.setToolTip('Execute process based on tag(s) selected.')
-        self.groupingCheckBox.setToolTip('Consolidate similar changes for listed tag(s)')
-        self.oldFileSelectButton.setToolTip('Browse for an earlier timestamped .csv file.')
-        self.newFileSelectButton.setToolTip('Browse for a later timestamped .csv file.')
-        self.outputFileSelectButton.setToolTip('Set save location for output file.')
+        self.groupingCheckBox.setToolTip(
+            'Consolidate similar changes for listed tag(s)')
+        self.oldFileSelectButton.setToolTip(
+            'Browse for an earlier timestamped .csv file.')
+        self.newFileSelectButton.setToolTip(
+            'Browse for a later timestamped .csv file.')
+        self.outputFileSelectButton.setToolTip(
+            'Set save location for output file.')
         self.searchBox.setToolTip('Type to search for an OSM tag.')
         self.searchButton.setToolTip('Add selected tag to list.')
         self.deleteItemButton.setToolTip('Delete tag from list.')
@@ -1008,7 +1028,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
     def closeEvent(self, event):
         """
         Overrides the closeEvent method to allow an exit prompt.
-        
+
         Parameters
         ----------
         event : class
@@ -1022,8 +1042,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         )
         if exit_response == exit_prompt.Yes:
             event.accept()
-        else: 
+        else:
             event.ignore()
+
 
 def main():
     """
