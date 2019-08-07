@@ -10,7 +10,6 @@ import os
 import re
 import sys
 import tempfile
-import time
 from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
@@ -21,10 +20,10 @@ from appdirs import user_config_dir, user_log_dir
 from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QMessageBox
+from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
+                             QProgressDialog)
 
 import chameleon2.design  # Import generated UI file
-from chameleon2.ProgressBar import ProgressBar
 # Does the processing
 from chameleon2.q import (QInputParams, QOutput, QOutputParams, QOutputPrinter,
                           QTextAsData)
@@ -90,7 +89,7 @@ class Worker(QObject):
 
     """
     done = pyqtSignal()
-    mode_done = pyqtSignal(str)
+    mode_start = pyqtSignal(str)
     overwrite_confirm = pyqtSignal(str)
     dialog_critical = pyqtSignal(str, str)
     dialog_information = pyqtSignal(str, str)
@@ -131,7 +130,9 @@ class Worker(QObject):
         # For processing error messages
         old_regex = re.compile(r":\s+\bold\b\.")
         new_regex = re.compile(r":\s+\bnew\b\.")
+        # Will hold any failed steps for display at the end
         error_list = []
+        # Will hold all successful steps for display at the end
         success_list = []
         has_highway = self.check_highway(self.files, self.input_params)
         if has_highway:
@@ -140,6 +141,7 @@ class Worker(QObject):
         try:
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", (mode))
+                self.mode_start.emit(mode)
                 sanitized_mode = mode.replace(":", "_")
                 result = self.execute_query(
                     mode, self.files, self.group_output, has_highway)
@@ -159,7 +161,6 @@ class Worker(QObject):
                             new_regex, " in new data file: ", error_message)
                     error_message = error_message.capitalize()
                     error_list.append(error_message)
-                    self.mode_done.emit(mode)
                     continue
                 # Prompt and wait for confirmation before overwriting
                 if file_name.is_file():
@@ -194,7 +195,6 @@ class Worker(QObject):
                     logger.debug("q_output details: %s.", result)
                     logger.info(
                         "Processing for %s complete. %s written.", mode, file_name)
-                    self.mode_done.emit(mode)
             # print(f"After run: {self.modes} with {type(self.modes)}.")
         finally:
             # print(f"End run: {self.modes} with {type(self.modes)}.")
@@ -266,6 +266,8 @@ class Worker(QObject):
         q_engine = QTextAsData()
         # Creating SQL snippets
         sql = self.build_query(mode, files, group_output, has_highway)
+        # When using the grouped output option, files are queried twice,
+        # with the first step being written to a tempfile.
         if group_output:
             # Generating temporary output files (max size 100 MB)
             tempf = tempfile.NamedTemporaryFile(
@@ -371,11 +373,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
     event handling with signal/slot connection.
 
     """
-    # Sets up signal and var for pbar
-    pbar_update = pyqtSignal()
     clear_search_box = pyqtSignal()
-    # Declare progress bar var for values
-    pbar_inc = 0
 
     def __init__(self, parent=None):
         """
@@ -877,17 +875,25 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         logger.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
 
-        # instantiate progress bar class
-        self.pbar_inc = 0
-        self.progress_bar = ProgressBar()
-        # show progress bar
+        self.progress_bar = QProgressDialog()
+        self.progress_bar.setModal(True)
+        self.progress_bar.setCancelButton(None)
+        # self.progress_bar.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        # Add one mode more that the length so that a full bar represents completion
+        # When the final tag is started, the bar will show one increment remaining
+        self.progress_bar.setMaximum(len(modes) + 1)
+        self.progress_bar.setValue(0)
+        # Disables the system default close, minimize, maximuize buttons
+        self.progress_bar.setWindowFlags(
+            QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
+        # First task of Worker is to check for highway tag in source files
+        self.progress_bar.setLabelText("Analyzing file structure…")
         self.progress_bar.show()
-        self.pbar_update.connect(self.progbar_handler)
         # Handles Worker class and QThreads for Worker
         self.work_thread = QThread()
         self.worker = Worker(modes, file_paths, group_output)
-        # Connect to progbar_counter() when 1 mode is done in Worker
-        self.worker.mode_done.connect(self.progbar_counter)
+        # Connect to progbar_counter() when 1 mode begins in Worker
+        self.worker.mode_start.connect(self.progbar_counter)
         # Connect to finished() when all modes are done in Worker
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
@@ -898,15 +904,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         self.work_thread.started.connect(self.worker.run)
         self.work_thread.start()
 
-        # instantiate progress bar class
-        # self.progress_bar = ProgressBar()
-        # show progress bar
-        # self.progress_bar.show()
-        # for i in range(1, 100):
-        # time.sleep(0.01)
-        # self.progress_bar.set_value(((i + 1) / 100) * 100)
-        # QApplication.processEvents()
-
     def progbar_counter(self, mode: str):
         """
         Tracker for completion of individual modes in Worker class.
@@ -914,45 +911,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         Parameters
         ----------
         mode : str
-            str returned from mode_done.emit()
+            str returned from mode_start.emit()
         """
-        logger.info("mode_done signal -> caught mode: %s.", (mode))
+        logger.info("mode_start signal -> caught mode: %s.", (mode))
         if mode:
             # Advance index of modes by 1
-            self.pbar_inc += 1
-            logger.debug(
-                'returning True signal. pbar_inc is now %s.', (self.pbar_inc))
-            self.pbar_update.emit()
-        else:
-            # print('returning False signal.')
-            pass
-
-    def progbar_handler(self):
-        """
-        Handles progression of progress bar in a smooth manner.
-        """
-        # Grabs the index of mode from modes
-        pbar_inc = self.pbar_inc
-        tot = len(self.list_sender())
-        logger.debug("Tot is %s.", (tot))
-        # Which % should the bar start at
-        pbar_step = int(abs(((pbar_inc - 1) / tot) * 100))
-        # Which % should the bar stop at
-        pbar_stop = int((pbar_inc / tot) * 100)
-        # Fixed % that the bar should move by based on modes
-        inc = int((1 / tot) * 100)
-        logger.debug(
-            'before pbar update, pbar_stop is %s and pbar_step is %s.', pbar_stop, pbar_step)
-        self.progress_bar.set_value(pbar_step)
-        logger.debug('pbar starting at %s.', pbar_step)
-        # Smoother increments for progress bar
-        for pixel in range(inc):
-            time.sleep(0.001)
-            self.progress_bar.set_value(int(pbar_step + pixel / 100 * 100))
-            self.progress_bar.repaint()
-            QApplication.processEvents()
-        logger.debug(
-            'progbar ends at %s and steps through %s', pbar_stop, inc)
+            self.progress_bar.setValue(self.progress_bar.value() + 1)
+            self.progress_bar.setLabelText(f"Analyzing {mode} tag…")
 
     def enter_key_event(self, event):
         """
@@ -980,16 +945,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         Helper method finalizes run process: re-enable run button
         and notify user of run process completion.
         """
-        # close the progress bar
-        self.progress_bar._reset()
-        self.progress_bar.close()
-        # self.progress_bar = None
         # Quits work_thread and reset
         # Needs worker logging
         self.work_thread.quit()
-        self.work_thread.wait()
-        self.worker = None
-        self.work_thread = None
+        # self.work_thread.wait()
+        # In theory this deletes the worker only when done
+        self.worker.deleteLater()
+        self.progress_bar.close()
         # Logging processing completion
         logger.info("All Chameleon 2 analysis processing completed.")
         self.run_checker()
