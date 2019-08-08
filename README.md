@@ -11,7 +11,7 @@
 
 ## Description
 
-Cross-platform GUI development expanding upon Chameleon 1 functionalities. This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows changes detection in OSM `ref`, `int_ref`, `name`, and `highway` tags. Some metadata OSM tags are default outputs of Chameleon 2, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon 2 also features change grouping (consolidating similar changes) and multi-tag processing (allowing sequential tag comparisons). This project is under ongoing development, and Chameleon 2 is currently in the Alpha stage.
+Cross-platform GUI development expanding upon Chameleon 1 functionalities. This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows changes detection in any OSM tag. Some metadata OSM tags are default outputs of Chameleon 2, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon 2 also features change grouping (consolidating similar changes) and multi-tag processing (allowing sequential tag comparisons). This project is under ongoing development, and Chameleon 2 is currently in the Alpha stage.
 
 ## Installation
 
