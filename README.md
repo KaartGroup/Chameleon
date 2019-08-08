@@ -21,9 +21,9 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 ```bash 
 	pip3 install pyinstaller
 ```
-* [`ruamel.yaml`](https://pypi.org/project/ruamel.yaml/): 
+* [`oyaml`](https://pypi.org/project/oyaml/): 
 ```bash 
-	pip3 install ruamel.yaml
+	pip3 install oyaml
 ```
 * [`appdirs`](https://pypi.org/project/appdirs/): 
 ```bash 
@@ -37,10 +37,10 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 ```bash
 	git clone git@gitlab.com:seakaart/chameleon-2.git
 ```
-2. Install `q` and `pyqt`
+2. Install `pyqt`
 	
 ```bash 
-	brew install q pyqt
+	brew install pyqt
 ```
 
 3. Change into the directory
@@ -52,7 +52,7 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 4. Copy and paste the following into the terminal
 
 ```bash
- 	pyuic5 design.ui -o design.py
+ 	pyuic5 chameleon2/design.ui -o chameleon2/design.py
 ```
 
 5. Package Chameleon 2 into application
