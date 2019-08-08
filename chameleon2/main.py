@@ -50,7 +50,7 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 if not LOG_DIR.is_dir():
     try:
-        LOG_DIR.mkdir()
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         if e.errno != errno.EEXIST:
             logger.error("Cannot create log directory.")
@@ -115,7 +115,7 @@ class Worker(QObject):
         # Make directory if it doesn't exist
         if not CONFIG_DIR.is_dir():
             try:
-                CONFIG_DIR.mkdir()
+                CONFIG_DIR.mkdir(parents=True, exist_ok=True)
             except FileExistsError:
                 logger.debug("Config directory already exists")
             except OSError:
