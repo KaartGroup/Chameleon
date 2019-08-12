@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>583</width>
+    <height>552</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>Chameleon</string>
   </property>
@@ -46,7 +54,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <layout class="QHBoxLayout" name="oldHLayout" stretch="1,0">
+       <layout class="QHBoxLayout" name="oldHLayout" stretch="0,0">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -54,7 +62,7 @@
          <enum>QLayout::SetMinimumSize</enum>
         </property>
         <item>
-         <widget class="QLineEdit" name="oldFileNameBox">
+         <widget class="QLineEditDragDrop" name="oldFileNameBox">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>1</horstretch>
@@ -69,6 +77,12 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="dragEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>/Path/to/old_data.csv</string>
           </property>
          </widget>
         </item>
@@ -96,7 +110,7 @@
          <enum>QLayout::SetMinimumSize</enum>
         </property>
         <item>
-         <widget class="QLineEdit" name="newFileNameBox">
+         <widget class="QLineEditDragDrop" name="newFileNameBox">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>1</horstretch>
@@ -111,6 +125,12 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="dragEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>/Path/to/new_data.csv</string>
           </property>
          </widget>
         </item>
@@ -150,6 +170,9 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="placeholderText">
+           <string>/Path/to/output</string>
           </property>
          </widget>
         </item>
@@ -408,6 +431,13 @@
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QLineEditDragDrop</class>
+   <extends>QLineEdit</extends>
+   <header>chameleon2.qlineeditdragdrop</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

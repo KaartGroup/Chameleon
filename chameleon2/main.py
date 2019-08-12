@@ -384,6 +384,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         self.setupUi(self)
         # Set up application logo on main window
         self.setWindowTitle("Chameleon 2")
+
         # Differentiate sys settings between pre and post-bundling
         if getattr(sys, 'frozen', False):
             logo = Path(sys._MEIPASS).parents[0].joinpath(
@@ -531,14 +532,15 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
             self.logo).scaled(160, 160, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         about.setText('''
                     <h2><center>Chameleon 2</center></h2>
-                    <p>This application compares two Overpass API CSV datasets
-                    and returns an output of the differences between the snapshots.</p>
+                    <p>This application compares OSM snapshot data from
+                    <a href="https://overpass-turbo.eu/">Overpass Turbo</a>
+                    and returns an output of changes that occurred between the snapshots.</p>
                     <p>Product of <a href="http://kaartgroup.com/">Kaart</a> made by SeaKaart tools team.<br>
                     Licensed under <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL3</a>.</p>''')
         about.setInformativeText(
-            "<i>Credits: <a href=https://github.com/harelba/q>q</a>, "
+            "<i>Powered by: <a href=https://github.com/harelba/q>q</a>, "
             "<a href=https://github.com/ActiveState/appdirs>appdir</a>, "
-            "<a href=https://yaml.readthedocs.io/en/latest>yaml</a>, "
+            "<a href=https://github.com/wimglenn/oyaml>oyaml</a>, "
             "and <a href=https://www.pyinstaller.org>pyinstaller</a>.</i>")
         about.show()
 
@@ -878,6 +880,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         self.progress_bar = QProgressDialog()
         self.progress_bar.setModal(True)
         self.progress_bar.setCancelButton(None)
+        self.progress_bar.setMinimumWidth(400)
         # self.progress_bar.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         # Add one mode more that the length so that a full bar represents completion
         # When the final tag is started, the bar will show one increment remaining
