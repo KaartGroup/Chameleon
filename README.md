@@ -4,7 +4,7 @@
 - - -
 
 [![pipeline status](https://gitlab.com/seakaart/chameleon-2/badges/master/pipeline.svg)](https://gitlab.com/seakaart/chameleon-2/commits/master)
-[![version#](https://img.shields.io/badge/version-2.3.3-lightgrey.svg)](https://gitlab.com/seakaart/chameleon-2/-/tags)
+[![version#](https://img.shields.io/badge/version-2.4-lightgrey.svg)](https://gitlab.com/seakaart/chameleon-2/-/tags)
 [![license](https://img.shields.io/badge/license-GPL3-blue.svg)](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE)
 
 - - -
@@ -17,16 +17,16 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 
 ### Dependencies
 
-* [`PyInstaller`](https://github.com/pyinstaller/pyinstaller): 
-```bash 
+* [`PyInstaller`](https://github.com/pyinstaller/pyinstaller):
+```bash
 	pip3 install pyinstaller
 ```
-* [`oyaml`](https://pypi.org/project/oyaml/): 
-```bash 
+* [`oyaml`](https://pypi.org/project/oyaml/):
+```bash
 	pip3 install oyaml
 ```
-* [`appdirs`](https://pypi.org/project/appdirs/): 
-```bash 
+* [`appdirs`](https://pypi.org/project/appdirs/):
+```bash
 	pip3 install appdirs
 ```
 
@@ -38,14 +38,14 @@ Cross-platform GUI development expanding upon Chameleon 1 functionalities. This 
 	git clone git@gitlab.com:seakaart/chameleon-2.git
 ```
 2. Install `pyqt`
-	
-```bash 
+
+```bash
 	brew install pyqt
 ```
 
 3. Change into the directory
 
-```bash 
+```bash
 	cd chameleon-2/
 ```
 
