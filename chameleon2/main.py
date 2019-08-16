@@ -818,6 +818,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
             Optional error box text.
         """
         dialog = QMessageBox(self)
+        dialog.setMinimumWidth(300)
         dialog.setText(text)
         dialog.setIcon(QMessageBox.Information)
         dialog.setInformativeText(info)
@@ -977,7 +978,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         overwrite_prompt = QtWidgets.QMessageBox()
         overwrite_prompt.setIcon(QMessageBox.Question)
         overwrite_prompt_response = overwrite_prompt.question(
-            self, '', f"{file_name} exists. Do you want to overwrite?",
+            self, '', f"{file_name} exists. <p> Do you want to overwrite? </p>",
             overwrite_prompt.No | overwrite_prompt.Yes)
         if overwrite_prompt_response == overwrite_prompt.No:
             self.worker.response = False
