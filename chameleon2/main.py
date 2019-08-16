@@ -646,6 +646,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         current_list = self.list_sender()
         # Add item to list only if condition passes
         if label in current_list:
+            # Reset current selection
+            self.listWidget.selectionModel().clear()
             self.listWidget.item(current_list.index(label)).setSelected(True)
             logger.warning('Please enter an unique tag.')
         else:
@@ -657,14 +659,18 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
 
     def delete_tag(self):
         """
-        Clears individual list items with "Delete" button.
+        Clears selected list items with "Delete" button.
         Execute on `Delete` button signal.
         """
         try:
-            cur_row = self.listWidget.currentRow()
-            del_tag = self.listWidget.currentItem().text()
-            self.listWidget.takeItem(cur_row)
-            logger.info("Deleted %s from processing list.", (del_tag))
+            select_tags = self.listWidget.selectedItems()
+            # Remove selected items in user-selected Qlist
+            for item in select_tags:
+                self.listWidget.setCurrentItem(item)
+                cur_row = self.listWidget.currentRow()
+                del_tag = self.listWidget.currentItem().text()
+                self.listWidget.takeItem(cur_row)
+                logger.info("Deleted %s from processing list.", (del_tag))
             self.run_checker()
         # Fails silently if nothing is selected
         except AttributeError:
