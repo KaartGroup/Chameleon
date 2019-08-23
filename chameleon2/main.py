@@ -501,20 +501,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
             self.oldFileSelectButton: self.oldFileNameBox,
             self.newFileSelectButton: self.newFileNameBox
         }
-        # Tooltip descriptors
-        self.runButton.setToolTip('Execute process based on tag(s) selected.')
-        self.groupingCheckBox.setToolTip(
-            'Consolidate similar changes for listed tag(s)')
-        self.oldFileSelectButton.setToolTip(
-            'Browse for an earlier timestamped .csv file.')
-        self.newFileSelectButton.setToolTip(
-            'Browse for a later timestamped .csv file.')
-        self.outputFileSelectButton.setToolTip(
-            'Set save location for output file.')
-        self.searchBox.setToolTip('Type to search for an OSM tag.')
-        self.searchButton.setToolTip('Add selected tag to list.')
-        self.deleteItemButton.setToolTip('Delete tag from list.')
-        self.clearListButton.setToolTip('Clear tag(s) from current list.')
 
     def about_menu(self):
         """

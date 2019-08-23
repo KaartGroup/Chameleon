@@ -91,6 +91,9 @@
           <property name="focusPolicy">
            <enum>Qt::StrongFocus</enum>
           </property>
+          <property name="toolTip">
+           <string>Browse for an earlier timestamped .csv file.</string>
+          </property>
           <property name="layoutDirection">
            <enum>Qt::LeftToRight</enum>
           </property>
@@ -138,6 +141,9 @@
          <widget class="QToolButton" name="newFileSelectButton">
           <property name="focusPolicy">
            <enum>Qt::StrongFocus</enum>
+          </property>
+          <property name="toolTip">
+           <string>Browse for a later timestamped .csv file.</string>
           </property>
           <property name="text">
            <string>…</string>
@@ -203,6 +209,9 @@
          <widget class="QToolButton" name="outputFileSelectButton">
           <property name="focusPolicy">
            <enum>Qt::StrongFocus</enum>
+          </property>
+          <property name="toolTip">
+           <string>Set save location for output file.</string>
           </property>
           <property name="text">
            <string>…</string>
@@ -307,12 +316,19 @@
           <number>10</number>
          </property>
          <item row="1" column="0">
-          <widget class="QLineEdit" name="searchBox"/>
+          <widget class="QLineEdit" name="searchBox">
+           <property name="toolTip">
+            <string>Type to search for an OSM tag.</string>
+           </property>
+          </widget>
          </item>
          <item row="1" column="1">
           <widget class="QPushButton" name="searchButton">
            <property name="focusPolicy">
             <enum>Qt::StrongFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>Add selected tag to list.</string>
            </property>
            <property name="text">
             <string>Add</string>
@@ -337,6 +353,9 @@
            <property name="focusPolicy">
             <enum>Qt::StrongFocus</enum>
            </property>
+           <property name="toolTip">
+            <string>Delete selected tag from list.</string>
+           </property>
            <property name="text">
             <string>Delete</string>
            </property>
@@ -346,6 +365,9 @@
           <widget class="QPushButton" name="clearListButton">
            <property name="focusPolicy">
             <enum>Qt::StrongFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>Clear all tags from current list.</string>
            </property>
            <property name="text">
             <string>Clear</string>
@@ -390,6 +412,9 @@
         <property name="focusPolicy">
          <enum>Qt::StrongFocus</enum>
         </property>
+        <property name="toolTip">
+         <string>Consolidate similar changes for listed tag(s)</string>
+        </property>
         <property name="layoutDirection">
          <enum>Qt::RightToLeft</enum>
         </property>
@@ -417,6 +442,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="runButton">
+        <property name="toolTip">
+         <string>Execute process based on tag(s) selected.</string>
+        </property>
         <property name="text">
          <string>Run</string>
         </property>
