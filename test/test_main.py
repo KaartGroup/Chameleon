@@ -63,7 +63,7 @@ class TestBuildQuery(unittest.TestCase):
             "WHERE old.\"@id\" IS NULL AND length(ifnull(new_name,'')) > 0"
         )
         self.file_name = f"{self.files['output']}_name.csv"
-        self.func = chameleon2.main.Worker("name", self.files, False)
+        self.func = chameleon2.main.Worker("name", self.files, False, None)
 
     def test_build_query_ungrouped(self):
         """
