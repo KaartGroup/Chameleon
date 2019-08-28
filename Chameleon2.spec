@@ -3,7 +3,7 @@
 block_cipher = None
 
 added_files = [
-                ('chameleon2/OSMtag.yaml', 'data'),
+                ('chameleon2/OSMtag.yaml', '.'),
                 ('resources/chameleonalpha.png', '.')
              ]
 

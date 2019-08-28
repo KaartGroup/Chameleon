@@ -441,7 +441,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         # OSM tag resource file, construct list from file
         # Differentiate sys settings between pre and post-bundling
         if getattr(sys, 'frozen', False):
-            autocomplete_source = Path(sys._MEIPASS) / "data/OSMtag.yaml"
+            autocomplete_source = Path(sys._MEIPASS) / "OSMtag.yaml"
             # Debug Codeblock
             # frozen = 'not'
             # bundle_dir = sys._MEIPASS
