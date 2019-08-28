@@ -3,8 +3,9 @@
 block_cipher = None
 
 added_files = [
-                ('chameleon2/OSMtag.yaml', '.'),
-                ('resources/chameleonalpha.png', '.')
+                ('resources/OSMtag.yaml', '.'),
+                ('resources/chameleonalpha.png', '.'),
+                ('resources/version.txt', '.')
              ]
 
 a = Analysis(['chameleon2/main.py'],

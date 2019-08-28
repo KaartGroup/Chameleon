@@ -36,6 +36,15 @@ CONFIG_DIR = Path(user_config_dir("Chameleon 2", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
 FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
+
+# Differentiate sys settings between pre and post-bundling
+if getattr(sys, 'frozen', False):
+    # Script is in a frozen package
+    RESOURCES_DIR = Path(sys._MEIPASS)
+else:
+    # Script is not in a frozen package
+    RESOURCES_DIR = Path(__file__).parent / "resources"
+
 LOGGER = logging.getLogger()
 
 
@@ -400,14 +409,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         self.setWindowTitle("Chameleon 2")
 
         # Differentiate sys settings between pre and post-bundling
-        if getattr(sys, 'frozen', False):
-            logo = Path(sys._MEIPASS) / "chameleonalpha.png"
-            logo_path = str(Path.resolve(logo))
-        else:
-            logo = Path(__file__).parents[1] / "resources/chameleonalpha.png"
-            logo_path = str(Path.resolve(logo))
-        self.setWindowIcon(QtGui.QIcon(logo_path))
-        self.logo = logo_path
+        self.logo = str((RESOURCES_DIR / "chameleonalpha.png").resolve())
+        self.setWindowIcon(QtGui.QIcon(self.logo))
 
         self.text_fields = {
             "old": self.oldFileNameBox,
@@ -439,27 +442,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         # Sets run button to not enabled
         self.run_checker()
         # OSM tag resource file, construct list from file
-        # Differentiate sys settings between pre and post-bundling
-        if getattr(sys, 'frozen', False):
-            autocomplete_source = Path(sys._MEIPASS) / "OSMtag.yaml"
-            # Debug Codeblock
-            # frozen = 'not'
-            # bundle_dir = sys._MEIPASS
-            # print( 'we are',frozen,'frozen')
-            # print( 'bundle dir is', bundle_dir )
-            # print( 'sys.argv[0] is', sys.argv[0] )
-            # print( 'sys.executable is', sys.executable )
-            # print( 'os.getcwd is', os.getcwd() )
-        else:
-            autocomplete_source = Path(__file__).parent / "OSMtag.yaml"
-            # Debug Codeblock
-            # frozen = 'not'
-            # bundle_dir = os.path.dirname(os.path.abspath(__file__))
-            # print( 'we are',frozen,'frozen')
-            # print( 'bundle dir is', bundle_dir )
-            # print( 'sys.argv[0] is', sys.argv[0] )
-            # print( 'sys.executable is', sys.executable )
-            # print( 'os.getcwd is', os.getcwd() )
+        autocomplete_source = RESOURCES_DIR / "OSMtag.yaml"
 
         try:
             with autocomplete_source.open() as read_file:
@@ -527,12 +510,21 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
             File path to application logo
         """
         logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
+        try:
+            with (RESOURCES_DIR / 'version.txt').open('r') as version_file:
+                version = f"<p><center>Version {version_file.read()}</center></p>"
+        except FileNotFoundError:
+            version = ''
+            LOGGER.warning("No version number detected")
+        except OSError:
+            pass
         about = QMessageBox(self, icon=logo, textFormat=QtCore.Qt.RichText)
         about.setWindowTitle("About Chameleon 2")
         about.setIconPixmap(QtGui.QPixmap(
             self.logo).scaled(160, 160, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        about.setText('''
+        about.setText(f'''
                     <h2><center>Chameleon 2</center></h2>
+                    {version}
                     <p>This application compares OSM snapshot data from
                     <a href="https://overpass-turbo.eu/">Overpass Turbo</a>
                     and returns an output of changes that occurred between the snapshots.</p>
