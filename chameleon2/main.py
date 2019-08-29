@@ -39,11 +39,12 @@ COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
 # Differentiate sys settings between pre and post-bundling
 if getattr(sys, 'frozen', False):
-    # Script is in a frozen package
+    # Script is in a frozen package, i.e. PyInstaller
     RESOURCES_DIR = Path(sys._MEIPASS)
 else:
     # Script is not in a frozen package
-    RESOURCES_DIR = Path(__file__).parent / "resources"
+    # __file__ parent is chameleon2, parents[1] is chameleon-2
+    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
 LOGGER = logging.getLogger()
 
@@ -512,12 +513,15 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
         try:
             with (RESOURCES_DIR / 'version.txt').open('r') as version_file:
-                version = f"<p><center>Version {version_file.read()}</center></p>"
+                version = version_file.read()
         except FileNotFoundError:
             version = ''
             LOGGER.warning("No version number detected")
         except OSError:
             pass
+        else:
+            if version:
+                version = f"<p><center>Version {version}</center></p>"
         about = QMessageBox(self, icon=logo, textFormat=QtCore.Qt.RichText)
         about.setWindowTitle("About Chameleon 2")
         about.setIconPixmap(QtGui.QPixmap(
