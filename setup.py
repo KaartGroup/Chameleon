@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
-from subprocess import Popen
+import subprocess
 
 try:
     from git import Repo
@@ -13,6 +13,10 @@ else:
         repo.tags, key=lambda t: t.commit.committed_datetime)[-1].name
     with Path('resources/version.txt').open('w') as f:
         f.write(last_tag)
+print("version.txt written")
 
-Popen(["pyuic5", "chameleon2/design.ui", "-o", "chameleon2/design.py"])
-Popen(["pyinstaller", "Chameleon2.spec", "-y"])
+subprocess.call(["pyuic5", "chameleon2/design.ui",
+                 "-o", "chameleon2/design.py"])
+print("pyuic complete")
+subprocess.call(["pyinstaller", "Chameleon2.spec", "-y"])
+print("pyinstaller completed")
