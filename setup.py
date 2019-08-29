@@ -13,7 +13,7 @@ else:
         repo.tags, key=lambda t: t.commit.committed_datetime)[-1].name
     with Path('resources/version.txt').open('w') as f:
         f.write(last_tag)
-print("version.txt written")
+    print("version.txt written")
 
 subprocess.call(["pyuic5", "chameleon2/design.ui",
                  "-o", "chameleon2/design.py"])
