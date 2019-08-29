@@ -624,7 +624,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         # var to check listWidget items
         # Add item to list only if condition passes
         try:
-            label_index = [self.list_sender()].index(label)
+            label_index = self.list_sender().index(label)
         except ValueError:
             self.listWidget.addItem(label)
             LOGGER.info(f'Adding to list:  {label}')
