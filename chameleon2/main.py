@@ -398,8 +398,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         self.setupUi(self)
         # Set up application logo on main window
         self.setWindowTitle("Chameleon 2")
-        # Enable QWidget to capture and filter QKeyEvents
+        # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
+        self.listWidget.installEventFilter(self)
 
         # Differentiate sys settings between pre and post-bundling
         if getattr(sys, 'frozen', False):
@@ -903,26 +904,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
             self.progress_bar.setValue(self.progress_bar.value() + 1)
             self.progress_bar.setLabelText(f"Analyzing {mode} tag…")
 
-    def enter_key_event(self, event):
-        """
-        Allows 'Return' or 'Enter' on keyboard to be pressed in lieu of
-        clicking run button.
-
-        Parameters
-        ----------
-        event : class
-            Event which handles keystroke input
-        """
-
-        if self.runButton.isEnabled():
-            if event.key() == QtCore.Qt.Key_Return:
-                MainApp.run_query(self)
-
-        # Added delete key to an action (WIP)
-        if event.key() == QtCore.Qt.Key_Delete:
-            LOGGER.info('Delete key pressed...')
-            self.delete_tag()
-
     def eventFilter(self, obj, event):
         """
         Allows installed objects to filter QKeyEvents.
@@ -935,13 +916,20 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         event : class
             Event which handles keystroke input
         """
-
+        # Sets up filter to enable keyboard input in listWidget
         if self.searchButton == obj and event.type() == QtCore.QEvent.KeyPress:
             if event.key() == QtCore.Qt.Key_Tab and self.listWidget.count() > 0:
                 self.listWidget.item(0).setSelected(True)
-                # QtCore.QTimer.singleShot(0, self.conversion)
             elif event.key() == QtCore.Qt.Key_Tab and self.listWidget.count() == 0:
                 event.ignore()
+
+        # Set up filter to enable delete key within listWidget
+        if self.listWidget == obj and event.type() == QtCore.QEvent.KeyPress:
+            if event.key() == QtCore.Qt.Key_Delete and self.listWidget.count() > 0:
+                self.delete_tag()
+            elif event.key() == QtCore.Qt.Key_Delete and self.listWidget.count() == 0:
+                event.ignore()
+
         return super(MainApp, self).eventFilter(obj, event)
 
     # Re-enable run button when function complete
