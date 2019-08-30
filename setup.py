@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
+import platform
 import subprocess
+from pathlib import Path
 
 try:
     from git import Repo
@@ -18,5 +19,10 @@ else:
 subprocess.call(["pyuic5", "chameleon2/design.ui",
                  "-o", "chameleon2/design.py"])
 print("pyuic complete")
-subprocess.call(["pyinstaller", "Chameleon2.spec", "-y"])
+
+if platform.system().lower() == "darwin":
+    specfile = "Chameleon2Mac.spec"
+else:
+    specfile = "Chameleon2WinLinux.spec"
+subprocess.call(["pyinstaller", specfile, "-y"])
 print("pyinstaller completed")
