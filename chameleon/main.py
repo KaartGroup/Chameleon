@@ -982,18 +982,21 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         files = {k: v.text()
                  for k, v in self.text_fields.items()}
         # Prompt if user has changed input values from what was loaded
-        if self.history_dict != files:
-            exit_prompt = QtWidgets.QMessageBox()
-            exit_prompt.setIcon(QMessageBox.Question)
-            exit_response = exit_prompt.question(
-                self, '', "Discard field inputs?",
-                exit_prompt.Yes, exit_prompt.No
-            )
+        try:
+            if self.history_dict != files:
+                exit_prompt = QtWidgets.QMessageBox()
+                exit_prompt.setIcon(QMessageBox.Question)
+                exit_response = exit_prompt.question(
+                    self, '', "Discard field inputs?",
+                    exit_prompt.Yes, exit_prompt.No
+                )
             if exit_response == exit_prompt.Yes:
                 event.accept()
             else:
                 event.ignore()
-
+        # Fail silently if history.yaml does not exist
+        except AttributeError:
+            LOGGER.warning("All Chameleon analysis processing completed.")
 
 def main():
     """
