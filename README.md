@@ -9,9 +9,11 @@
 
 - - -
 
-## Description
+## About
 
-Cross-platform GUI development expanding upon first iteration Chameleon functionalities. This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows changes detection in any OSM tag. Some metadata OSM tags are default outputs of Chameleon, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon also features change grouping (consolidating similar changes) and multi-tag processing (allowing sequential tag comparisons). This project is under ongoing development, and Chameleon is currently in the Alpha stage.
+Chameleon is an Open Source cross-platform (MacOS, Linux, Windows) OpenStreetMap companion software developed by [`Kaart`](http://kaartgroup.com/) with [`PyQt5`](https://www.riverbankcomputing.com/software/pyqt/intro) and [`Python`](https://www.python.org/). This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows users to compare OSM tags from two snapshots. Some metadata OSM tags are default outputs of Chameleon, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon also features change grouping (consolidation similar changes for compared tag) and multi-tag processing (sequential tag comparisons).
+
+Chameleon aims to inform OSM editors about changes that occurred in an area from the OSM database. The goal of Chameleon is to engage individual and organized OSM community memebers in collaborative editing.
 
 ## Installation
 
@@ -65,31 +67,47 @@ Cross-platform GUI development expanding upon first iteration Chameleon function
 
 ## Overpass Turbo
 
-Tabulated OSM data is required for using Chameleon. CSVs can be obtained from overpass-turbo.de. Default tags that are used by Chameleon 2 processing includes `type`, `id`, `name`, `user`, `timestamp`, `version`. User will need two snapshots of the OSM data with all of the above-listed tags to process OSM data with Chameleon. Overpass Turbo output should be exported using the "raw data directly from <u>Overpass API</u>" option:
+Tabulated OSM data (.csv) is required for Chameleon. OSM data snapshots can be obtained from [`Overpass Turbo`](https://overpass-turbo.eu/). Default tags that are needed for Chameleon processing include `type`, `id`, `name`, `user`, `timestamp`, `version`. Users will need acquire the two snapshots of OSM data with all of the above-listed tags to compare OSM data with Chameleon. With Overpass Turbo, output should be exported using the "**raw data directly from Overpass API**" option:
 
 ![direct-download](./direct-download.png)
 
  Sample Query for extracting Overpass snapshot OSM data:
- - Modify `[date:"YYYY-MM-DDT00:00:00Z"]` for desire snapshot
- - Modify `{geocodeArea:Country_Name}` for desire location
- - Modify `way["highway"~"motorway|trunk|primary|secondary|tertiary|_link"]` for desire way objects
+ - Modify `[date:"YYYY-MM-DDT00:00:00Z"]` for desire snapshot.
+ - Modify `{geocodeArea:LOCATION}` for desire location.
+ - Modify `way["building"]` for desired OSM objects.
 
 ```
 [out:csv(::type,::id,name,::user,::timestamp,::version,highway,ref,int_ref)][timeout:25000][maxsize:800000000][date:"YYYY-MM-DDT00:00:00Z"];
-{{geocodeArea:Country_Name}}->.searchArea;
+{{geocodeArea:LOCATION}}->.searchArea;
 (
-  way["highway"~"motorway|trunk|primary|secondary|tertiary|_link"](area.searchArea);
+  way["building"](area.searchArea);
 );
 out meta;
 ```
 - - -
 
-## Disclaimer
-- This version is provided for internal developers and users ONLY.
-- DO NOT distribute this tool without approval from developers.
-- Public version will be available with future releases of Chameleon.
+## Using Chameleon
+
+![Chameleon-UI](./chameleon_ui.png)
+
+### Step 1: Provide the file directories
+Chameleon requires OSM data snapshots to perform the analysis. Simply navigate or drag in your file options for **Old** and **New** snapshots. Then specify an **Output** location for the summaries to be generated.
+
+### Step 2: Input tag comparisons
+Provide the tags you would like to compare. Tags can be entered either from the **Popular OSM Tags** buttons or the search bar. Tags that have been provied will show up on the list!
+
+### Step 3: Finalize analysis
+Decided whether or not to **group** the changes and simply hit **Run**.
+
+## Help and Particpate
+- Submit bugs and requests through our [`issue`](https://gitlab.com/seakaart/chameleon-2/issues) page!
+- Fork the [`Chameleon`](https://gitlab.com/seakaart/chameleon-2) repository, make changes and then make a [`pull/merge`](https://gitlab.com/seakaart/chameleon-2/merge_requests) request!
+
+## License
+Chameleon is licensed under **GNU General Public LIcense V3.0**. More details can be found in [`LICENSE`](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE).
 
 ## Contributors
-@austin61293, @dericke, @geografer, @LiuTwo
+The Kaart development team will like to thank everyone for using and contributing to the development of Chameleon.
 
+Initial Development by @austin61293, @dericke, @geografer and @LiuTwo
 Logo designed by @sammi1
