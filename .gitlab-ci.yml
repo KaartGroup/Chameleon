@@ -4,7 +4,7 @@ before_script:
     - apt-get install python3-pyqt5 -y
     # - apt-get install python3-pyqt5.qtmultimedia -y
     - pip install -r requirements.txt
-    - pyuic5 chameleon2/design.ui -o chameleon2/design.py
+    - pyuic5 chameleon/design.ui -o chameleon/design.py
 test_main:
     variables:
         QT_QPA_PLATFORM: "offscreen"
