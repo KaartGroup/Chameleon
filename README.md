@@ -1,5 +1,5 @@
 # Chameleon
-![chameleon-logo](./resources/chameleon.png)
+![chameleon-logo](./resources/chameleon.png){: .shadow}
 
 - - -
 
@@ -69,7 +69,7 @@ Chameleon aims to inform OSM editors about changes that occurred in an area from
 
 Tabulated OSM data (.csv) is required for Chameleon. OSM data snapshots can be obtained from [`Overpass Turbo`](https://overpass-turbo.eu/). Default tags that are needed for Chameleon processing include `type`, `id`, `name`, `user`, `timestamp`, `version`. Users will need acquire the two snapshots of OSM data with all of the above-listed tags to compare OSM data with Chameleon. With Overpass Turbo, output should be exported using the "**raw data directly from Overpass API**" option:
 
-![direct-download](./direct-download.png)
+![direct-download](./direct-download.png){: .shadow}
 
  Sample Query for extracting Overpass snapshot OSM data:
  - Modify `[date:"YYYY-MM-DDT00:00:00Z"]` for desire snapshot.
@@ -77,7 +77,7 @@ Tabulated OSM data (.csv) is required for Chameleon. OSM data snapshots can be o
  - Modify `way["building"]` for desired OSM objects.
 
 ```
-[out:csv(::type,::id,name,::user,::timestamp,::version,highway,ref,int_ref)][timeout:25000][maxsize:800000000][date:"YYYY-MM-DDT00:00:00Z"];
+[out:csv(::type,::id,name,::user,::timestamp,::version,highway,ref,int_ref)][timeout:250][date:"YYYY-MM-DDT00:00:00Z"];
 {{geocodeArea:LOCATION}}->.searchArea;
 (
   way["building"](area.searchArea);
@@ -88,15 +88,15 @@ out meta;
 
 ## Using Chameleon
 
-![Chameleon-UI](./chameleon_ui.png)
+![Chameleon-UI](./chameleon-ui.png){: .shadow}
 
-### Step 1: Provide the file directories
+#### Step 1: Provide the file directories
 Chameleon requires OSM data snapshots to perform the analysis. Simply navigate or drag in your file options for **Old** and **New** snapshots. Then specify an **Output** location for the summaries to be generated.
 
-### Step 2: Input tag comparisons
+#### Step 2: Input tag comparisons
 Provide the tags you would like to compare. Tags can be entered either from the **Popular OSM Tags** buttons or the search bar. Tags that have been provied will show up on the list!
 
-### Step 3: Finalize analysis
+#### Step 3: Finalize analysis
 Decided whether or not to **group** the changes and simply hit **Run**.
 
 ## Help and Particpate
