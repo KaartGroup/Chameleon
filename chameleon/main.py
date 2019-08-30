@@ -569,7 +569,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                 # Default values are taken if history file does not exist
                 fav_list = yaml.safe_load(favorite_read)  # dict()
         except FileNotFoundError:
-            LOGGER.warning("favorites.yaml could not be found."
+            LOGGER.warning("favorites.yaml could not be found. "
                            "This is normal when running the program for the first time.")
         except PermissionError:
             LOGGER.exception("favorites.yaml could not be opened.")
@@ -689,7 +689,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                 LOGGER.debug("counter.yaml history: %s.", (cur_counter))
         # If file doesn't exist, fail silently
         except FileNotFoundError:
-            LOGGER.warning("Couldn't read the tag count file."
+            LOGGER.warning("Couldn't read the tag count file. "
                            "This is normal if this is your first time runnning the application.")
         except OSError:
             LOGGER.exception()
