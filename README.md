@@ -63,8 +63,6 @@ Chameleon aims to inform OSM editors about changes that occurred in an area from
  	pyinstaller Chameleon.spec
 ```
 
-- - -
-
 ## Overpass Turbo
 
 Tabulated OSM data (.csv) is required for Chameleon. OSM data snapshots can be obtained from [`Overpass Turbo`](https://overpass-turbo.eu/). Default tags that are needed for Chameleon processing include `type`, `id`, `name`, `user`, `timestamp`, `version`. Users will need acquire the two snapshots of OSM data with all of the above-listed tags to compare OSM data with Chameleon. With Overpass Turbo, output should be exported using the "**raw data directly from Overpass API**" option:
@@ -84,7 +82,6 @@ Tabulated OSM data (.csv) is required for Chameleon. OSM data snapshots can be o
 );
 out meta;
 ```
-- - -
 
 ## Using Chameleon
 
