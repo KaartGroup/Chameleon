@@ -23,16 +23,16 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
-import chameleon2.design  # Import generated UI file
+import chameleon.design  # Import generated UI file
 # Does the processing
-from chameleon2.q import (QInputParams, QOutput, QOutputParams, QOutputPrinter,
-                          QTextAsData)
+from chameleon.q import (QInputParams, QOutput, QOutputParams, QOutputPrinter,
+                         QTextAsData)
 
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
 
 # Configuration file locations
-CONFIG_DIR = Path(user_config_dir("Chameleon 2", "Kaart"))
+CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
 FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
@@ -59,7 +59,7 @@ def logger_setup(log_dir: Path):
     if log_dir.is_dir():
         try:
             # Initialize Worker class logging
-            log_path = str(log_dir / f"Chameleon2_{datetime.now().date()}.log")
+            log_path = str(log_dir / f"Chameleon_{datetime.now().date()}.log")
             file_handler = logging.FileHandler(log_path)
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(formatter)
@@ -84,7 +84,7 @@ def logger_setup(log_dir: Path):
 
 
 # Log file locations
-logger_setup(Path(user_log_dir("Chameleon 2", "Kaart")))
+logger_setup(Path(user_log_dir("Chameleon", "Kaart")))
 
 
 class Worker(QObject):
@@ -379,7 +379,7 @@ class Worker(QObject):
         return sql
 
 
-class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainWindow):
+class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWindow):
     """
 
     Main PyQT window class that allows communication between UI and backend.
@@ -397,17 +397,17 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         super().__init__()
         self.setupUi(self)
         # Set up application logo on main window
-        self.setWindowTitle("Chameleon 2")
+        self.setWindowTitle("Chameleon")
         # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
         self.listWidget.installEventFilter(self)
 
         # Differentiate sys settings between pre and post-bundling
         if getattr(sys, 'frozen', False):
-            logo = Path(sys._MEIPASS) / "chameleonalpha.png"
+            logo = Path(sys._MEIPASS) / "chameleon.png"
             logo_path = str(Path.resolve(logo))
         else:
-            logo = Path(__file__).parents[1] / "resources/chameleonalpha.png"
+            logo = Path(__file__).parents[1] / "resources/chameleon.png"
             logo_path = str(Path.resolve(logo))
         self.setWindowIcon(QtGui.QIcon(logo_path))
         self.logo = logo_path
@@ -421,12 +421,12 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         # Menu bar customization
         # Define Qactions for menu bar
         # About action for File menu
-        info_action = QAction("&About Chameleon 2", self)
+        info_action = QAction("&About Chameleon", self)
         info_action.setShortcut("Ctrl+I")
         info_action.setStatusTip('Software description.')
         info_action.triggered.connect(self.about_menu)
         # Exit action for File menu
-        extract_action = QAction("&Exit Chameleon 2", self)
+        extract_action = QAction("&Exit Chameleon", self)
         extract_action.setShortcut("Ctrl+Q")
         extract_action.setStatusTip('Close application.')
         extract_action.triggered.connect(self.close)
@@ -436,8 +436,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         file_menu.addAction(info_action)
         file_menu.addAction(extract_action)
 
-        # Logging initialization of Chameleon 2
-        LOGGER.info("Chameleon 2 started at %s.", (datetime.now()))
+        # Logging initialization of Chameleon
+        LOGGER.info("Chameleon started at %s.", (datetime.now()))
 
         # Sets run button to not enabled
         self.run_checker()
@@ -531,11 +531,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         """
         logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
         about = QMessageBox(self, icon=logo, textFormat=QtCore.Qt.RichText)
-        about.setWindowTitle("About Chameleon 2")
+        about.setWindowTitle("About Chameleon")
         about.setIconPixmap(QtGui.QPixmap(
             self.logo).scaled(160, 160, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         about.setText('''
-                    <h2><center>Chameleon 2</center></h2>
+                    <h2><center>Chameleon</center></h2>
                     <p>This application compares OSM snapshot data from
                     <a href="https://overpass-turbo.eu/">Overpass Turbo</a>
                     and returns an output of changes that occurred between the snapshots.</p>
@@ -946,7 +946,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon2.design.Ui_MainW
         self.worker.deleteLater()
         self.progress_bar.close()
         # Logging processing completion
-        LOGGER.info("All Chameleon 2 analysis processing completed.")
+        LOGGER.info("All Chameleon analysis processing completed.")
         self.run_checker()
 
     def overwrite_message(self, file_name: str):

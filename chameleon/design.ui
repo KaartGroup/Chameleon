@@ -469,7 +469,7 @@
   <customwidget>
    <class>QLineEditDragDrop</class>
    <extends>QLineEdit</extends>
-   <header>chameleon2.qlineeditdragdrop</header>
+   <header>chameleon.qlineeditdragdrop</header>
   </customwidget>
  </customwidgets>
  <resources/>

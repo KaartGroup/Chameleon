@@ -3,11 +3,11 @@
 block_cipher = None
 
 added_files = [
-                ('chameleon2/OSMtag.yaml', 'data'),
-                ('resources/chameleonalpha.png', '.')
+                ('chameleon/OSMtag.yaml', 'data'),
+                ('resources/chameleon.png', '.')
              ]
 
-a = Analysis(['chameleon2/main.py'],
+a = Analysis(['chameleon/main.py'],
              pathex=['/Users/primaryuser/chameleon-2'],
              binaries=[],
              datas= added_files,
@@ -25,7 +25,7 @@ exe = EXE(pyz,
           a.scripts,
           [],
           exclude_binaries=True,
-          name='Chameleon 2',
+          name='Chameleon',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
@@ -37,9 +37,9 @@ coll = COLLECT(exe,
                a.datas,
                strip=False,
                upx=True,
-               name='Chameleon 2')
+               name='Chameleon')
 app = BUNDLE(coll,
-             name='Chameleon 2.app',
+             name='Chameleon.app',
              icon='chameleon.icns',
              bundle_identifier=None,
              info_plist={
