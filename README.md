@@ -1,5 +1,5 @@
 # Chameleon
-![chameleon-logo](./resources/chameleon.png){: .shadow}
+![chameleon-logo](./resources/chameleon.png)
 
 - - -
 
@@ -69,7 +69,7 @@ Chameleon aims to inform OSM editors about changes that occurred in an area from
 
 Tabulated OSM data (.csv) is required for Chameleon. OSM data snapshots can be obtained from [`Overpass Turbo`](https://overpass-turbo.eu/). Default tags that are needed for Chameleon processing include `type`, `id`, `name`, `user`, `timestamp`, `version`. Users will need acquire the two snapshots of OSM data with all of the above-listed tags to compare OSM data with Chameleon. With Overpass Turbo, output should be exported using the "**raw data directly from Overpass API**" option:
 
-![direct-download](./direct-download.png){: .shadow}
+![direct-download](./direct-download.png)
 
  Sample Query for extracting Overpass snapshot OSM data:
  - Modify `[date:"YYYY-MM-DDT00:00:00Z"]` for desire snapshot.
@@ -88,7 +88,7 @@ out meta;
 
 ## Using Chameleon
 
-![Chameleon-UI](./chameleon-ui.png){: .shadow}
+![Chameleon-UI](./chameleon-ui.png) 
 
 #### Step 1: Provide the file directories
 Chameleon requires OSM data snapshots to perform the analysis. Simply navigate or drag in your file options for **Old** and **New** snapshots. Then specify an **Output** location for the summaries to be generated.
