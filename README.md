@@ -88,13 +88,21 @@ out meta;
 ![Chameleon-UI](./resources/chameleon-ui.png)
 
 #### Step 1: Provide the file directories
-Chameleon requires OSM data snapshots to perform the analysis. Simply navigate or drag in your file options for **Old** and **New** snapshots. Then specify an **Output** location for the summaries to be generated.
+Chameleon requires OSM data snapshots to perform the analysis. Simply navigate or drag in your file options for **Old** and **New** snapshots. Then specify an **Output** location for the summaries to be generated. Note that there is an editable and noneditable portion of the **Output** field. Chameleon will append whatever you type with the name of the mode analyzed and a `.csv` suffix. For example, typing `/home/me/Documents/peru` into this field might give output files like `/home/me/Documents/peru_highway.csv` and `/home/me/Documents/peru_name.csv`, depending on which tags are selected in the next step.
 
 #### Step 2: Input tag comparisons
-Provide the tags you would like to compare. Tags can be entered either from the **Popular OSM Tags** buttons or the search bar. Tags that have been provied will show up on the list!
+Provide the tags you would like to compare. Tags can be entered either from the **Popular OSM Tags** buttons or the search bar. As you use Chameleon, your most-frequently-used tags will automatically replace the defaults on the five buttons.
 
-#### Step 3: Finalize analysis
-Decided whether or not to **group** the changes and simply hit **Run**.
+#### Step 3: Grouping by change
+Decide whether or not to **group** the changes by type of change. For example, with the box checked and while analyzing a `ref` tag, all ways that had a ref tag changed from “I 5” to “I 90” would be grouped together into one row in the output CSV, with a count of how many ways are in the group, a list of editors who last edited the ways in the group, the datestamp of the last edit to a member of the group, and a link to load the whole group into JOSM. Ways where “I 5” was removed entirely would appear in a different row.
+
+#### Step 4: Run
+
+Hit **Run** to generate your output CSVs
+
+## Interpreting Output
+
+
 
 ## Help and Particpate
 - Submit bugs and requests through our [`issue`](https://gitlab.com/seakaart/chameleon-2/issues) page!
