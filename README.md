@@ -98,7 +98,7 @@ Decide whether or not to **group** the changes by type of change. For example, w
 
 #### Step 4: Run
 
-Hit **Run** to generate your output CSVs
+Hit **Run** to generate your output CSVs.
 
 ## Interpreting Output
 
