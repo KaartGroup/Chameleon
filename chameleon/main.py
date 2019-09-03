@@ -990,13 +990,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                     self, '', "Discard field inputs?",
                     exit_prompt.Yes, exit_prompt.No
                 )
-            if exit_response == exit_prompt.Yes:
-                event.accept()
-            else:
-                event.ignore()
+                if exit_response == exit_prompt.Yes:
+                    event.accept()
+                else:
+                    event.ignore()
         # Fail silently if history.yaml does not exist
         except AttributeError:
             LOGGER.warning("All Chameleon analysis processing completed.")
+
 
 def main():
     """
