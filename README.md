@@ -114,5 +114,6 @@ Chameleon is licensed under **GNU General Public LIcense V3.0**. More details ca
 ## Contributors
 The Kaart development team will like to thank everyone for using and contributing to the development of Chameleon.
 
-Initial Development by @austin61293, @dericke, @geografer and @LiuTwo
+Initial development by @austin61293, @dericke, @geografer and @LiuTwo
+
 Logo designed by @sammi1
