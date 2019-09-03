@@ -85,7 +85,7 @@ out meta;
 
 ## Using Chameleon
 
-![Chameleon-UI](./chameleon-ui.png)
+![Chameleon-UI](./resources/chameleon-ui.png)
 
 #### Step 1: Provide the file directories
 Chameleon requires OSM data snapshots to perform the analysis. Simply navigate or drag in your file options for **Old** and **New** snapshots. Then specify an **Output** location for the summaries to be generated.
