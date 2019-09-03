@@ -23,8 +23,9 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
-import chameleon.design  # Import generated UI file
-# Does the processing
+# Import generated UI file
+import chameleon.design
+# Import sql processing module
 from chameleon.q import (QInputParams, QOutput, QOutputParams, QOutputPrinter,
                          QTextAsData)
 
@@ -68,13 +69,12 @@ def logger_setup(log_dir: Path):
             LOGGER.error("Log file could not be generated at %s.", log_path)
         else:
             # Clean up log file if there are more than 15 (about 1MB)
-            # Sort and list existing log files, oldest first
+            # Reading and sorting log file directory (ascending)
             log_list = sorted(
                 [f for f in log_dir.glob("*.log") if f.is_file()])
             if len(log_list) > 15:
-                # Count how many files to remove
                 rm_count = (len(log_list) - 15)
-                # Remove extra files
+                # Remove extra log files that exceed 15 records
                 for f in log_list[:rm_count]:
                     try:
                         LOGGER.info("removing...%s", f)
