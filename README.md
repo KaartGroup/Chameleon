@@ -94,15 +94,24 @@ Chameleon requires OSM data snapshots to perform the analysis. Simply navigate o
 Provide the tags you would like to compare. Tags can be entered either from the **Popular OSM Tags** buttons or the search bar. As you use Chameleon, your most-frequently-used tags will automatically replace the defaults on the five buttons.
 
 #### Step 3: Grouping by change
-Decide whether or not to **group** the changes by type of change. For example, with the box checked and while analyzing a `ref` tag, all ways that had a ref tag changed from “I 5” to “I 90” would be grouped together into one row in the output CSV, with a count of how many ways are in the group, a list of editors who last edited the ways in the group, the datestamp of the last edit to a member of the group, and a link to load the whole group into JOSM. Ways where “I 5” was removed entirely would appear in a different row.
+Decide whether or not to **group** the changes by type of change. For example, with the box checked and while analyzing a `ref` tag, all ways that had a ref tag changed from **“I 5”** to **“I 90”** would be grouped together into one row in the output CSV, with a count of how many ways are in the group, a list of editors who last edited the ways in the group, the datestamp of the last edit to a member of the group, and a link to load the whole group into JOSM. Ways where **“I 5”** was removed entirely would appear in a different row.
 
 #### Step 4: Run
 
 Hit **Run** to generate your output CSVs.
 
 ## Interpreting Output
+Chameleon provides a list of defaulted column headers with the output. A comprehensive list of definition for the output columns can be found below! The purpose of the Chameleon output is to inform OSM mappers about how the area they are trying to map has changed, and by identifying the change, one can collaborate with other mappers in the area more effectively.
 
-
+#### Output Table Headers
+- `id` (OSM object ID)
+- `url` (JOSM remote control)
+- `user` (OSM username)
+- `timestamp` (Last edited date)
+- `old_tag` (Tag value from older snapshot)
+- `new_tag` (Tag value from newer snapshot)
+- `action` (How has the object changed?)
+- `notes` (Empty column for Chameleon user)
 
 ## Help and Particpate
 - Submit bugs and requests through our [`issue`](https://gitlab.com/seakaart/chameleon-2/issues) page!
