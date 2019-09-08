@@ -540,13 +540,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                     <p>This application compares OSM snapshot data from
                     <a href="https://overpass-turbo.eu/">Overpass Turbo</a>
                     and returns an output of changes that occurred between the snapshots.</p>
-                    <p>Product of <a href="http://kaartgroup.com/">Kaart</a> made by SeaKaart tools team.<br>
+                    <p>Application made by <a href="http://kaartgroup.com/">Kaart</a>'s development team.<br>
                     Licensed under <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL3</a>.</p>''')
         about.setInformativeText(
-            "<i>Powered by: <a href=https://github.com/harelba/q>q</a>, "
+            "<i>Powered by: <a href=https://www.riverbankcomputing.com/software/pyqt/download5>PyQt5</a>, "
+            "<a href=https://github.com/harelba/q>q</a>, "
             "<a href=https://github.com/ActiveState/appdirs>appdir</a>, "
             "<a href=https://github.com/wimglenn/oyaml>oyaml</a>, "
-            "and <a href=https://www.pyinstaller.org>pyinstaller</a>.</i>")
+            "and <a href=https://www.pyinstaller.org>PyInstaller</a>.</i>")
         about.show()
 
     @staticmethod
