@@ -25,7 +25,7 @@ Chameleon aims to inform OSM editors about changes that occurred in an area from
 2. Clone the repo
 
 ```bash
-	git clone git@gitlab.com:seakaart/chameleon-2.git
+	git clone git@github.com:KaartGroup/Chameleon.git
 ```
 3. Change into the directory
 
