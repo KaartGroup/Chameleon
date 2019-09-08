@@ -31,6 +31,10 @@ Chameleon aims to inform OSM editors about changes that occurred in an area from
 ```bash
 	pip3 install appdirs
 ```
+* [`PyQt5`](https://pypi.org/project/PyQt5/):
+```bash
+	pip3 install pyqt5
+```
 
 ### Mac
 
@@ -112,13 +116,14 @@ Chameleon provides a list of defaulted column headers with the output. A compreh
 - `new_tag` (Tag value from newer snapshot)
 - `action` (How has the object changed?)
 - `notes` (Empty column for Chameleon user)
+- `count` (only with grouping enabled, sum of objects with identical change)
 
 ## Help and Particpate
-- Submit bugs and requests through our [`issue`](https://gitlab.com/seakaart/chameleon-2/issues) page!
-- Fork the [`Chameleon`](https://gitlab.com/seakaart/chameleon-2) repository, make changes and then make a [`pull/merge`](https://gitlab.com/seakaart/chameleon-2/merge_requests) request!
+- Submit bugs and requests through our [`issue`](https://github.com/KaartGroup/Chameleon/issues) page!
+- Fork the [`Chameleon`](https://github.com/KaartGroup/Chameleon) repository, make changes and then make a [`pull`](https://github.com/KaartGroup/Chameleon/pulls) request!
 
 ## License
-Chameleon is licensed under **GNU General Public LIcense V3.0**. More details can be found in [`LICENSE`](https://gitlab.com/seakaart/chameleon-2/blob/master/LICENSE).
+Chameleon is licensed under **GNU General Public LIcense V3.0**. More details can be found in [`LICENSE`](https://github.com/KaartGroup/Chameleon/blob/master/LICENSE).
 
 ## Contributors
 The Kaart development team will like to thank everyone for using and contributing to the development of Chameleon.
