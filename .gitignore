@@ -5,6 +5,7 @@ cli.py
 design.py
 
 __pycache__/
+.cache/
 .DS_Store
 .eggs/
 .pytest_cache/

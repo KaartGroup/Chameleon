@@ -4,11 +4,11 @@ block_cipher = None
 
 added_files = [
                 ('resources/OSMtag.yaml', '.'),
-                ('resources/chameleonalpha.png', '.'),
+                ('resources/chameleon.png', '.'),
                 ('resources/version.txt', '.')
              ]
 
-a = Analysis(['chameleon2/main.py'],
+a = Analysis(['chameleon/main.py'],
              pathex=['/Users/primaryuser/chameleon-2'],
              binaries=[],
              datas= added_files,
@@ -24,27 +24,13 @@ pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
+          a.binaries,
+          a.zipfiles,
+          a.datas,
           [],
-          exclude_binaries=True,
-          name='Chameleon 2',
+          name='Chameleon',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=False , icon='chameleon.icns')
-coll = COLLECT(exe,
-               a.binaries,
-               a.zipfiles,
-               a.datas,
-               strip=False,
-               upx=True,
-               name='Chameleon 2')
-app = BUNDLE(coll,
-             name='Chameleon 2.app',
-             icon='chameleon.icns',
-             bundle_identifier=None,
-             info_plist={
-            'NSHighResolutionCapable': 'True',
-            'NSRequiresAquaSystemAppearance': 'False'
-            },
-        )
+          console=False , icon=None)
