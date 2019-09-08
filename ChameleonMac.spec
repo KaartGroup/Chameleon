@@ -31,7 +31,7 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=False , icon='chameleon.icns')
+          console=False , icon='resources/chameleon.icns')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
@@ -41,7 +41,7 @@ coll = COLLECT(exe,
                name='Chameleon')
 app = BUNDLE(coll,
              name='Chameleon.app',
-             icon='chameleon.icns',
+             icon='resources/chameleon.icns',
              bundle_identifier=None,
              info_plist={
             'NSHighResolutionCapable': 'True',
