@@ -17,55 +17,28 @@ Chameleon aims to inform OSM editors about changes that occurred in an area from
 
 ## Installation
 
-### Dependencies
+1. Install dependencies: [`PyInstaller`](https://github.com/pyinstaller/pyinstaller), [`oyaml`](https://pypi.org/project/oyaml/), [`appdirs`](https://pypi.org/project/appdirs/), [`PyQt5`](https://pypi.org/project/pyqt5/):
 
-* [`PyInstaller`](https://github.com/pyinstaller/pyinstaller):
 ```bash
-	pip3 install pyinstaller
+	pip3 install pyinstaller oyaml appdirs pyqt5
 ```
-* [`oyaml`](https://pypi.org/project/oyaml/):
-```bash
-	pip3 install oyaml
-```
-* [`appdirs`](https://pypi.org/project/appdirs/):
-```bash
-	pip3 install appdirs
-```
-* [`PyQt5`](https://pypi.org/project/PyQt5/):
-```bash
-	pip3 install pyqt5
-```
-
-### Mac
-
-1. Clone the repo
+2. Clone the repo
 
 ```bash
 	git clone git@gitlab.com:seakaart/chameleon-2.git
 ```
-2. Install `pyqt`
-
-```bash
-	brew install pyqt
-```
-
 3. Change into the directory
 
 ```bash
-	cd chameleon-2/
+	cd Chameleon/
 ```
 
-4. Copy and paste the following into the terminal
+4. Run `initialize.py` to generate some neccessary files and the self-contained executable
 
 ```bash
- 	pyuic5 chameleon/design.ui -o chameleon/design.py
+	./initialize.py
 ```
-
-5. Package Chameleon into application
-
-```bash
- 	pyinstaller Chameleon.spec
-```
+5.  Find the executable in the `dist` directory
 
 ## Overpass Turbo
 
@@ -74,8 +47,8 @@ Tabulated OSM data (.csv) is required for Chameleon. OSM data snapshots can be o
 ![direct-download](./resources/direct-download.png)
 
  Sample Query for extracting Overpass snapshot OSM data:
- - Modify `[date:"YYYY-MM-DDT00:00:00Z"]` for desire snapshot.
- - Modify `{geocodeArea:LOCATION}` for desire location.
+ - Modify `[date:"YYYY-MM-DDT00:00:00Z"]` for desired snapshot.
+ - Modify `{geocodeArea:LOCATION}` for desired location.
  - Modify `way["building"]` for desired OSM objects.
 
 ```
