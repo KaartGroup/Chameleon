@@ -492,7 +492,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         self.newFileSelectButton.clicked.connect(self.open_input_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
         self.runButton.clicked.connect(self.run_query)
-        self.runButton.clicked.connect(self.list_sender)
         for i in self.fav_btn:
             i.clicked.connect(self.add_tag)
         self.searchButton.clicked.connect(self.add_tag)
@@ -672,16 +671,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         self.run_checker()
         self.listWidget.repaint()
 
-    def list_sender(self) -> list:
-        """
-        Sends user-defined list as sets for backend processing.
-        Executes on `Run` operations.
-        """
-
-        return [self.listWidget.item(i).text() for i in range(self.listWidget.count())]
-
     @staticmethod
-    def document_tag(run_list: list, counter_location: Path, favorite_location: Path):
+    def document_tag(run_tags: set, counter_location: Path, favorite_location: Path):
         """
         Python counter for tags that are frequently chosen by user.
         Document counter and favorites using yaml file storage.
@@ -700,10 +691,10 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         except OSError:
             LOGGER.exception()
 
-        # Casting list into dictionary with counts
+        # Casting set into dictionary with counts
         # Counter() sorts in reverse order (highest first)
         # Counter() generates a counter collections object
-        dict_counter = dict(Counter(run_list).items())
+        dict_counter = dict(Counter(run_tags))
         # Combining history counter with new counter
         sum_counter = dict(Counter(dict_counter) + Counter(cur_counter))
         # Sorting counter collections into ordered dictionary
@@ -859,9 +850,10 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             )
             return
         # modes var needs to be type set()
-        self.document_tag(self.list_sender(), COUNTER_LOCATION,
+        modes = {i.text() for i in self.listWidget.findItems(
+            '*', QtCore.Qt.MatchWildcard)}
+        self.document_tag(modes, COUNTER_LOCATION,
                           FAVORITE_LOCATION)  # Execute favorite tracking
-        modes = set(self.list_sender())
         LOGGER.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
 
