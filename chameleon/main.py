@@ -857,20 +857,16 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         LOGGER.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
 
-        self.progress_bar = QProgressDialog()
-        self.progress_bar.setModal(True)
-        self.progress_bar.setCancelButton(None)
-        self.progress_bar.setMinimumWidth(400)
-        # self.progress_bar.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         # Add one mode more that the length so that a full bar represents completion
         # When the final tag is started, the bar will show one increment remaining
-        self.progress_bar.setMaximum(len(modes) + 1)
-        self.progress_bar.setValue(0)
+        self.progress_bar = QProgressDialog(
+            "Analyzing file structure…", None, 0, len(modes) + 1)
+        self.progress_bar.setModal(True)
+        self.progress_bar.setMinimumWidth(400)
         # Disables the system default close, minimize, maximuize buttons
         self.progress_bar.setWindowFlags(
             QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
         # First task of Worker is to check for highway tag in source files
-        self.progress_bar.setLabelText("Analyzing file structure…")
         self.progress_bar.show()
         # Handles Worker class and QThreads for Worker
         self.work_thread = QThread()
