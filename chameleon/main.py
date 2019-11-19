@@ -235,12 +235,14 @@ class Worker(QObject):
                     summary = "\n".join(error_list)
                 if success_list:
                     headline = "Some tags could not be queried"
-                    summary += "\nThe following tags completed successfully:\n\n".join(
+                    summary += "\nThe following tags completed successfully:\n"
+                    summary += "\n".join(
                         success_list)
                 self.dialog_critical.emit(
                     headline, summary)
             elif success_list:  # Nothing failed, everything suceeded
-                summary = "All tags completed!\n\n".join(success_list)
+                summary = "All tags completed!\n"
+                summary += "\n".join(success_list)
                 self.dialog_information.emit("Success", summary)
             # Nothing succeeded and nothing failed, probably because user declined to overwrite
             else:
