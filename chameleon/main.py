@@ -170,7 +170,6 @@ class Worker(QObject):
                 sanitized_mode = mode.replace(":", "_")
                 result = self.execute_query(
                     mode, self.files, self.group_output, has_highway)
-                # self.write_file(result, files['output'], self.output_printer)
                 # Check if query ran sucessfully
                 file_name = Path(
                     f"{self.files['output']}_{sanitized_mode}.csv")
@@ -187,8 +186,7 @@ class Worker(QObject):
                     error_message = error_message.capitalize()
                     error_list.append(error_message)
                     continue
-                # Prompt and wait for confirmation before overwriting
-                if file_name.is_file():
+                if file_name.is_file():  # Prompt and wait for confirmation before overwriting
                     self.overwrite_confirm.emit(str(file_name))
                     mutex.lock()
                     try:
@@ -225,8 +223,7 @@ class Worker(QObject):
             # print(f"End run: {self.modes} with {type(self.modes)}.")
             # print(f"Before clear: {self.modes} with {type(self.modes)}.")
 
-            # Some tags failed
-            if error_list:
+            if error_list:  # Some tags failed
                 if len(error_list) == 1:
                     headline = "A tag could not be queried"
                     summary = error_list[0]
@@ -626,7 +623,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             # Value was clicked from fav btn
             raw_label = self.sender().text()
         splitter = shlex.shlex(raw_label)
-        splitter.whitespace += ','
+        splitter.whitespace += ','  # Count commas as a delimiter and don't include in the tags
         splitter.whitespace_split = True
         label_list = sorted(list(splitter))
         for i, label in enumerate(label_list):
