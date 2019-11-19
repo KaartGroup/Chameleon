@@ -630,18 +630,18 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         splitter.whitespace_split = True
         label_list = sorted(list(splitter))
         for i, label in enumerate(label_list):
-            # A ValueError means the item isn't already in the list, so we can add it
-            try:
-                label_index = self.list_sender().index(label)
-            except ValueError:  # Tag is not already in list, add it
-                self.listWidget.addItem(label)
-                LOGGER.info('Adding to list: %s', label)
-            else:  # The item was already in the list
-                # Reset current selection on the first iteration
+            # Check if the label is in the list already
+            existing_item = self.listWidget.findItems(
+                label, QtCore.Qt.MatchExactly)
+            if existing_item:
                 if i == 0:
                     self.listWidget.selectionModel().clear()
-                self.listWidget.item(label_index).setSelected(True)
+                # existing_item should never have more than 1 member
+                existing_item[0].setSelected(True)
                 LOGGER.warning('%s is already in the list.', label)
+            else:
+                self.listWidget.addItem(label)
+                LOGGER.info('Adding to list: %s', label)
         self.clear_search_box.emit()
         self.run_checker()
         self.listWidget.repaint()
