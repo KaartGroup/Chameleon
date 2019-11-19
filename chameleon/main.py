@@ -207,14 +207,14 @@ class Worker(QObject):
                 except OSError:
                     LOGGER.exception("Write error.")
                 else:
-                    if not result.data:
+                    if not result.data or len(result.data) == 1:
                         success_message = (f"{mode} has no change.")
                     else:
-                        success_message = (
-                            f"{mode} output with {len(result.data)} row")
+                        s = ""
                         if len(result.data) > 1:
-                            success_message += "s"
-                        success_message += "."
+                            s = "s"
+                        success_message = (
+                            f"{mode} output with {len(result.data)} row{s}.")
                     success_list.append(success_message)
                     # Logging q errors when try fails.
                     LOGGER.debug("q_output details: %s.", result)
@@ -235,14 +235,12 @@ class Worker(QObject):
                     summary = "\n".join(error_list)
                 if success_list:
                     headline = "Some tags could not be queried"
-                    summary += "\nThe following tags completed successfully:\n"
-                    summary += "\n".join(success_list)
+                    summary += "\nThe following tags completed successfully:\n\n".join(
+                        success_list)
                 self.dialog_critical.emit(
                     headline, summary)
-            # Nothing failed, everything suceeded
-            elif success_list:
-                summary = "All tags completed!\n"
-                summary += "\n".join(success_list)
+            elif success_list:  # Nothing failed, everything suceeded
+                summary = "All tags completed!\n\n".join(success_list)
                 self.dialog_information.emit("Success", summary)
             # Nothing succeeded and nothing failed, probably because user declined to overwrite
             else:
