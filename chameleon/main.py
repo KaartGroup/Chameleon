@@ -206,13 +206,16 @@ class Worker(QObject):
                     LOGGER.exception("Write error.")
                 else:
                     if not result.data or len(result.data) == 1:
+                        # If there's only one row, it's a header
                         success_message = (f"{mode} has no change.")
                     else:
+                        # Exclude the header row from the row count
+                        data_len = len(result.data) - 1
                         s = ""
-                        if len(result.data) > 1:
+                        if data_len > 1:
                             s = "s"
                         success_message = (
-                            f"{mode} output with {len(result.data)} row{s}.")
+                            f"{mode} output with {data_len} row{s}.")
                     success_list.append(success_message)
                     # Logging q errors when try fails.
                     LOGGER.debug("q_output details: %s.", result)
