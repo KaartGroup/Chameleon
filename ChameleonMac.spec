@@ -45,6 +45,5 @@ app = BUNDLE(coll,
              bundle_identifier=None,
              info_plist={
             'NSHighResolutionCapable': 'True',
-            'NSRequiresAquaSystemAppearance': 'False'
             },
         )
