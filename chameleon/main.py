@@ -11,7 +11,7 @@ import re
 import shlex
 import sys
 import tempfile
-from collections import Counter, OrderedDict
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -682,7 +682,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         # Parse counter.yaml for user tag preference
         try:
             with counter_location.open('r') as counter_read:
-                cur_counter = OrderedDict(yaml.load(counter_read))
+                cur_counter = dict(yaml.load(counter_read))
                 LOGGER.debug("counter.yaml history: %s.", (cur_counter))
         # If file doesn't exist, fail silently
         except FileNotFoundError:
@@ -698,8 +698,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         # Combining history counter with new counter
         sum_counter = dict(Counter(dict_counter) + Counter(cur_counter))
         # Sorting counter collections into ordered dictionary
-        sorted_counter = OrderedDict(
-            sorted(sum_counter.items(), key=lambda x: x[1], reverse=True))
+        sorted_counter = dict(sorted(sum_counter.items(),
+                                     key=lambda x: x[1], reverse=True))
         rank_tags = list(sorted_counter.keys())
         # Saving tag counts to config directory
         try:
