@@ -8,6 +8,7 @@ import errno
 import logging
 import os
 import re
+import shlex
 import sys
 import tempfile
 from collections import Counter, OrderedDict
@@ -616,28 +617,33 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         """
         Adds user defined tags into processing list on QListWidget.
         """
+        # Identifies sender signal and grabs button text
         if self.sender() is self.searchButton:
             # Value was typed by user
-            label = self.searchBox.text()
-            if not label.strip():  # Don't accept whitespace-only values
+            raw_label = self.searchBox.text()
+            if not raw_label.strip():  # Don't accept whitespace-only values
                 LOGGER.warning('No value entered.')
                 return
         elif self.sender() in self.fav_btn:
             # Value was clicked from fav btn
-            label = self.sender().text()
-        # Identifies sender signal and grabs button text
-        # var to check listWidget items
-        # Add item to list only if condition passes
-        try:
-            label_index = self.list_sender().index(label)
-        except ValueError:
-            self.listWidget.addItem(label)
-            LOGGER.info(f'Adding to list:  {label}')
-        else:
-            # Reset current selection
-            self.listWidget.selectionModel().clear()
-            self.listWidget.item(label_index).setSelected(True)
-            LOGGER.warning('Please enter an unique tag.')
+            raw_label = self.sender().text()
+        splitter = shlex.shlex(raw_label)
+        splitter.whitespace += ','
+        splitter.whitespace_split = True
+        label_list = sorted(list(splitter))
+        for i, label in enumerate(label_list):
+            # A ValueError means the item isn't already in the list, so we can add it
+            try:
+                label_index = self.list_sender().index(label)
+            except ValueError:  # Tag is not already in list, add it
+                self.listWidget.addItem(label)
+                LOGGER.info('Adding to list: %s', label)
+            else:  # The item was already in the list
+                # Reset current selection on the first iteration
+                if i == 0:
+                    self.listWidget.selectionModel().clear()
+                self.listWidget.item(label_index).setSelected(True)
+                LOGGER.warning('%s is already in the list.', label)
         self.clear_search_box.emit()
         self.run_checker()
         self.listWidget.repaint()
@@ -770,9 +776,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         Function that disable/enables run button based on list items.
         """
         if self.listWidget.count() > 0:
-            self.runButton.setEnabled(1)
+            self.runButton.setEnabled(True)
         else:
-            self.runButton.setEnabled(0)
+            self.runButton.setEnabled(False)
         self.repaint()
 
     def dialog_critical(self, text: str, info: str):
