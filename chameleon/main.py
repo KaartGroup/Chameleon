@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 import oyaml as yaml
+import pandas as pd
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -26,9 +27,6 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
 
 # Import generated UI file
 import chameleon.design
-# Import sql processing module
-from chameleon.q import (QInputParams, QOutput, QOutputParams, QOutputPrinter,
-                         QTextAsData)
 
 mutex = QtCore.QMutex()
 waiting_for_input = QtCore.QWaitCondition()
@@ -159,12 +157,6 @@ class Worker(QObject):
         error_list = []
         # Will hold all successful steps for display at the end
         success_list = []
-        has_highway = self.check_highway(self.files)
-        if has_highway:
-            LOGGER.info("Both source docs have a highway column")
-        has_changeset = self.check_changeset(self.files)
-        if has_changeset:
-            LOGGER.info("Changeset column found in new file")
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             for mode in self.modes:
@@ -256,31 +248,6 @@ class Worker(QObject):
             # Signal the main thread that this thread is complete
             self.done.emit()
 
-    def check_highway(self, files: dict) -> bool:
-        """
-
-        Parameters
-        ----------
-        files : dict:
-            Dictionary containing old and new file paths
-        Returns
-        -------
-        bool:
-            True if both files contain a highway column
-            False if one or none of the files contain a highway column
-        """
-        highway_check_old_sql = f"SELECT highway FROM {files['old']} LIMIT 1"
-        highway_check_new_sql = f"SELECT highway FROM {files['new']} LIMIT 1"
-        q_engine = QTextAsData()
-        return q_engine.execute(
-            highway_check_new_sql, self.input_params).status != 'error' and q_engine.execute(
-                highway_check_old_sql, self.input_params).status != 'error'
-
-    def check_changeset(self, files: dict) -> bool:
-        changeset_check = f"SELECT \"@changeset\" FROM {files['new']} LIMIT 1"
-        q_engine = QTextAsData()
-        return q_engine.execute(changeset_check, self.input_params).status != 'error'
-
     def execute_query(self, mode: str, files: dict, group_output=False,
                       has_highway=False, has_changeset=False) -> QOutput:
         """
@@ -293,8 +260,6 @@ class Worker(QObject):
             If history path does not exist and returns a system-related error.
         """
         # Clean up tags with : that cannot be escaped with sqlite3
-        sanitized_mode = mode.replace(":", "_")
-        q_engine = QTextAsData()
         # Creating SQL snippets
         sql = self.build_query(mode, files, group_output,
                                has_highway, has_changeset)
@@ -306,17 +271,6 @@ class Worker(QObject):
                 mode='w', buffering=-1, encoding=None, newline=None,
                 suffix=".csv", prefix=None, dir=None, delete=True)
             LOGGER.debug("Writing to temp file.")
-            q_output = q_engine.execute(
-                sql, self.input_params)
-            # If missing a tag, return early so the calling loop can grab the error
-            if q_output.status == 'error':
-                tempf.close()
-                return q_output
-            # print(q_output.data)
-            # grouped_output_printer = QOutputPrinter(
-            # QOutputParams(delimiter='\t', output_header=True))
-            self.output_printer.print_output(
-                tempf, sys.stderr, q_output)
 
             # Logging and printing debug statements for associated q errors
             LOGGER.debug(
@@ -337,11 +291,75 @@ class Worker(QObject):
                     f"GROUP BY old_{sanitized_mode},new_{sanitized_mode},action;")
             LOGGER.debug(
                 f"Grouped enabled, Processing group sql query: {sql}.")
-        # Proceed with generating tangible output for user
-        result = q_engine.execute(sql, self.input_params)
         if group_output:
             tempf.close()
         return result
+
+    @staticmethod
+    def merge_files(files: dict) -> pd.DataFrame:
+        old_df = pd.read_csv(files['old'], sep='\t').set_index('@id')
+        new_df = pd.read_csv(files['new'], sep='\t').set_index('@id')
+        old_df['present'] = new_df['present'] = True
+        merged_df = old_df.join(new_df, how='outer',
+                                lsuffix='_old', rsuffix='_new')
+        merged_df.columns = merged_df.columns.str.replace('@', '')
+        return merged_df
+
+    @staticmethod
+    def query_df(df: pd.DataFrame, mode: str, group_output=False) -> pd.DataFrame:
+        output_df = pd.DataFrame()
+        output_df['id'] = f"{df['type_old'].str[0]}{df.index}"
+        if not group_output:
+            output_df[
+                'url'] = f"http://localhost:8111/load_object?new_layer=true&objects={df['type_old'].str[0]}{df.index}"
+        output_df['user'] = df['user_new'].fillna(df['user_old'])
+        output_df['timestamp'] = df['timestamp_new'].fillna(
+            df['timestamp_old'])
+        output_df['version'] = df['version_new'].fillna(df['version_old'])
+        try:
+            # Succeeds if both csvs had changeset columns
+            output_df['changeset'] = df['changeset_new']
+        except KeyError:
+            try:
+                # Succeeds if one csv had a changeset column
+                output_df['changeset'] = df['changeset']
+            except KeyError:
+                # If neither had one, we just won't include in the output
+                pass
+        output_df['osmcha'] = f"https://osmcha.mapbox.com/changesets/{output_df['changeset']}/"
+        if mode != 'name':
+            output_df['name'] = df['name_new'].fillna(df['name_old'])
+        if mode != 'highway':
+            try:
+                # Succeeds if both csvs had highway columns
+                output_df['highway'] = df['highway_new'].fillna(
+                    df['highway_old'])
+            except KeyError:
+                try:
+                    # Succeeds if one csv had a highway column
+                    output_df['highway'] = df['highway']
+                except KeyError:
+                    # If neither had one, we just won't include in the output
+                    pass
+
+        output_df[f"old_{mode}"] = df[f"{mode}_old"]
+        output_df[f"new_{mode}"] = df[f"{mode}_new"]
+        output_df.loc[(df.present_old) & (
+            df.present_new), 'action'] = 'modified'
+        output_df.loc[(df.present_old) & (df.present_new is not True),
+                      'action'] = 'deleted'
+        output_df.loc[(df.present_old is not True) &
+                      (df.present_new), 'action'] = 'new'
+        output_df['notes'] = ''
+        return output_df
+
+    @staticmethod
+    def check_api_deletions(df: pd.DataFrame):
+        deleted_ids = list((df['action'] == 'deleted').index)
+        for i in deleted_ids:
+            r = requests.get(
+                f'https://www.openstreetmap.org/api/0.6/way/{i}/history')
+            time.sleep(5)
 
     @staticmethod
     def build_query(mode: str, files: dict, group_output=False,
@@ -349,8 +367,6 @@ class Worker(QObject):
         """
         Constructs the SQL string from user input
         """
-        # Clean up tags with : that cannot be escaped with sqlite3
-        sanitized_mode = mode.replace(":", "_")
         # Added based ID SQL to ensure Object ID output
         # LEFT OUTER JOIN to isolate instances of old NOT LIKE new
         sql = ("SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || "
