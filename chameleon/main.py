@@ -159,9 +159,12 @@ class Worker(QObject):
         error_list = []
         # Will hold all successful steps for display at the end
         success_list = []
-        has_highway = self.check_highway(self.files, self.input_params)
+        has_highway = self.check_highway(self.files)
         if has_highway:
             LOGGER.info("Both source docs have a highway column")
+        has_changeset = self.check_changeset(self.files)
+        if has_changeset:
+            LOGGER.info("Changeset column found in new file")
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             for mode in self.modes:
@@ -169,7 +172,7 @@ class Worker(QObject):
                 self.mode_start.emit(mode)
                 sanitized_mode = mode.replace(":", "_")
                 result = self.execute_query(
-                    mode, self.files, self.group_output, has_highway)
+                    mode, self.files, self.group_output, has_highway, has_changeset)
                 # Check if query ran sucessfully
                 file_name = Path(
                     f"{self.files['output']}_{sanitized_mode}.csv")
@@ -253,16 +256,13 @@ class Worker(QObject):
             # Signal the main thread that this thread is complete
             self.done.emit()
 
-    @staticmethod
-    def check_highway(files: dict, input_params: QInputParams) -> bool:
+    def check_highway(self, files: dict) -> bool:
         """
 
         Parameters
         ----------
         files : dict:
             Dictionary containing old and new file paths
-        input_params : QInputParams:
-            input params for files
         Returns
         -------
         bool:
@@ -273,10 +273,16 @@ class Worker(QObject):
         highway_check_new_sql = f"SELECT highway FROM {files['new']} LIMIT 1"
         q_engine = QTextAsData()
         return q_engine.execute(
-            highway_check_new_sql, input_params).status != 'error' and q_engine.execute(
-                highway_check_old_sql, input_params).status != 'error'
+            highway_check_new_sql, self.input_params).status != 'error' and q_engine.execute(
+                highway_check_old_sql, self.input_params).status != 'error'
 
-    def execute_query(self, mode: str, files: dict, group_output=False, has_highway=False) -> QOutput:
+    def check_changeset(self, files: dict) -> bool:
+        changeset_check = f"SELECT \"@changeset\" FROM {files['new']} LIMIT 1"
+        q_engine = QTextAsData()
+        return q_engine.execute(changeset_check, self.input_params).status != 'error'
+
+    def execute_query(self, mode: str, files: dict, group_output=False,
+                      has_highway=False, has_changeset=False) -> QOutput:
         """
         Saves file path for future loading, create a directory if one does not
         already exist. Groups JOSM tags with SQL and generates suitable output.
@@ -290,7 +296,8 @@ class Worker(QObject):
         sanitized_mode = mode.replace(":", "_")
         q_engine = QTextAsData()
         # Creating SQL snippets
-        sql = self.build_query(mode, files, group_output, has_highway)
+        sql = self.build_query(mode, files, group_output,
+                               has_highway, has_changeset)
         # When using the grouped output option, files are queried twice,
         # with the first step being written to a tempfile.
         if group_output:
@@ -320,6 +327,8 @@ class Worker(QObject):
                    "group_concat(id)) AS url, count(id) AS count,"
                    "group_concat(distinct user) AS users,max(timestamp) AS latest_timestamp,"
                    "min(version) AS version, ")
+            if has_changeset:
+                sql += "group_concat(changeset) as changesets, "
             if mode != "highway" and has_highway:
                 sql += "highway,"
             sql += (f"old_{sanitized_mode},new_{sanitized_mode}, "
@@ -335,7 +344,8 @@ class Worker(QObject):
         return result
 
     @staticmethod
-    def build_query(mode: str, files: dict, group_output=False, has_highway=False) -> str:
+    def build_query(mode: str, files: dict, group_output=False,
+                    has_highway=False, has_changeset=False) -> str:
         """
         Constructs the SQL string from user input
         """
@@ -352,6 +362,8 @@ class Worker(QObject):
         sql += ("ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\","
                 "old.\"@timestamp\"),1,10) AS timestamp, "
                 "ifnull(new.\"@version\",old.\"@version\") AS version, ")
+        if has_changeset:
+            sql += "new.\"@changeset\" AS changeset, "
         if mode != "highway" and has_highway:
             sql += "ifnull(new.highway,old.highway) AS highway, "
         if mode != "name":
@@ -373,6 +385,8 @@ class Worker(QObject):
                     "substr(new.\"@type\",1,1) || new.\"@id\") AS url, ")
         sql += ("new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
                 "new.\"@version\" AS version, ")
+        if has_changeset:
+            sql += "new.\"@changeset\" AS changeset, "
         if mode != "highway" and has_highway:
             sql += "new.highway AS highway, "
         if mode != "name":
