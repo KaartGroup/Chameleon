@@ -328,7 +328,7 @@ class Worker(QObject):
                    "group_concat(distinct user) AS users,max(timestamp) AS latest_timestamp,"
                    "min(version) AS version, ")
             if has_changeset:
-                sql += "group_concat(changeset) as changesets, "
+                sql += "group_concat(distinct changeset) as changesets, "
             if mode != "highway" and has_highway:
                 sql += "highway,"
             sql += (f"old_{sanitized_mode},new_{sanitized_mode}, "
@@ -364,6 +364,8 @@ class Worker(QObject):
                 "ifnull(new.\"@version\",old.\"@version\") AS version, ")
         if has_changeset:
             sql += "new.\"@changeset\" AS changeset, "
+            if not group_output:
+                sql += "('https://osmcha.mapbox.com/changesets/' || new.\"@changeset\") AS osmcha, "
         if mode != "highway" and has_highway:
             sql += "ifnull(new.highway,old.highway) AS highway, "
         if mode != "name":
@@ -387,6 +389,8 @@ class Worker(QObject):
                 "new.\"@version\" AS version, ")
         if has_changeset:
             sql += "new.\"@changeset\" AS changeset, "
+            if not group_output:
+                sql += "('https://osmcha.mapbox.com/changesets/' || new.\"@changeset\") AS osmcha, "
         if mode != "highway" and has_highway:
             sql += "new.highway AS highway, "
         if mode != "name":
