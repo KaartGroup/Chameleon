@@ -10,15 +10,17 @@ import os
 import re
 import shlex
 import sys
-import tempfile
+import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
 import oyaml as yaml
 import pandas as pd
+import requests
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
+from lxml import etree
 from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
@@ -117,9 +119,6 @@ class Worker(QObject):
         self.group_output = group_output
         self.parent = parent
         self.response = None
-        self.output_printer = QOutputPrinter(
-            QOutputParams(delimiter='\t', output_header=True))
-        self.input_params = QInputParams(skip_header=True, delimiter='\t')
 
     @pyqtSlot()
     def run(self):
@@ -162,25 +161,12 @@ class Worker(QObject):
             for mode in self.modes:
                 LOGGER.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
-                sanitized_mode = mode.replace(":", "_")
-                result = self.execute_query(
-                    mode, self.files, self.group_output, has_highway, has_changeset)
+                # sanitized_mode = mode.replace(":", "_")
+                self.merge_files(self.files)
                 # Check if query ran sucessfully
                 file_name = Path(
                     f"{self.files['output']}_{sanitized_mode}.csv")
                 # File reading failed, usually because a nonexistent column
-                if result.status == 'error':
-                    # Build error message for later display
-                    error_message = str(result.error.exception)
-                    if old_regex.search(error_message):
-                        error_message = re.sub(
-                            old_regex, " in old data file: ", error_message)
-                    elif new_regex.search(error_message):
-                        error_message = re.sub(
-                            new_regex, " in new data file: ", error_message)
-                    error_message = error_message.capitalize()
-                    error_list.append(error_message)
-                    continue
                 if file_name.is_file():  # Prompt and wait for confirmation before overwriting
                     self.overwrite_confirm.emit(str(file_name))
                     mutex.lock()
@@ -248,53 +234,6 @@ class Worker(QObject):
             # Signal the main thread that this thread is complete
             self.done.emit()
 
-    def execute_query(self, mode: str, files: dict, group_output=False,
-                      has_highway=False, has_changeset=False) -> QOutput:
-        """
-        Saves file path for future loading, create a directory if one does not
-        already exist. Groups JOSM tags with SQL and generates suitable output.
-
-        Raises
-        ------
-        OSError
-            If history path does not exist and returns a system-related error.
-        """
-        # Clean up tags with : that cannot be escaped with sqlite3
-        # Creating SQL snippets
-        sql = self.build_query(mode, files, group_output,
-                               has_highway, has_changeset)
-        # When using the grouped output option, files are queried twice,
-        # with the first step being written to a tempfile.
-        if group_output:
-            # Generating temporary output files (max size 100 MB)
-            tempf = tempfile.NamedTemporaryFile(
-                mode='w', buffering=-1, encoding=None, newline=None,
-                suffix=".csv", prefix=None, dir=None, delete=True)
-            LOGGER.debug("Writing to temp file.")
-
-            # Logging and printing debug statements for associated q errors
-            LOGGER.debug(
-                "Intermediate processing completed for %s.", (mode))
-
-            # Grouping function with q
-            sql = ("SELECT ('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                   "group_concat(id)) AS url, count(id) AS count,"
-                   "group_concat(distinct user) AS users,max(timestamp) AS latest_timestamp,"
-                   "min(version) AS version, ")
-            if has_changeset:
-                sql += "group_concat(distinct changeset) as changesets, "
-            if mode != "highway" and has_highway:
-                sql += "highway,"
-            sql += (f"old_{sanitized_mode},new_{sanitized_mode}, "
-                    "group_concat(DISTINCT action) AS actions, "
-                    f"NULL AS \"notes\" FROM {tempf.name} "
-                    f"GROUP BY old_{sanitized_mode},new_{sanitized_mode},action;")
-            LOGGER.debug(
-                f"Grouped enabled, Processing group sql query: {sql}.")
-        if group_output:
-            tempf.close()
-        return result
-
     @staticmethod
     def merge_files(files: dict) -> pd.DataFrame:
         old_df = pd.read_csv(files['old'], sep='\t').set_index('@id')
@@ -305,8 +244,7 @@ class Worker(QObject):
         merged_df.columns = merged_df.columns.str.replace('@', '')
         return merged_df
 
-    @staticmethod
-    def query_df(df: pd.DataFrame, mode: str, group_output=False) -> pd.DataFrame:
+    def query_df(self, df: pd.DataFrame, mode: str, group_output=False) -> pd.DataFrame:
         output_df = pd.DataFrame()
         output_df['id'] = f"{df['type_old'].str[0]}{df.index}"
         if not group_output:
@@ -341,9 +279,13 @@ class Worker(QObject):
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
-
-        output_df[f"old_{mode}"] = df[f"{mode}_old"]
-        output_df[f"new_{mode}"] = df[f"{mode}_new"]
+        try:
+            output_df[f"old_{mode}"] = df[f"{mode}_old"]
+            output_df[f"new_{mode}"] = df[f"{mode}_new"]
+        except KeyError:
+            LOGGER.exception()
+            self.error_list += mode
+            return
         output_df.loc[(df.present_old) & (
             df.present_new), 'action'] = 'modified'
         output_df.loc[(df.present_old) & (df.present_new is not True),
@@ -356,72 +298,36 @@ class Worker(QObject):
     @staticmethod
     def check_api_deletions(df: pd.DataFrame):
         deleted_ids = list((df['action'] == 'deleted').index)
+        # For use in split/merge detection
+        deleted_way_members = {}
         for i in deleted_ids:
             r = requests.get(
                 f'https://www.openstreetmap.org/api/0.6/way/{i}/history')
-            time.sleep(5)
+            # try:
+            root = etree.fromstring(r.content)
+            # except:  # TODO Add exception type
+            # continue
+            latest_version = root.findall(f"way[@visible=\"false\"]")[-1]
+            element_attribs = {
+                'id': i,
+                'user': latest_version.attrib['user'],
+                'changeset': latest_version.attrib['changeset'],
+                'version': latest_version.attrib['version'],
+                'timestamp': latest_version.attrib['timestamp']
+            }
+            prior_version_num = str(int(element_attribs['version']) - 1)
+            prior_version = root.find(
+                f"way[@version=\"{prior_version_num}\"]")
+            member_nodes = [int(el.attrib['ref'])
+                            for el in prior_version.findall("nd")]
+            # Save last members of the deleted way for later use in detecting splits/merges
+            deleted_way_members[i] = member_nodes
 
-    @staticmethod
-    def build_query(mode: str, files: dict, group_output=False,
-                    has_highway=False, has_changeset=False) -> str:
-        """
-        Constructs the SQL string from user input
-        """
-        # Added based ID SQL to ensure Object ID output
-        # LEFT OUTER JOIN to isolate instances of old NOT LIKE new
-        sql = ("SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || "
-               "ifnull(new.\"@id\",old.\"@id\")) AS id, ")
-        if not group_output:
-            sql += ("('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                    "substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || "
-                    "ifnull(new.\"@id\",old.\"@id\")) AS url, ")
-        sql += ("ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\","
-                "old.\"@timestamp\"),1,10) AS timestamp, "
-                "ifnull(new.\"@version\",old.\"@version\") AS version, ")
-        if has_changeset:
-            sql += "new.\"@changeset\" AS changeset, "
-            if not group_output:
-                sql += "('https://osmcha.mapbox.com/changesets/' || new.\"@changeset\") AS osmcha, "
-        if mode != "highway" and has_highway:
-            sql += "ifnull(new.highway,old.highway) AS highway, "
-        if mode != "name":
-            sql += "ifnull(new.name,old.name) AS name, "
-        sql += (f"ifnull(old.\"{mode}\",'') AS old_{sanitized_mode}, "
-                f"ifnull(new.\"{mode}\",'') AS new_{sanitized_mode}, "
-                # Differentiate between objects that are modified and deleted
-                "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
-                "ELSE \"deleted\" END \"action\" ")
-        if not group_output:
-            sql += ", NULL AS \"notes\" "
-        sql += (f"FROM {files['old']} AS old "
-                f"LEFT OUTER JOIN {files['new']} AS new ON old.\"@id\" = new.\"@id\" "
-                f"WHERE old_{sanitized_mode} NOT LIKE new_{sanitized_mode} "
-                # UNION FULL LEFT OUTER JOIN to isolated instances of new objects
-                "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, ")
-        if not group_output:
-            sql += ("('http://localhost:8111/load_object?new_layer=true&objects=' || "
-                    "substr(new.\"@type\",1,1) || new.\"@id\") AS url, ")
-        sql += ("new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
-                "new.\"@version\" AS version, ")
-        if has_changeset:
-            sql += "new.\"@changeset\" AS changeset, "
-            if not group_output:
-                sql += "('https://osmcha.mapbox.com/changesets/' || new.\"@changeset\") AS osmcha, "
-        if mode != "highway" and has_highway:
-            sql += "new.highway AS highway, "
-        if mode != "name":
-            sql += "new.name AS name, "
-        sql += (f"ifnull(old.\"{mode}\",'') AS old_{sanitized_mode}, "
-                f"ifnull(new.\"{mode}\",'') AS new_{sanitized_mode}, "
-                # 'action' defaults to 'new' to capture 'added' and 'split' objects
-                "\"new\" AS \"action\" ")
-        if not group_output:
-            sql += ", NULL AS \"notes\" "
-        sql += (f"FROM {files['new']} AS new "
-                f"LEFT OUTER JOIN {files['old']} AS old ON new.\"@id\" = old.\"@id\" "
-                f"WHERE old.\"@id\" IS NULL AND length(ifnull(new_{sanitized_mode},'')) > 0")
-        LOGGER.debug("Processing sql query: %s", (sql))
-        return sql
+            for k, v in element_attribs.items():
+                df.iloc[i][k] = v
+
+            # Wait between iterations to avoid ratelimit problems
+            time.sleep(2)
 
 
 class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWindow):
