@@ -119,6 +119,8 @@ class Worker(QObject):
         self.group_output = group_output
         self.parent = parent
         self.response = None
+        self.deleted_way_members = {}
+        self.overpass_result_attribs = {}
 
     @pyqtSlot()
     def run(self):
@@ -295,33 +297,50 @@ class Worker(QObject):
         output_df['notes'] = ''
         return output_df
 
-    @staticmethod
-    def check_api_deletions(df: pd.DataFrame):
+    def check_api_deletions(self, df: pd.DataFrame):
         deleted_ids = list((df['action'] == 'deleted').index)
         # For use in split/merge detection
-        deleted_way_members = {}
         for i in deleted_ids:
-            r = requests.get(
-                f'https://www.openstreetmap.org/api/0.6/way/{i}/history')
-            # try:
-            root = etree.fromstring(r.content)
-            # except:  # TODO Add exception type
-            # continue
-            latest_version = root.findall(f"way[@visible=\"false\"]")[-1]
-            element_attribs = {
-                'id': i,
-                'user': latest_version.attrib['user'],
-                'changeset': latest_version.attrib['changeset'],
-                'version': latest_version.attrib['version'],
-                'timestamp': latest_version.attrib['timestamp']
-            }
-            prior_version_num = str(int(element_attribs['version']) - 1)
-            prior_version = root.find(
-                f"way[@version=\"{prior_version_num}\"]")
-            member_nodes = [int(el.attrib['ref'])
-                            for el in prior_version.findall("nd")]
-            # Save last members of the deleted way for later use in detecting splits/merges
-            deleted_way_members[i] = member_nodes
+            if i in self.overpass_result_attribs:
+                element_attribs = self.overpass_result_attribs[i]
+            else:
+                try:
+                    r = requests.get(
+                        f'https://www.openstreetmap.org/api/0.6/way/{i}/history', timeout=2)
+                    root = etree.fromstring(r.text)
+                except ConnectionError:
+                    # Couldn't contact the server, could be client-side
+                    LOGGER.exception()
+                    element_attribs = {}
+                    continue
+                else:
+                    latest_version = root.findall(f"way")[-1]
+                    if latest_version.attrib['visible'] == "false":
+                        # The most recent way version has the way deleted
+                        element_attribs = {
+                            'id': i,
+                            'user': latest_version.attrib['user'],
+                            'changeset': latest_version.attrib['changeset'],
+                            'version': latest_version.attrib['version'],
+                            'timestamp': latest_version.attrib['timestamp']
+                        }
+                        prior_version_num = str(
+                            int(element_attribs['version']) - 1)
+                        prior_version = root.find(
+                            f"way[@version=\"{prior_version_num}\"]")
+                        member_nodes = [int(el.attrib['ref'])
+                                        for el in prior_version.findall("nd")]
+                        # Save last members of the deleted way
+                        # for later use in detecting splits/merges
+                        self.deleted_way_members[i] = member_nodes
+                    else:
+                        # The way was not deleted, just dropped from the latter dataset
+                        # df.iloc[i]['action'] = 'dropped'
+                        element_attribs = {
+                            'id': i,
+                            'action': 'dropped'
+                        }
+                    self.overpass_result_attribs[i] = element_attribs
 
             for k, v in element_attribs.items():
                 df.iloc[i][k] = v
