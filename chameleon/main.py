@@ -164,10 +164,15 @@ class Worker(QObject):
                 LOGGER.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
                 # sanitized_mode = mode.replace(":", "_")
-                self.merge_files(self.files)
-                # Check if query ran sucessfully
+                merged_df = self.merge_files(self.files)
+                try:
+                    result = self.query_df(merged_df, mode)
+                except KeyError:
+                    LOGGER.exception()
+                    self.error_list += mode
+                    continue
                 file_name = Path(
-                    f"{self.files['output']}_{sanitized_mode}.csv")
+                    f"{self.files['output']}_{mode}.csv")
                 # File reading failed, usually because a nonexistent column
                 if file_name.is_file():  # Prompt and wait for confirmation before overwriting
                     self.overwrite_confirm.emit(str(file_name))
@@ -183,17 +188,16 @@ class Worker(QObject):
                 LOGGER.info("Writing %s", (file_name))
                 try:
                     with file_name.open("w") as output_file:
-                        self.output_printer.print_output(
-                            output_file, sys.stderr, result)
+                        result.to_csv(output_file, sep='\t')
                 except OSError:
                     LOGGER.exception("Write error.")
                 else:
-                    if not result.data or len(result.data) == 1:
-                        # If there's only one row, it's a header
+                    # if not result or len(result) == 1:
+                    data_len = len(result)
+                    if not data_len:
                         success_message = (f"{mode} has no change.")
                     else:
                         # Exclude the header row from the row count
-                        data_len = len(result.data) - 1
                         s = ""
                         if data_len > 1:
                             s = "s"
