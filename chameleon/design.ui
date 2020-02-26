@@ -7,14 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>583</width>
-    <height>552</height>
+    <height>627</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Chameleon</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0,0">
     <property name="sizeConstraint">
      <enum>QLayout::SetMinimumSize</enum>
     </property>
@@ -429,6 +429,63 @@
      </layout>
     </item>
     <item>
+     <widget class="QGroupBox" name="apiRadioGroup">
+      <property name="layoutDirection">
+       <enum>Qt::RightToLeft</enum>
+      </property>
+      <property name="title">
+       <string>OSM API Mode</string>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
+      </property>
+      <layout class="QHBoxLayout" name="apiHLayout">
+       <item>
+        <widget class="QRadioButton" name="onlineRadio">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Chameleon will use the OSM API to get more information about &amp;quot;deleted&amp;quot; ways, such as whether they are actually deleted or just absent from the provided data, and which changeset they were deleted in.&lt;/p&gt;&lt;p&gt;This will make the analysis take a longer amount of time.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::RightToLeft</enum>
+         </property>
+         <property name="text">
+          <string>Online</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="offlineRadio">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Chameleon will not attempt to use the OSM API to get more information about &amp;quot;deleted&amp;quot; ways.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::RightToLeft</enum>
+         </property>
+         <property name="text">
+          <string>Offline</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="apiRadioSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
      <layout class="QHBoxLayout" name="runHLayout">
       <item>
        <spacer name="runSpacer">
@@ -475,6 +532,28 @@
    <header>chameleon.qlineeditdragdrop</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>oldFileNameBox</tabstop>
+  <tabstop>oldFileSelectButton</tabstop>
+  <tabstop>newFileNameBox</tabstop>
+  <tabstop>newFileSelectButton</tabstop>
+  <tabstop>outputFileNameBox</tabstop>
+  <tabstop>outputFileSelectButton</tabstop>
+  <tabstop>popTag1</tabstop>
+  <tabstop>popTag2</tabstop>
+  <tabstop>popTag3</tabstop>
+  <tabstop>popTag4</tabstop>
+  <tabstop>popTag5</tabstop>
+  <tabstop>searchBox</tabstop>
+  <tabstop>searchButton</tabstop>
+  <tabstop>listWidget</tabstop>
+  <tabstop>deleteItemButton</tabstop>
+  <tabstop>clearListButton</tabstop>
+  <tabstop>groupingCheckBox</tabstop>
+  <tabstop>offlineRadio</tabstop>
+  <tabstop>onlineRadio</tabstop>
+  <tabstop>runButton</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

@@ -111,12 +111,13 @@ class Worker(QObject):
     dialog_critical = pyqtSignal(str, str)
     dialog_information = pyqtSignal(str, str)
 
-    def __init__(self, modes: set, files: dict, group_output: bool, parent):
+    def __init__(self, parent, modes: set, files: dict, group_output=False, use_api=False):
         super().__init__()
         # Define set of selected modes
         self.modes = modes
         self.files = files
         self.group_output = group_output
+        self.use_api = use_api
         self.parent = parent
         self.response = None
         self.deleted_way_members = {}
@@ -273,13 +274,14 @@ class Worker(QObject):
         intermediate_df = df.loc[(df[f"{mode}_old"].fillna(
             '') != df[f"{mode}_new"].fillna(''))]
         output_df = pd.DataFrame()
-        output_df['id'] = intermediate_df['type_old'].str[0] + \
+        output_df['id'] = intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] + \
             intermediate_df.index.astype(str)
         if not group_output:
             output_df[
                 'url'] = ("http://localhost:8111/load_object?new_layer=true&objects=" + output_df['id'])
         output_df['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
+        # TODO Match old timestamp format
         output_df['timestamp'] = intermediate_df['timestamp_new'].fillna(
             intermediate_df['timestamp_old'])
         output_df['version'] = intermediate_df['version_new'].fillna(
@@ -331,7 +333,7 @@ class Worker(QObject):
         return output_df
 
     def check_api_deletions(self, df: pd.DataFrame):
-        deleted_ids = list((df['action'] == 'deleted').index)
+        deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
         # For use in split/merge detection
         for i in deleted_ids:
             if i in self.overpass_result_attribs:
@@ -340,7 +342,7 @@ class Worker(QObject):
                 try:
                     r = requests.get(
                         f'https://www.openstreetmap.org/api/0.6/way/{i}/history', timeout=2)
-                    root = etree.fromstring(r.text)
+                    root = etree.fromstring(r.content)
                 except ConnectionError:
                     # Couldn't contact the server, could be client-side
                     LOGGER.exception()
@@ -351,7 +353,6 @@ class Worker(QObject):
                     if latest_version.attrib['visible'] == "false":
                         # The most recent way version has the way deleted
                         element_attribs = {
-                            'id': i,
                             'user': latest_version.attrib['user'],
                             'changeset': latest_version.attrib['changeset'],
                             'version': latest_version.attrib['version'],
@@ -366,17 +367,16 @@ class Worker(QObject):
                         # Save last members of the deleted way
                         # for later use in detecting splits/merges
                         self.deleted_way_members[i] = member_nodes
-                    else:
+                    elif latest_version.attrib['visible'] == 'true':
                         # The way was not deleted, just dropped from the latter dataset
                         # df.iloc[i]['action'] = 'dropped'
                         element_attribs = {
-                            'id': i,
                             'action': 'dropped'
                         }
                     self.overpass_result_attribs[i] = element_attribs
 
             for k, v in element_attribs.items():
-                df.iloc[i][k] = v
+                df.loc[i][k] = v
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(2)
@@ -850,6 +850,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                           FAVORITE_LOCATION)  # Execute favorite tracking
         LOGGER.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
+        use_api = self.onlineRadio.isChecked()
 
         # Add one mode more that the length so that a full bar represents completion
         # When the final tag is started, the bar will show one increment remaining
@@ -864,7 +865,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         self.progress_bar.show()
         # Handles Worker class and QThreads for Worker
         self.work_thread = QThread()
-        self.worker = Worker(modes, file_paths, group_output, self)
+        self.worker = Worker(self, modes, file_paths,
+                             group_output=group_output, use_api=use_api)
         # Connect to progbar_counter() when 1 mode begins in Worker
         self.worker.mode_start.connect(self.progbar_counter)
         # Connect to finished() when all modes are done in Worker
