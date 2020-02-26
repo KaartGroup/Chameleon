@@ -88,10 +88,10 @@ def logger_setup(log_dir: Path):
                 # Remove extra log files that exceed 15 records
                 for f in log_list[:rm_count]:
                     try:
-                        LOGGER.info("removing...%s", f)
+                        LOGGER.info("removing...%s", str(f))
                         f.unlink()
-                    except OSError:
-                        LOGGER.exception()
+                    except OSError as e:
+                        LOGGER.exception(e)
 
 
 # Log file locations
