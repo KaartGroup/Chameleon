@@ -167,10 +167,13 @@ class Worker(QObject):
                 merged_df = self.merge_files(self.files)
                 try:
                     result = self.query_df(merged_df, mode)
-                except KeyError:
-                    LOGGER.exception()
-                    self.error_list += mode
+                except KeyError as e:
+                    # Probably a missing column in a source file
+                    LOGGER.exception(e)
+                    error_list += mode
                     continue
+                if self.use_api:
+                    self.check_api_deletions(result)
                 file_name = Path(
                     f"{self.files['output']}_{mode}.csv")
                 # File reading failed, usually because a nonexistent column
@@ -188,7 +191,7 @@ class Worker(QObject):
                 LOGGER.info("Writing %s", (file_name))
                 try:
                     with file_name.open("w") as output_file:
-                        result.to_csv(output_file, sep='\t')
+                        result.to_csv(output_file, sep='\t', index=False)
                 except OSError:
                     LOGGER.exception("Write error.")
                 else:
@@ -242,62 +245,88 @@ class Worker(QObject):
 
     @staticmethod
     def merge_files(files: dict) -> pd.DataFrame:
-        old_df = pd.read_csv(files['old'], sep='\t').set_index('@id')
-        new_df = pd.read_csv(files['new'], sep='\t').set_index('@id')
+        dtypes = {
+            # '@id': int,
+            '@version': int
+        }
+        old_df = pd.read_csv(files['old'], sep='\t',
+                             index_col='@id', dtype=str)
+        new_df = pd.read_csv(files['new'], sep='\t',
+                             index_col='@id', dtype=str)
+        # Cast a couple items to more specific types
+        # for col, col_type in dtypes.items():
+        #     old_df[col] = old_df[col].astype(col_type)
+        #     new_df[col] = new_df[col].astype(col_type)
+        # Used to indicate which sheet(s) each row came from post-join
         old_df['present'] = new_df['present'] = True
         merged_df = old_df.join(new_df, how='outer',
                                 lsuffix='_old', rsuffix='_new')
+        merged_df['present_old'] = merged_df['present_old'].fillna(
+            False)
+        merged_df['present_new'] = merged_df['present_new'].fillna(
+            False)
+        # Eliminate special chars that mess pandas up
         merged_df.columns = merged_df.columns.str.replace('@', '')
         return merged_df
 
     def query_df(self, df: pd.DataFrame, mode: str, group_output=False) -> pd.DataFrame:
+        intermediate_df = df.loc[(df[f"{mode}_old"].fillna(
+            '') != df[f"{mode}_new"].fillna(''))]
         output_df = pd.DataFrame()
-        output_df['id'] = f"{df['type_old'].str[0]}{df.index}"
+        output_df['id'] = intermediate_df['type_old'].str[0] + \
+            intermediate_df.index.astype(str)
         if not group_output:
             output_df[
-                'url'] = f"http://localhost:8111/load_object?new_layer=true&objects={df['type_old'].str[0]}{df.index}"
-        output_df['user'] = df['user_new'].fillna(df['user_old'])
-        output_df['timestamp'] = df['timestamp_new'].fillna(
-            df['timestamp_old'])
-        output_df['version'] = df['version_new'].fillna(df['version_old'])
+                'url'] = ("http://localhost:8111/load_object?new_layer=true&objects=" + output_df['id'])
+        output_df['user'] = intermediate_df['user_new'].fillna(
+            intermediate_df['user_old'])
+        output_df['timestamp'] = intermediate_df['timestamp_new'].fillna(
+            intermediate_df['timestamp_old'])
+        output_df['version'] = intermediate_df['version_new'].fillna(
+            intermediate_df['version_old'])
         try:
             # Succeeds if both csvs had changeset columns
-            output_df['changeset'] = df['changeset_new']
+            output_df['changeset'] = intermediate_df['changeset_new']
         except KeyError:
             try:
                 # Succeeds if one csv had a changeset column
-                output_df['changeset'] = df['changeset']
+                output_df['changeset'] = intermediate_df['changeset']
             except KeyError:
                 # If neither had one, we just won't include in the output
                 pass
-        output_df['osmcha'] = f"https://osmcha.mapbox.com/changesets/{output_df['changeset']}/"
+        try:
+            output_df['osmcha'] = (
+                "https://osmcha.mapbox.com/changesets/" + output_df['changeset'])
+        except KeyError:
+            # If no changeset was in the previous step, don't do the osmcha link either
+            pass
         if mode != 'name':
-            output_df['name'] = df['name_new'].fillna(df['name_old'])
+            output_df['name'] = intermediate_df['name_new'].fillna(
+                intermediate_df['name_old'])
         if mode != 'highway':
             try:
                 # Succeeds if both csvs had highway columns
-                output_df['highway'] = df['highway_new'].fillna(
-                    df['highway_old'])
+                output_df['highway'] = intermediate_df['highway_new'].fillna(
+                    intermediate_df['highway_old'])
             except KeyError:
                 try:
                     # Succeeds if one csv had a highway column
-                    output_df['highway'] = df['highway']
+                    output_df['highway'] = intermediate_df['highway']
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
+        output_df[f"old_{mode}"] = intermediate_df[f"{mode}_old"]
+        output_df[f"new_{mode}"] = intermediate_df[f"{mode}_new"]
         try:
-            output_df[f"old_{mode}"] = df[f"{mode}_old"]
-            output_df[f"new_{mode}"] = df[f"{mode}_new"]
-        except KeyError:
-            LOGGER.exception()
-            self.error_list += mode
-            return
-        output_df.loc[(df.present_old) & (
-            df.present_new), 'action'] = 'modified'
-        output_df.loc[(df.present_old) & (df.present_new is not True),
-                      'action'] = 'deleted'
-        output_df.loc[(df.present_old is not True) &
-                      (df.present_new), 'action'] = 'new'
+            output_df.loc[intermediate_df.present_old &
+                          intermediate_df.present_new, 'action'] = 'modified'
+            output_df.loc[intermediate_df.present_old & ~
+                          intermediate_df.present_new, 'action'] = 'deleted'
+            output_df.loc[~intermediate_df.present_old &
+                          intermediate_df.present_new, 'action'] = 'new'
+        except ValueError:
+            # No change for this mode, add a placeholder column
+            output_df['action'] = ''
         output_df['notes'] = ''
         return output_df
 
