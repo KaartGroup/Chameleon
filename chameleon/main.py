@@ -186,12 +186,14 @@ class Worker(QObject):
                 try:
                     result = self.query_df(merged_df, mode)
                 except KeyError as e:
-                    # Probably a missing column in a source file
+                    # File reading failed, usually because a nonexistent column
                     logger.exception(e)
                     error_list += mode
                     continue
                 if self.use_api:
                     self.check_api_deletions(result)
+                result.sort_values(
+                    ['action', 'user', 'timestamp'], inplace=True)
                 file_name = Path(
                     f"{self.files['output']}_{mode}.csv")
                 # File reading failed, usually because a nonexistent column
