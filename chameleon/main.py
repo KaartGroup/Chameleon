@@ -30,8 +30,6 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
 # Import generated UI file
 import chameleon.design
 
-mutex = QtCore.QMutex()
-waiting_for_input = QtCore.QWaitCondition()
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -45,7 +43,7 @@ if getattr(sys, 'frozen', False):
     RESOURCES_DIR = Path(sys._MEIPASS)
 else:
     # Script is not in a frozen package
-    # __file__ parent is chameleon2, parents[1] is chameleon-2
+    # __file__.parent is chameleon2, .parents[1] is chameleon-2
     RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
 LOGGER = logging.getLogger()
