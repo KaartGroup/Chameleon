@@ -23,7 +23,7 @@ from appdirs import user_config_dir, user_log_dir
 from lxml import etree
 from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QThread, pyqtSignal as Signal, pyqtSlot as Slot
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
@@ -105,11 +105,11 @@ class Worker(QObject):
     Displays file paths, executes comparison function, writes and saves file.
 
     """
-    done = pyqtSignal()
-    mode_start = pyqtSignal(str)
-    overwrite_confirm = pyqtSignal(str)
-    dialog_critical = pyqtSignal(str, str)
-    dialog_information = pyqtSignal(str, str)
+    done = Signal()
+    mode_start = Signal(str)
+    overwrite_confirm = Signal(str)
+    dialog_critical = Signal(str, str)
+    dialog_information = Signal(str, str)
 
     def __init__(self, parent, modes: set, files: dict, group_output=False, use_api=False):
         super().__init__()
@@ -123,7 +123,7 @@ class Worker(QObject):
         self.deleted_way_members = {}
         self.overpass_result_attribs = {}
 
-    @pyqtSlot()
+    @Slot()
     def run(self):
         """
         Runs when thread started, saves history to file and calls other functions to write files.
@@ -389,7 +389,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
     event handling with signal/slot connection.
 
     """
-    clear_search_box = pyqtSignal()
+    clear_search_box = Signal()
 
     def __init__(self, parent=None):
         """
