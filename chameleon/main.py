@@ -46,18 +46,18 @@ else:
     # __file__.parent is chameleon2, .parents[1] is chameleon-2
     RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
-LOGGER = logging.getLogger()
+logger = logging.getLogger()
 
 
 def logger_setup(log_dir: Path):
-    LOGGER.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # Setup console logging output
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
-    LOGGER.addHandler(console_handler)
+    logger.addHandler(console_handler)
     # Setup file logging output
     # Generate log file directory
     if not log_dir.is_dir():
@@ -65,7 +65,7 @@ def logger_setup(log_dir: Path):
             log_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
             if e.errno != errno.EEXIST:
-                LOGGER.error("Cannot create log directory.")
+                logger.error("Cannot create log directory.")
     if log_dir.is_dir():
         try:
             # Initialize Worker class logging
@@ -73,9 +73,9 @@ def logger_setup(log_dir: Path):
             file_handler = logging.FileHandler(log_path)
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(formatter)
-            LOGGER.addHandler(file_handler)
+            logger.addHandler(file_handler)
         except OSError:
-            LOGGER.error("Log file could not be generated at %s.", log_path)
+            logger.error("Log file could not be generated at %s.", log_path)
         else:
             # Clean up log file if there are more than 15 (about 1MB)
             # Reading and sorting log file directory (ascending)
@@ -86,10 +86,10 @@ def logger_setup(log_dir: Path):
                 # Remove extra log files that exceed 15 records
                 for f in log_list[:rm_count]:
                     try:
-                        LOGGER.info("removing...%s", str(f))
+                        logger.info("removing...%s", str(f))
                         f.unlink()
                     except OSError as e:
-                        LOGGER.exception(e)
+                        logger.exception(e)
 
 
 # Log file locations
@@ -133,9 +133,9 @@ class Worker(QObject):
             try:
                 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
             except FileExistsError:
-                LOGGER.debug("Config directory already exists")
+                logger.debug("Config directory already exists")
             except OSError:
-                LOGGER.debug("Config directory could not be created.")
+                logger.debug("Config directory could not be created.")
         if self.files:
             file_strings = {k: str(v)
                             for k, v in self.files.items()}
@@ -143,7 +143,7 @@ class Worker(QObject):
                 with HISTORY_LOCATION.open('w') as history_file:
                     yaml.dump(file_strings, history_file)
             except OSError:
-                LOGGER.exception("Couldn't write history.yaml.")
+                logger.exception("Couldn't write history.yaml.")
             else:
                 # In some rare cases (like testing) MainApp may not exist
                 try:
@@ -160,7 +160,7 @@ class Worker(QObject):
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             for mode in self.modes:
-                LOGGER.debug("Executing processing for %s.", (mode))
+                logger.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
                 # sanitized_mode = mode.replace(":", "_")
                 merged_df = self.merge_files(self.files)
@@ -168,7 +168,7 @@ class Worker(QObject):
                     result = self.query_df(merged_df, mode)
                 except KeyError as e:
                     # Probably a missing column in a source file
-                    LOGGER.exception(e)
+                    logger.exception(e)
                     error_list += mode
                     continue
                 if self.use_api:
@@ -183,15 +183,16 @@ class Worker(QObject):
                         # Don't check for a response until after the user has a chance to give one
                         self.parent.waiting_for_input.wait(self.parent.mutex)
                         if not self.response:
-                            LOGGER.info("Skipping %s.", (mode))
+                            logger.info("Skipping %s.", (mode))
                             continue
                     finally:
                         self.parent.mutex.unlock()
+                logger.info("Writing %s", (file_name))
                 try:
                     with file_name.open("w") as output_file:
                         result.to_csv(output_file, sep='\t', index=False)
                 except OSError:
-                    LOGGER.exception("Write error.")
+                    logger.exception("Write error.")
                 else:
                     # if not result or len(result) == 1:
                     data_len = len(result)
@@ -206,8 +207,8 @@ class Worker(QObject):
                             f"{mode} output with {data_len} row{s}.")
                     success_list.append(success_message)
                     # Logging q errors when try fails.
-                    LOGGER.debug("q_output details: %s.", result)
-                    LOGGER.info(
+                    logger.debug("q_output details: %s.", result)
+                    logger.info(
                         "Processing for %s complete. %s written.", mode, file_name)
             # print(f"After run: {self.modes} with {type(self.modes)}.")
         finally:
@@ -237,7 +238,7 @@ class Worker(QObject):
                 self.dialog_information.emit("Nothing saved", "No files saved")
             self.modes.clear()
             # print(f"After clear: {self.modes} with {type(self.modes)}.")
-            LOGGER.info(success_list)
+            logger.info(success_list)
             # Signal the main thread that this thread is complete
             self.done.emit()
 
@@ -342,7 +343,7 @@ class Worker(QObject):
                     root = etree.fromstring(r.content)
                 except ConnectionError:
                     # Couldn't contact the server, could be client-side
-                    LOGGER.exception()
+                    logger.exception()
                     element_attribs = {}
                     continue
                 else:
@@ -439,7 +440,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         file_menu.addAction(extract_action)
 
         # Logging initialization of Chameleon
-        LOGGER.info("Chameleon started at %s.", (datetime.now()))
+        logger.info("Chameleon started at %s.", (datetime.now()))
 
         # Sets run button to not enabled
         self.run_checker()
@@ -450,9 +451,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             with autocomplete_source.open() as read_file:
                 self.auto_completer(yaml.safe_load(read_file))
         except OSError:
-            LOGGER.exception("Couldn't read the autocomplete source file.")
+            logger.exception("Couldn't read the autocomplete source file.")
         except (TypeError, NameError):
-            LOGGER.exception("Could not load any autocomplete tags.")
+            logger.exception("Could not load any autocomplete tags.")
 
         # YAML file loaders
         # Load file paths into boxes from previous session
@@ -463,11 +464,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                 self.history_dict = yaml.safe_load(history_file)
         # If file doesn't exist, fail silently
         except FileNotFoundError:
-            LOGGER.warning(
+            logger.warning(
                 "History file could not be found. "
                 "This is normal when running the program for the first time.")
         except PermissionError:
-            LOGGER.exception("History file found but not readable.")
+            logger.exception("History file found but not readable.")
         else:
             if isinstance(self.history_dict, dict):
                 for k, v in self.text_fields.items():
@@ -516,7 +517,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                 version = version_file.read()
         except FileNotFoundError:
             version = ''
-            LOGGER.warning("No version number detected")
+            logger.warning("No version number detected")
         except OSError:
             pass
         else:
@@ -562,12 +563,12 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                 # Default values are taken if history file does not exist
                 fav_list = yaml.safe_load(favorite_read)  # dict()
         except FileNotFoundError:
-            LOGGER.warning("favorites.yaml could not be found. "
+            logger.warning("favorites.yaml could not be found. "
                            "This is normal when running the program for the first time.")
         except PermissionError:
-            LOGGER.exception("favorites.yaml could not be opened.")
+            logger.exception("favorites.yaml could not be opened.")
         else:  # Don't bother doing anything with favorites if the file couldn't be read
-            LOGGER.debug(
+            logger.debug(
                 f"Fav history is: {fav_list} with type: {type(fav_list)}.")
         if len(fav_list) < len(fav_btn):
             # If we run out of favorites, start adding non-redundant default tags
@@ -586,7 +587,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                 btn.setText(fav_list[index])
             # Capture errors from the set_list not being created properly
             except IndexError as e:
-                LOGGER.exception(
+                logger.exception(
                     "Index %s of fav_btn doesn't exist! Attempted to insert from %s.", index, fav_list)
                 raise IndexError(f"Index {index} of fav_btn doesn't exist! "
                                  f"Attempted to insert from{fav_list}.") from e
@@ -598,8 +599,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         """
         # Needs to have tags reference a resource file of OSM tags
         # Check current autocomplete list
-        LOGGER.debug(
-            f"A total of {len(tags)} tags was added to auto-complete.")
+        logger.debug(
+            "A total of %s tags was added to auto-complete.", len(tags))
         completer = QCompleter(tags)
         self.searchBox.setCompleter(completer)
 
@@ -612,7 +613,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             # Value was typed by user
             raw_label = self.searchBox.text()
             if not raw_label.strip():  # Don't accept whitespace-only values
-                LOGGER.warning('No value entered.')
+                logger.warning('No value entered.')
                 return
         elif self.sender() in self.fav_btn:
             # Value was clicked from fav btn
@@ -630,10 +631,10 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                     self.listWidget.selectionModel().clear()
                 # existing_item should never have more than 1 member
                 existing_item[0].setSelected(True)
-                LOGGER.warning('%s is already in the list.', label)
+                logger.warning('%s is already in the list.', label)
             else:
                 self.listWidget.addItem(label)
-                LOGGER.info('Adding to list: %s', label)
+                logger.info('Adding to list: %s', label)
         self.clear_search_box.emit()
         self.run_checker()
         self.listWidget.repaint()
@@ -647,11 +648,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             # Remove selected items in user-selected Qlist
             for item in self.listWidget.selectedItems():
                 self.listWidget.takeItem(self.listWidget.row(item))
-                LOGGER.info("Deleted %s from processing list.", (item.text()))
+                logger.info("Deleted %s from processing list.", (item.text()))
             self.run_checker()
         # Fails silently if nothing is selected
         except AttributeError:
-            LOGGER.exception()
+            logger.exception()
         self.listWidget.repaint()
 
     def clear_tag(self):
@@ -660,7 +661,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         Execute on `Clear` button signal.
         """
         self.listWidget.clear()
-        LOGGER.info('Cleared tag list.')
+        logger.info('Cleared tag list.')
         self.run_checker()
         self.listWidget.repaint()
 
@@ -676,13 +677,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         try:
             with counter_location.open('r') as counter_read:
                 cur_counter = dict(yaml.load(counter_read))
-                LOGGER.debug("counter.yaml history: %s.", (cur_counter))
+                logger.debug("counter.yaml history: %s.", (cur_counter))
         # If file doesn't exist, fail silently
         except FileNotFoundError:
-            LOGGER.warning("Couldn't read the tag count file. "
+            logger.warning("Couldn't read the tag count file. "
                            "This is normal if this is your first time runnning the application.")
         except OSError:
-            LOGGER.exception()
+            logger.exception()
 
         # Casting set into dictionary with counts
         # Counter() sorts in reverse order (highest first)
@@ -698,17 +699,17 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         try:
             with counter_location.open('w') as counter_write:
                 yaml.dump(dict(sorted_counter), counter_write)
-                LOGGER.info(f"counter.yaml dump with: {sorted_counter}.")
+                logger.info(f"counter.yaml dump with: {sorted_counter}.")
         except OSError:
-            LOGGER.exception("Couldn't write counter file.")
+            logger.exception("Couldn't write counter file.")
         # Saving favorite tags to config directory
         try:
             with favorite_location.open('w') as favorite_write:
                 yaml.dump(rank_tags, favorite_write)
-                LOGGER.info(f"favorites.yaml dump with: {rank_tags}.")
+                logger.info(f"favorites.yaml dump with: {rank_tags}.")
         # If file doesn't exist, fail silently
         except OSError:
-            LOGGER.exception("Couldn't write favorite file.")
+            logger.exception("Couldn't write favorite file.")
 
     def open_input_file(self):
         """
@@ -847,7 +848,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             '*', QtCore.Qt.MatchWildcard)}
         self.document_tag(modes, COUNTER_LOCATION,
                           FAVORITE_LOCATION)  # Execute favorite tracking
-        LOGGER.info("Modes to be processed: %s.", (modes))
+        logger.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
         use_api = self.onlineRadio.isChecked()
 
@@ -887,7 +888,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         mode : str
             str returned from mode_start.emit()
         """
-        LOGGER.info("mode_start signal -> caught mode: %s.", (mode))
+        logger.info("mode_start signal -> caught mode: %s.", (mode))
         if mode:
             # Advance index of modes by 1
             self.progress_bar.setValue(self.progress_bar.value() + 1)
@@ -935,7 +936,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         self.worker.deleteLater()
         self.progress_bar.close()
         # Logging processing completion
-        LOGGER.info("All Chameleon analysis processing completed.")
+        logger.info("All Chameleon analysis processing completed.")
         self.run_checker()
 
     def overwrite_message(self, file_name: str):
@@ -985,7 +986,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                     event.ignore()
         # Fail silently if history.yaml does not exist
         except AttributeError:
-            LOGGER.warning("All Chameleon analysis processing completed.")
+            logger.warning("All Chameleon analysis processing completed.")
 
 
 def main():
