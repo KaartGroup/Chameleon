@@ -23,7 +23,9 @@ from appdirs import user_config_dir, user_log_dir
 from lxml import etree
 from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
-from PyQt5.QtCore import QObject, QThread, pyqtSignal as Signal, pyqtSlot as Slot
+from PyQt5.QtCore import QObject, QThread
+from PyQt5.QtCore import pyqtSignal as Signal
+from PyQt5.QtCore import pyqtSlot as Slot
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
@@ -95,6 +97,13 @@ def logger_setup(log_dir: Path):
 # Log file locations
 logger_setup(Path(user_log_dir("Chameleon", "Kaart")))
 
+try:
+    import ptvsd
+except ImportError:
+    pass
+else:
+    logger.debug('VSCode debug library successful.')
+
 
 class Worker(QObject):
     """
@@ -111,6 +120,13 @@ class Worker(QObject):
     overwrite_confirm = Signal(str)
     dialog_critical = Signal(str, str)
     dialog_information = Signal(str, str)
+
+    try:
+        ptvsd.debug_this_thread()
+    except ModuleNotFoundError:
+        pass
+    else:
+        logger.debug('Worker thread successfully exposed to debugger.')
 
     def __init__(self, parent, modes: set, files: dict, group_output=False, use_api=False):
         super().__init__()
