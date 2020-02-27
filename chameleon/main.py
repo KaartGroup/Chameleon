@@ -536,7 +536,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                     Licensed under <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL3</a>.</p>''')
         about.setInformativeText(
             "<i>Powered by: <a href=https://www.riverbankcomputing.com/software/pyqt/download5>PyQt5</a>, "
-            "<a href=https://github.com/harelba/q>q</a>, "
+            "<a href=https://pandas.pydata.org/>pandas</a>, "
             "<a href=https://github.com/ActiveState/appdirs>appdir</a>, "
             "<a href=https://github.com/wimglenn/oyaml>oyaml</a>, "
             "and <a href=https://www.pyinstaller.org>PyInstaller</a>.</i>")
