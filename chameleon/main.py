@@ -515,11 +515,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         try:
             with (RESOURCES_DIR / 'version.txt').open('r') as version_file:
                 version = version_file.read()
-        except FileNotFoundError:
+        except OSError:
             version = ''
             logger.warning("No version number detected")
-        except OSError:
-            pass
         else:
             if version:
                 version = f"<p><center>Version {version}</center></p>"
@@ -536,7 +534,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                     Licensed under <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL3</a>.</p>''')
         about.setInformativeText(
             "<i>Powered by: <a href=https://www.riverbankcomputing.com/software/pyqt/download5>PyQt5</a>, "
-            "<a href=https://pandas.pydata.org/>pandas</a>, "
+            "<a href=https://pandas.pydata.org>pandas</a>, "
             "<a href=https://github.com/ActiveState/appdirs>appdir</a>, "
             "<a href=https://github.com/wimglenn/oyaml>oyaml</a>, "
             "and <a href=https://www.pyinstaller.org>PyInstaller</a>.</i>")
@@ -855,17 +853,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         # rather than as true radio buttons
         use_api = self.onlineRadio.isChecked()
 
-        # Add one mode more that the length so that a full bar represents completion
-        # When the final tag is started, the bar will show one increment remaining
-        self.progress_bar = QProgressDialog(
-            "Analyzing file structure…", None, 0, len(modes) + 1)
-        self.progress_bar.setModal(True)
-        self.progress_bar.setMinimumWidth(400)
-        # Disables the system default close, minimize, maximuize buttons
-        self.progress_bar.setWindowFlags(
-            QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
-        # First task of Worker is to check for highway tag in source files
-        self.progress_bar.show()
+        self.progbar_creator(modes)
         # Handles Worker class and QThreads for Worker
         self.work_thread = QThread()
         self.worker = Worker(self, modes, file_paths,
@@ -881,6 +869,19 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         self.worker.moveToThread(self.work_thread)
         self.work_thread.started.connect(self.worker.run)
         self.work_thread.start()
+
+    def progbar_creator(self, modes):
+        # Add one mode more that the length so that a full bar represents completion
+        # When the final tag is started, the bar will show one increment remaining
+        self.progress_bar = QProgressDialog(
+            "Analyzing file structure…", None, 0, len(modes) + 1)
+        self.progress_bar.setModal(True)
+        self.progress_bar.setMinimumWidth(400)
+        # Disables the system default close, minimize, maximuize buttons
+        self.progress_bar.setWindowFlags(
+            QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
+        # First task of Worker is to check for highway tag in source files
+        self.progress_bar.show()
 
     def progbar_counter(self, mode: str):
         """
