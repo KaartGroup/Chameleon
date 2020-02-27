@@ -180,16 +180,15 @@ class Worker(QObject):
                 # File reading failed, usually because a nonexistent column
                 if file_name.is_file():  # Prompt and wait for confirmation before overwriting
                     self.overwrite_confirm.emit(str(file_name))
-                    mutex.lock()
+                    self.parent.mutex.lock()
                     try:
                         # Don't check for a response until after the user has a chance to give one
-                        waiting_for_input.wait(mutex)
+                        self.parent.waiting_for_input.wait(self.parent.mutex)
                         if not self.response:
                             LOGGER.info("Skipping %s.", (mode))
                             continue
                     finally:
-                        mutex.unlock()
-                LOGGER.info("Writing %s", (file_name))
+                        self.parent.mutex.unlock()
                 try:
                     with file_name.open("w") as output_file:
                         result.to_csv(output_file, sep='\t', index=False)
@@ -404,6 +403,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
         self.listWidget.installEventFilter(self)
+        self.mutex = QtCore.QMutex()
+        self.waiting_for_input = QtCore.QWaitCondition()
 
         # Differentiate sys settings between pre and post-bundling
         if getattr(sys, 'frozen', False):
@@ -957,7 +958,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             self.worker.response = True
         else:
             self.worker.response = False
-        waiting_for_input.wakeAll()
+        self.waiting_for_input.wakeAll()
 
     def closeEvent(self, event):
         """
