@@ -105,6 +105,9 @@ class Worker(QObject):
     """
     done = Signal()
     mode_start = Signal(str)
+    mode_complete = Signal()
+    scale_with_api_items = Signal(int)
+    increment_progbar_api = Signal()
     overwrite_confirm = Signal(str)
     dialog_critical = Signal(str, str)
     dialog_information = Signal(str, str)
@@ -210,6 +213,7 @@ class Worker(QObject):
                     logger.debug("q_output details: %s.", result)
                     logger.info(
                         "Processing for %s complete. %s written.", mode, file_name)
+                self.mode_complete.emit()
             # print(f"After run: {self.modes} with {type(self.modes)}.")
         finally:
             # print(f"End run: {self.modes} with {type(self.modes)}.")
@@ -332,8 +336,10 @@ class Worker(QObject):
 
     def check_api_deletions(self, df: pd.DataFrame):
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
+        self.scale_with_api_items.emit(len(deleted_ids))
         # For use in split/merge detection
         for i in deleted_ids:
+            self.increment_progbar_api.emit()
             if i in self.overpass_result_attribs:
                 element_attribs = self.overpass_result_attribs[i]
             else:
@@ -845,13 +851,25 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         # rather than as true radio buttons
         use_api = self.onlineRadio.isChecked()
 
-        self.progbar_creator(modes)
+        # Add one mode more that the length so that a full bar represents completion
+        # When the final tag is started, the bar will show one increment remaining
+        # Disables the system default close, minimize, maximuize buttons
+        # First task of Worker is to check for highway tag in source files
+        self.progress_bar = chameleonProgressDialog(len(modes), use_api)
+        self.progress_bar.show()
+
         # Handles Worker class and QThreads for Worker
-        self.work_thread = QThread()
+        self.work_thread = QThread(parent=self)
         self.worker = Worker(self, modes, file_paths,
                              group_output=group_output, use_api=use_api)
-        # Connect to progbar_counter() when 1 mode begins in Worker
-        self.worker.mode_start.connect(self.progbar_counter)
+        # Connect to count_mode() when 1 mode begins in Worker
+        self.worker.mode_start.connect(self.progress_bar.count_mode)
+        self.worker.mode_complete.connect(self.progress_bar.mode_complete)
+        self.worker.increment_progbar_api.connect(
+            self.progress_bar.increment_progbar_api)
+        self.worker.scale_with_api_items.connect(
+            self.progress_bar.scale_with_api_items)
+        self.progress_bar.canceled.connect(self.finished)
         # Connect to finished() when all modes are done in Worker
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
@@ -861,34 +879,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         self.worker.moveToThread(self.work_thread)
         self.work_thread.started.connect(self.worker.run)
         self.work_thread.start()
-
-    def progbar_creator(self, modes):
-        # Add one mode more that the length so that a full bar represents completion
-        # When the final tag is started, the bar will show one increment remaining
-        self.progress_bar = QProgressDialog(
-            "Analyzing file structure…", None, 0, len(modes) + 1)
-        self.progress_bar.setModal(True)
-        self.progress_bar.setMinimumWidth(400)
-        # Disables the system default close, minimize, maximuize buttons
-        self.progress_bar.setWindowFlags(
-            QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
-        # First task of Worker is to check for highway tag in source files
-        self.progress_bar.show()
-
-    def progbar_counter(self, mode: str):
-        """
-        Tracker for completion of individual modes in Worker class.
-
-        Parameters
-        ----------
-        mode : str
-            str returned from mode_start.emit()
-        """
-        logger.info("mode_start signal -> caught mode: %s.", (mode))
-        if mode:
-            # Advance index of modes by 1
-            self.progress_bar.setValue(self.progress_bar.value() + 1)
-            self.progress_bar.setLabelText(f"Analyzing {mode} tag…")
 
     def eventFilter(self, obj, event):
         """
@@ -927,7 +917,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         # Quits work_thread and reset
         # Needs worker logging
         self.work_thread.quit()
-        # self.work_thread.wait()
+        self.work_thread.wait()
         # In theory this deletes the worker only when done
         self.worker.deleteLater()
         self.progress_bar.close()
@@ -999,6 +989,56 @@ def main():
     form = MainApp()
     form.show()
     sys.exit(app.exec_())
+
+
+class chameleonProgressDialog(QProgressDialog):
+    def __init__(self, length: int, use_api=False):
+        self.length = length
+        super().__init__('', 'Cancel', 0, self.length)
+        self.mode_progress = 0
+        self.use_api = use_api
+        self.setModal(True)
+        self.setMinimumWidth(400)
+        self.setWindowFlags(
+            QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
+
+    def count_mode(self, mode: str):
+        """
+        Tracker for completion of individual modes in Worker class.
+
+        Parameters
+        ----------
+        mode : str
+            str returned from mode_start.emit()
+        """
+        logger.info("mode_start signal -> caught mode: %s.", (mode))
+        if not mode:
+            return
+
+        if not self.use_api:
+            self.setValue(self.mode_progress)
+        self.label_text_base = f"Analyzing {mode} tag…"
+        self.setLabelText(self.label_text_base)
+
+    @Slot()
+    def mode_complete(self):
+        # Advance index of modes by 1
+        self.mode_progress += 1
+
+    def scale_with_api_items(self, item_count: int):
+        self.current_item = 0
+        self.item_count = item_count
+        scaled_value = self.mode_progress * self.item_count
+        scaled_max = self.length * self.item_count
+        self.setValue(scaled_value)
+        self.setMaximum(scaled_max)
+
+    @Slot()
+    def increment_progbar_api(self):
+        self.current_item += 1
+        self.setValue(self.value() + 1)
+        self.setLabelText(
+            f"{self.label_text_base} ({self.current_item} of {self.item_count})")
 
 
 if __name__ == '__main__':
