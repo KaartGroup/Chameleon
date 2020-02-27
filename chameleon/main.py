@@ -237,6 +237,11 @@ class Worker(QObject):
             # print(f"End run: {self.modes} with {type(self.modes)}.")
             # print(f"Before clear: {self.modes} with {type(self.modes)}.")
 
+            # If any modes aren't in either list,
+            # the process was cancelled before they could be completed
+            cancelled_list = self.modes.difference(
+                set(error_list + success_list))
+
             if error_list:  # Some tags failed
                 if len(error_list) == 1:
                     headline = "A tag could not be queried"
@@ -249,6 +254,9 @@ class Worker(QObject):
                     summary += "\nThe following tags completed successfully:\n"
                     summary += "\n".join(
                         success_list)
+                if cancelled_list:
+                    summary += '\nThe process was cancelled before the following tags completed:\n'
+                    summary += '\n'.join(cancelled_list)
                 self.dialog_critical.emit(
                     headline, summary)
             elif success_list:  # Nothing failed, everything suceeded
@@ -355,6 +363,7 @@ class Worker(QObject):
     def check_api_deletions(self, df: pd.DataFrame):
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
         self.scale_with_api_items.emit(len(deleted_ids))
+        # TODO Add while loop to allow for early cancel
         # For use in split/merge detection
         for i in deleted_ids:
             self.increment_progbar_api.emit()
@@ -402,6 +411,9 @@ class Worker(QObject):
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(2)
+
+    # def stop(self):
+    #     self._isRunning = False
 
 
 class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWindow):
