@@ -800,20 +800,12 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         progress bar functionality. Checks for file/directory validity and spacing.
         """
         # Check for blank values
-        space_expression = re.compile("^\\S+\\s+\\S+$")
         for k, v in self.text_fields.items():
             if not v.text().strip():
                 self.dialog_critical(
                     f"{k.title()} file field is blank.",
                     "Please enter a value"
                 )
-                return
-            # Check for spaces in file names
-            if space_expression.match(v.text()):
-                # Popup here
-                self.dialog_critical(
-                    "Chameleon cannot use files or folders with spaces in their names.",
-                    "Please rename your files and/or folders to remove spaces.")
                 return
         # Wrap the file references in Path object to prepare "file not found" warning
         file_paths = {k: Path(v.text())
