@@ -627,7 +627,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             existing_item = self.listWidget.findItems(
                 label, QtCore.Qt.MatchExactly)
             if existing_item:
-                if i == 0:
+                if i == 0:  # Clear the prior selection on the first iteration only
                     self.listWidget.selectionModel().clear()
                 # existing_item should never have more than 1 member
                 existing_item[0].setSelected(True)
@@ -838,6 +838,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                     "Output directory not writeable!", "")
                 return
         except IndexError:
+            # This shouldn't be reachable normally, but belt-and-suspenders...
             self.dialog_critical(
                 "Output file field is blank.",
                 "Please enter a value."
@@ -850,6 +851,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
                           FAVORITE_LOCATION)  # Execute favorite tracking
         logger.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
+        # The offline radio button is a dummy. The online button functions as a checkbox
+        # rather than as true radio buttons
         use_api = self.onlineRadio.isChecked()
 
         # Add one mode more that the length so that a full bar represents completion
