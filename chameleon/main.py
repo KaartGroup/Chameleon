@@ -39,6 +39,8 @@ HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
 FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
+OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
+
 # Differentiate sys settings between pre and post-bundling
 if getattr(sys, 'frozen', False):
     # Script is in a frozen package, i.e. PyInstaller
@@ -326,7 +328,7 @@ class Worker(QObject):
                 pass
         try:
             output_df['osmcha'] = (
-                "https://osmcha.mapbox.com/changesets/" + output_df['changeset'])
+                OSMCHA_URL + output_df['changeset'])
         except KeyError:
             # If no changeset was in the previous step, don't do the osmcha link either
             pass
@@ -381,14 +383,19 @@ class Worker(QObject):
                     continue
                 else:
                     latest_version = root.findall(f"way")[-1]
+                    element_attribs = {
+                        'user': latest_version.attrib['user'],
+                        'changeset': latest_version.attrib['changeset'],
+                        'osmcha': OSMCHA_URL + latest_version.attrib['changeset'],
+                        'version': latest_version.attrib['version'],
+                        'timestamp': latest_version.attrib['timestamp']
+                    }
+
                     if latest_version.attrib['visible'] == "false":
                         # The most recent way version has the way deleted
-                        element_attribs = {
-                            'user': latest_version.attrib['user'],
-                            'changeset': latest_version.attrib['changeset'],
-                            'version': latest_version.attrib['version'],
-                            'timestamp': latest_version.attrib['timestamp']
-                        }
+                        element_attribs.update({
+                            'url': ''
+                        })
                         prior_version_num = str(
                             int(element_attribs['version']) - 1)
                         prior_version = root.find(
@@ -400,10 +407,9 @@ class Worker(QObject):
                         self.deleted_way_members[i] = member_nodes
                     elif latest_version.attrib['visible'] == 'true':
                         # The way was not deleted, just dropped from the latter dataset
-                        # df.iloc[i]['action'] = 'dropped'
-                        element_attribs = {
+                        element_attribs.update({
                             'action': 'dropped'
-                        }
+                        })
                     self.overpass_result_attribs[i] = element_attribs
 
             for k, v in element_attribs.items():
