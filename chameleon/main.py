@@ -276,18 +276,19 @@ class Worker(QObject):
 
     @staticmethod
     def merge_files(files: dict) -> pd.DataFrame:
-        dtypes = {
-            # '@id': int,
-            '@version': int
-        }
+        # dtypes = {
+        #     # '@id': int,
+        #     # '@version': int
+        #     '@timestamp': datetime
+        # }
         old_df = pd.read_csv(files['old'], sep='\t',
                              index_col='@id', dtype=str)
         new_df = pd.read_csv(files['new'], sep='\t',
                              index_col='@id', dtype=str)
         # Cast a couple items to more specific types
         # for col, col_type in dtypes.items():
-        #     old_df[col] = old_df[col].astype(col_type)
-        #     new_df[col] = new_df[col].astype(col_type)
+        # old_df[col] = old_df[col].astype(col_type)
+        # new_df[col] = new_df[col].astype(col_type)
         # Used to indicate which sheet(s) each row came from post-join
         old_df['present'] = new_df['present'] = True
         merged_df = old_df.join(new_df, how='outer',
@@ -312,8 +313,8 @@ class Worker(QObject):
         output_df['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
         # TODO Match old timestamp format
-        output_df['timestamp'] = intermediate_df['timestamp_new'].fillna(
-            intermediate_df['timestamp_old'])
+        output_df['timestamp'] = pd.to_datetime(intermediate_df['timestamp_new'].fillna(
+            intermediate_df['timestamp_old'])).dt.strftime('%Y-%m-%d')
         output_df['version'] = intermediate_df['version_new'].fillna(
             intermediate_df['version_old'])
         try:
