@@ -7,7 +7,6 @@ in .csv format.
 import errno
 import logging
 import os
-import re
 import shlex
 import sys
 import time
@@ -123,6 +122,7 @@ class Worker(QObject):
     dialog_critical = Signal(str, str)
     dialog_information = Signal(str, str)
 
+    # For debugging in VSCode only
     try:
         ptvsd.debug_this_thread()
     except ModuleNotFoundError:
@@ -171,20 +171,26 @@ class Worker(QObject):
                     self.parent.history_dict = file_strings
                 except NameError:
                     pass
-        # For processing error messages
-        old_regex = re.compile(r":\s+\bold\b\.")
-        new_regex = re.compile(r":\s+\bnew\b\.")
         # Will hold any failed steps for display at the end
         error_list = []
         # Will hold all successful steps for display at the end
         success_list = []
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
+        dataframes = {}
+        special_dataframes = {}
         try:
+            mode = None
+            merged_df = self.merge_files(self.files)
+            special_dataframes['new'] = merged_df[merged_df['action'] == 'new']
+            merged_df = merged_df[merged_df['action'] != 'new']
+            if self.use_api:
+                self.check_api_deletions(merged_df)
+            special_dataframes['deleted'] = merged_df[merged_df['action'] == 'deleted']
+            merged_df = merged_df[merged_df['action'] != 'deleted']
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
                 # sanitized_mode = mode.replace(":", "_")
-                merged_df = self.merge_files(self.files)
                 try:
                     result = self.query_df(merged_df, mode)
                 except KeyError as e:
@@ -192,10 +198,12 @@ class Worker(QObject):
                     logger.exception(e)
                     error_list += mode
                     continue
-                if self.use_api:
-                    self.check_api_deletions(result)
                 result.sort_values(
                     ['action', 'user', 'timestamp'], inplace=True)
+                dataframes[mode] = result
+            for mode, df in special_dataframes.items():
+                dataframes[mode] = self.query_df(df, mode)
+            for mode, result in dataframes.items():
                 file_name = Path(
                     f"{self.files['output']}_{mode}.csv")
                 # File reading failed, usually because a nonexistent column
@@ -299,20 +307,35 @@ class Worker(QObject):
             False)
         # Eliminate special chars that mess pandas up
         merged_df.columns = merged_df.columns.str.replace('@', '')
+        # Strip whitespace
+        merged_df.columns = merged_df.columns.str.strip()
+        try:
+            merged_df.loc[merged_df.present_old &
+                          merged_df.present_new, 'action'] = 'modified'
+            merged_df.loc[merged_df.present_old & ~
+                          merged_df.present_new, 'action'] = 'deleted'
+            merged_df.loc[~merged_df.present_old &
+                          merged_df.present_new, 'action'] = 'new'
+        except ValueError:
+            # No change for this mode, add a placeholder column
+            merged_df['action'] = ''
         return merged_df
 
-    def query_df(self, df: pd.DataFrame, mode: str, group_output=False) -> pd.DataFrame:
-        intermediate_df = df.loc[(df[f"{mode}_old"].fillna(
-            '') != df[f"{mode}_new"].fillna(''))]
+    def query_df(self, df: pd.DataFrame, mode: str) -> pd.DataFrame:
+        if mode in self.modes:
+            intermediate_df = df.loc[(df[f"{mode}_old"].fillna(
+                '') != df[f"{mode}_new"].fillna(''))]
+        else:
+            # New and deleted frames
+            intermediate_df = df
         output_df = pd.DataFrame()
         output_df['id'] = intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] + \
             intermediate_df.index.astype(str)
-        if not group_output:
+        if not self.group_output:
             output_df[
                 'url'] = ("http://localhost:8111/load_object?new_layer=true&objects=" + output_df['id'])
         output_df['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
-        # TODO Match old timestamp format
         output_df['timestamp'] = pd.to_datetime(intermediate_df['timestamp_new'].fillna(
             intermediate_df['timestamp_old'])).dt.strftime('%Y-%m-%d')
         output_df['version'] = intermediate_df['version_new'].fillna(
@@ -348,18 +371,10 @@ class Worker(QObject):
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
-        output_df[f"old_{mode}"] = intermediate_df[f"{mode}_old"]
-        output_df[f"new_{mode}"] = intermediate_df[f"{mode}_new"]
-        try:
-            output_df.loc[intermediate_df.present_old &
-                          intermediate_df.present_new, 'action'] = 'modified'
-            output_df.loc[intermediate_df.present_old & ~
-                          intermediate_df.present_new, 'action'] = 'deleted'
-            output_df.loc[~intermediate_df.present_old &
-                          intermediate_df.present_new, 'action'] = 'new'
-        except ValueError:
-            # No change for this mode, add a placeholder column
-            output_df['action'] = ''
+        if mode in self.modes:
+            output_df[f"old_{mode}"] = intermediate_df[f"{mode}_old"]
+            output_df[f"new_{mode}"] = intermediate_df[f"{mode}_new"]
+        output_df['action'] = intermediate_df['action']
         output_df['notes'] = ''
         return output_df
 
@@ -1049,9 +1064,8 @@ class chameleonProgressDialog(QProgressDialog):
             str returned from mode_start.emit()
         """
         logger.info("mode_start signal -> caught mode: %s.", (mode))
-        if not mode:
-            return
 
+        self.mode = mode
         if not self.use_api:
             self.setValue(self.mode_progress)
         self.label_text_base = f"Analyzing {mode} tag…"
@@ -1075,7 +1089,7 @@ class chameleonProgressDialog(QProgressDialog):
         self.current_item += 1
         self.setValue(self.value() + 1)
         self.setLabelText(
-            f"{self.label_text_base} ({self.current_item} of {self.item_count})")
+            f"Checking deleted items on OSM server ({self.current_item} of {self.item_count})")
 
 
 if __name__ == '__main__':
