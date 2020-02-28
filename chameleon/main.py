@@ -181,12 +181,14 @@ class Worker(QObject):
         try:
             mode = None
             merged_df = self.merge_files(self.files)
-            special_dataframes['new'] = merged_df[merged_df['action'] == 'new']
-            merged_df = merged_df[merged_df['action'] != 'new']
             if self.use_api:
                 self.check_api_deletions(merged_df)
-            special_dataframes['deleted'] = merged_df[merged_df['action'] == 'deleted']
-            merged_df = merged_df[merged_df['action'] != 'deleted']
+            special_dataframes = {'new': merged_df[merged_df['action'] == 'new'],
+                                  'deleted': merged_df[merged_df['action'] == 'deleted']}
+            merged_df = merged_df[~merged_df['action'].isin(
+                {'new', 'deleted'})]
+            for mode, df in special_dataframes.items():
+                dataframes[mode] = self.query_df(df, mode)
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
@@ -201,32 +203,37 @@ class Worker(QObject):
                 result.sort_values(
                     ['action', 'user', 'timestamp'], inplace=True)
                 dataframes[mode] = result
-            for mode, df in special_dataframes.items():
-                dataframes[mode] = self.query_df(df, mode)
             for mode, result in dataframes.items():
+                data_len = len(result)
                 file_name = Path(
                     f"{self.files['output']}_{mode}.csv")
-                # File reading failed, usually because a nonexistent column
-                if file_name.is_file():  # Prompt and wait for confirmation before overwriting
-                    self.overwrite_confirm.emit(str(file_name))
-                    self.parent.mutex.lock()
-                    try:
+                logger.info("Writing %s", (file_name))
+                try:
+                    with file_name.open('x') as output_file:
+                        result.to_csv(output_file, sep='\t', index=False)
+                except FileExistsError:
+                    # Prompt and wait for confirmation before overwriting
+                    try:  # This block ensures the mutex is unlocked even in the worst case
+                        self.overwrite_confirm.emit(str(file_name))
+                        self.parent.mutex.lock()
                         # Don't check for a response until after the user has a chance to give one
-                        self.parent.waiting_for_input.wait(self.parent.mutex)
+                        # TODO Doesn't seem to be blocking properly
+                        self.parent.waiting_for_input.wait(
+                            self.parent.mutex)
                         if not self.response:
                             logger.info("Skipping %s.", (mode))
                             continue
+                        else:
+                            with file_name.open('w') as output_file:
+                                result.to_csv(
+                                    output_file, sep='\t', index=False)
                     finally:
                         self.parent.mutex.unlock()
-                logger.info("Writing %s", (file_name))
-                try:
-                    with file_name.open("w") as output_file:
-                        result.to_csv(output_file, sep='\t', index=False)
                 except OSError:
                     logger.exception("Write error.")
+                    error_list += mode
+                    continue
                 else:
-                    # if not result or len(result) == 1:
-                    data_len = len(result)
                     if not data_len:
                         success_message = (f"{mode} has no change.")
                     else:
