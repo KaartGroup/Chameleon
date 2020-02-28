@@ -46,7 +46,7 @@ if getattr(sys, 'frozen', False):
     RESOURCES_DIR = Path(sys._MEIPASS)
 else:
     # Script is not in a frozen package
-    # __file__.parent is chameleon2, .parents[1] is chameleon-2
+    # __file__.parent is chameleon, .parents[1] is chameleon-2
     RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
 logger = logging.getLogger()
