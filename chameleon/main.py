@@ -968,6 +968,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         """
         # Quits work_thread and reset
         # Needs worker logging
+        # self.worker.stop()
         self.work_thread.quit()
         self.work_thread.wait()
         # In theory this deletes the worker only when done
