@@ -774,17 +774,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         """
         sender = self.sender()
         destination = sender.box_control
-        # If there is text in the input box, open the dialog at that location
-        if destination.text().strip():
-            file_dir = destination.text()
-        # If the target box is empty, look for a value in each of the boxes
-        elif self.oldFileNameBox.text().strip():
-            file_dir = self.oldFileNameBox.text()
-        elif self.newFileNameBox.text().strip():
-            file_dir = self.newFileNameBox.text()
-        # If no previous location, default to Downloads folder
-        else:
-            file_dir = os.path.expanduser("~/Downloads")
+        # Gets first non-empty value in order
+        file_dir = next(e for e in (
+            destination.text().strip(),
+            self.oldFileNameBox.text().strip(),
+            self.newFileNameBox.text().strip(),
+            os.path.expanduser("~/Downloads")
+        ) if e)
         file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
             self, f"Select CSV file with {sender.shortname} data", file_dir, "CSV (*.csv)")
         if file_name:  # Clear the box before adding the new path
@@ -796,17 +792,16 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         Adds functionality to the Output File (...) button, opens the
         '/downloads' system path for user to name an output file.
         """
-        if self.outputFileNameBox.text().strip():
-            output_file_dir = os.path.dirname(self.outputFileNameBox.text())
-        else:
-            # If no previous location, default to Documents folder
-            output_file_dir = os.path.expanduser("~/Documents")
+        # If no previous location, default to Documents folder
+        output_file_dir = next(e for e in (
+            os.path.dirname(self.outputFileNameBox.text().strip()),
+            os.path.expanduser("~/Documents")
+        ) if e)
         output_file_name, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir)
         if output_file_name:  # Clear the box before adding the new path
             # Since this is a prefix, the user shouldn't be adding their own extension
-            if ".csv" in output_file_name:
-                output_file_name = output_file_name.replace('.csv', '')
+            output_file_name = output_file_name.replace('.csv', '')
             self.outputFileNameBox.clear()
             self.outputFileNameBox.insert(output_file_name)
 
@@ -814,10 +809,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
         """
         Function that disable/enables run button based on list items.
         """
-        if self.listWidget.count() > 0:
-            self.runButton.setEnabled(True)
-        else:
-            self.runButton.setEnabled(False)
+        list_not_empty = self.listWidget.count() > 0
+        self.runButton.setEnabled(list_not_empty)
         self.repaint()
 
     def dialog_critical(self, text: str, info: str):
