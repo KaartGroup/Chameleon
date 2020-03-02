@@ -38,6 +38,7 @@ HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
 FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
+JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
 OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 
 # Differentiate sys settings between pre and post-bundling
@@ -340,7 +341,7 @@ class Worker(QObject):
             intermediate_df.index.astype(str)
         if not self.group_output:
             output_df[
-                'url'] = ("http://localhost:8111/load_object?new_layer=true&objects=" + output_df['id'])
+                'url'] = (JOSM_URL + output_df['id'])
         output_df['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
         output_df['timestamp'] = pd.to_datetime(intermediate_df['timestamp_new'].fillna(
@@ -384,6 +385,26 @@ class Worker(QObject):
         output_df['action'] = intermediate_df['action']
         output_df['notes'] = ''
         return output_df
+
+    def group_df(self, df: pd.DataFrame, mode: str):
+
+        grouped_df = df.groupby([f"{mode}_old", f"{mode}_new"], 'action').aggregate(
+            url=('id', lambda id: (JOSM_URL + ','.join(id))),
+            count=('id', 'count'),
+            users=('user', lambda user: (','.join(user.unique()))),
+            latest_timestamp=('latest_timestamp', 'max'),
+            version=('version', 'max'),
+        )
+        if mode != 'name':
+            grouped_df.aggregate(
+                name=('name', lambda name: (
+                    ','.join(name.unique())))
+            )
+        if mode != 'highway':
+            grouped_df.aggregate(
+                highway=('highway', lambda highway: (
+                    ','.join(highway.unique())))
+            )
 
     def check_api_deletions(self, df: pd.DataFrame):
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
