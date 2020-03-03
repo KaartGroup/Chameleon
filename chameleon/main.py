@@ -52,6 +52,13 @@ else:
 
 logger = logging.getLogger()
 
+try:
+    with (RESOURCES_DIR / 'version.txt').open('r') as version_file:
+        APP_VERSION = version_file.read()
+except OSError:
+    APP_VERSION = ''
+    logger.warning("No version number detected")
+
 
 def logger_setup(log_dir: Path):
     logger.setLevel(logging.DEBUG)
@@ -639,28 +646,25 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWi
             File path to application logo
         """
         logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
-        try:
-            with (RESOURCES_DIR / 'version.txt').open('r') as version_file:
-                version = version_file.read()
-        except OSError:
-            version = ''
-            logger.warning("No version number detected")
+
+        if APP_VERSION:
+            formatted_version = f"<p><center>Version {APP_VERSION}</center></p>"
         else:
-            if version:
-                version = f"<p><center>Version {version}</center></p>"
+            formatted_version = ''
         about = QMessageBox(self, icon=logo, textFormat=QtCore.Qt.RichText)
         about.setWindowTitle("About Chameleon")
         about.setIconPixmap(QtGui.QPixmap(
             self.logo).scaled(160, 160, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        about.setText('''
-                    <h2><center>Chameleon</center></h2>
-                    <p>This application compares OSM snapshot data from
-                    <a href="https://overpass-turbo.eu/">Overpass Turbo</a>
-                    and returns an output of changes that occurred between the snapshots.</p>
-                    <p>Application made by <a href="http://kaartgroup.com/">Kaart</a>'s development team.<br>
-                    Licensed under <a href="https://choosealicense.com/licenses/gpl-3.0/">GPL3</a>.</p>''')
+        about.setText(
+            f"<h2><center>Chameleon</center></h2>{formatted_version}"
+            "<p>This application compares OSM snapshot data from "
+            "<a href=\"https://overpass-turbo.eu/\">Overpass Turbo</a> "
+            "and returns an output of changes that occurred between the snapshots.</p>"
+            "<p>Made by <a href=\"http://kaartgroup.com/\">Kaart</a>'s development team.<br>"
+            "Licensed under <a href=\"https://choosealicense.com/licenses/gpl-3.0/\">GPL3</a>.</p>")
         about.setInformativeText(
-            "<i>Powered by: <a href=https://www.riverbankcomputing.com/software/pyqt/download5>PyQt5</a>, "
+            "<i>Powered by: "
+            "<a href=https://www.riverbankcomputing.com/software/pyqt/download5>PyQt5</a>, "
             "<a href=https://pandas.pydata.org>pandas</a>, "
             "<a href=https://github.com/ActiveState/appdirs>appdir</a>, "
             "<a href=https://github.com/wimglenn/oyaml>oyaml</a>, "
