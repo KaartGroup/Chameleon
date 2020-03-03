@@ -106,10 +106,12 @@ def logger_setup(log_dir: Path):
 # Log file locations
 logger_setup(Path(user_log_dir("Chameleon", "Kaart")))
 
+# VSCode debugger helper
 try:
     import ptvsd
+    ptvsd.enable_attach()
 except ImportError:
-    pass
+    logger.debug("PTVSD not imported")
 else:
     logger.debug('VSCode debug library successful.')
 
@@ -130,14 +132,6 @@ class Worker(QObject):
     dialog_critical = Signal(str, str)
     dialog_information = Signal(str, str)
 
-    # For debugging in VSCode only
-    try:
-        ptvsd.debug_this_thread()
-    except ModuleNotFoundError:
-        pass
-    else:
-        logger.debug('Worker thread successfully exposed to debugger.')
-
     def __init__(self, parent, modes: set, files: dict, group_output=False, use_api=False):
         super().__init__()
         # Define set of selected modes
@@ -155,7 +149,13 @@ class Worker(QObject):
         """
         Runs when thread started, saves history to file and calls other functions to write files.
         """
-        # self.progress_bar
+        # For debugging in VSCode only
+        try:
+            ptvsd.debug_this_thread()
+        except (ModuleNotFoundError, NameError):
+            logger.debug('Worker thread not exposed to VSCode')
+        else:
+            logger.debug('Worker thread successfully exposed to debugger.')
         # Saving paths to config for future loading
         # Make directory if it doesn't exist
         if not CONFIG_DIR.is_dir():
