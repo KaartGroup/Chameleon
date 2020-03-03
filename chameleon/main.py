@@ -407,25 +407,47 @@ class Worker(QObject):
             )
 
     def check_api_deletions(self, df: pd.DataFrame):
+        REQUEST_INTERVAL = 1
+        if APP_VERSION:
+            formatted_app_version = f" v{APP_VERSION}"
+        else:
+            formatted_app_version = ''
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
         self.scale_with_api_items.emit(len(deleted_ids))
         # TODO Add while loop to allow for early cancel
         # For use in split/merge detection
-        for i in deleted_ids:
+        for id in deleted_ids:
             self.increment_progbar_api.emit()
-            if i in self.overpass_result_attribs:
-                element_attribs = self.overpass_result_attribs[i]
+            if id in self.overpass_result_attribs:
+                element_attribs = self.overpass_result_attribs[id]
             else:
                 try:
                     r = requests.get(
-                        f'https://www.openstreetmap.org/api/0.6/way/{i}/history', timeout=2)
-                    root = etree.fromstring(r.content)
-                except ConnectionError:
+                        f'https://www.openstreetmap.org/api/0.6/way/{id}/history', timeout=2,
+                        headers={'user-agent': f'Kaart Chameleon{formatted_app_version}'})
+                    r.raise_for_status()
+                except ConnectionError as e:
                     # Couldn't contact the server, could be client-side
-                    logger.exception()
-                    element_attribs = {}
+                    logger.exception(e)
+                    continue
+                except r.HTTPError:
+                    if str(r.status_code) == '429':
+                        retry_after = r.headers.get('retry-after', '')
+
+                        logger.error(
+                            "The OSM server says you've made too many requests."
+                            "You can retry after %s seconds.", retry_after)
+                        break
+                    else:
+                        logger.error(
+                            'Server replied with a %s error', r.status_code)
+                    continue
+                except etree.XMLSyntaxError:
+                    logger.error('No OSM feature recieved for id %s.', id)
                     continue
                 else:
+                    root = etree.fromstring(r.content)
+                    # TODO Generalize for nodes and relations
                     latest_version = root.findall(f"way")[-1]
                     element_attribs = {
                         'user': latest_version.attrib['user'],
@@ -448,19 +470,19 @@ class Worker(QObject):
                                         for el in prior_version.findall("nd")]
                         # Save last members of the deleted way
                         # for later use in detecting splits/merges
-                        self.deleted_way_members[i] = member_nodes
+                        self.deleted_way_members[id] = member_nodes
                     elif latest_version.attrib['visible'] == 'true':
                         # The way was not deleted, just dropped from the latter dataset
                         element_attribs.update({
                             'action': 'dropped'
                         })
-                    self.overpass_result_attribs[i] = element_attribs
+                    self.overpass_result_attribs[id] = element_attribs
 
-            for k, v in element_attribs.items():
-                df.loc[i][k] = v
+            for attribute, value in element_attribs.items():
+                df.loc[id][attribute] = value
 
             # Wait between iterations to avoid ratelimit problems
-            time.sleep(2)
+            time.sleep(REQUEST_INTERVAL)
 
     # def stop(self):
     #     self._isRunning = False
