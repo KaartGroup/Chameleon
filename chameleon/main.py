@@ -390,25 +390,42 @@ class Worker(QObject):
         output_df['notes'] = ''
         return output_df
 
-    def group_df(self, df: pd.DataFrame, mode: str):
-
-        grouped_df = df.groupby([f"{mode}_old", f"{mode}_new"], 'action').aggregate(
-            url=('id', lambda id: (JOSM_URL + ','.join(id))),
-            count=('id', 'count'),
-            users=('user', lambda user: (','.join(user.unique()))),
-            latest_timestamp=('latest_timestamp', 'max'),
-            version=('version', 'max'),
-        )
+    def group_df(self, df: pd.DataFrame, mode: str) -> pd.DataFrame:
+        df['count'] = df['id']
+        agg_functions = {
+            'id': lambda id: JOSM_URL + ','.join(id),
+            'count': 'count',
+            'user': lambda user: ','.join(user.unique()),
+            'timestamp': 'max',
+            'version': 'max',
+            'changeset': lambda changeset: ','.join(changeset.unique()),
+        }
         if mode != 'name':
-            grouped_df.aggregate(
-                name=('name', lambda name: (
-                    ','.join(name.unique())))
-            )
+            agg_functions.update({
+                'name': lambda name: ','.join(str(id) for id in name.unique())
+            })
         if mode != 'highway':
-            grouped_df.aggregate(
-                highway=('highway', lambda highway: (
-                    ','.join(highway.unique())))
-            )
+            agg_functions.update({
+                'highway': lambda highway: ','.join(str(id) for id in highway.unique())
+            })
+        # Create the new dataframe
+        grouped_df = df.groupby(
+            [f"old_{mode}", f"new_{mode}", 'action'], as_index=False).aggregate(agg_functions)
+        # Get the grouped columns out of the index to be more visible
+        grouped_df.reset_index(inplace=True)
+        # Send those columns to the end of the frame
+        new_column_order = (list(agg_functions.keys()) +
+                            [f'old_{mode}', f'new_{mode}', 'action'])
+        grouped_df = grouped_df[new_column_order]
+        grouped_df.rename(columns={
+            'id': 'url',
+            'user': 'users',
+            'timestamp': 'latest_timestamp',
+            'changeset': 'changesets'
+        }, inplace=True)
+        # Add a blank notes column
+        grouped_df['notes'] = ''
+        return grouped_df
 
     def check_api_deletions(self, df: pd.DataFrame):
         REQUEST_INTERVAL = 1
