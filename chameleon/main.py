@@ -175,7 +175,7 @@ class Worker(QObject):
         # Will hold any failed steps for display at the end
         error_list = []
         # Will hold all successful steps for display at the end
-        success_list = []
+        successful_items = {}
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         dataframes = {}
         special_dataframes = {}
@@ -213,7 +213,7 @@ class Worker(QObject):
                     pass
                 dataframes[mode] = result
             for mode, result in dataframes.items():
-                data_len = len(result)
+                row_count = len(result)
                 file_name = Path(
                     f"{self.files['output']}_{mode}.csv")
                 logger.info("Writing %s", (file_name))
@@ -226,7 +226,6 @@ class Worker(QObject):
                         self.overwrite_confirm.emit(str(file_name))
                         self.parent.mutex.lock()
                         # Don't check for a response until after the user has a chance to give one
-                        # TODO Doesn't seem to be blocking properly
                         self.parent.waiting_for_input.wait(
                             self.parent.mutex)
                         if not self.response:
@@ -242,21 +241,19 @@ class Worker(QObject):
                     logger.exception("Write error.")
                     error_list += mode
                     continue
+                if not row_count:
+                    # Empty dataframe
+                    success_message = (f"{mode} has no change.")
                 else:
-                    if not data_len:
-                        success_message = (f"{mode} has no change.")
-                    else:
-                        # Exclude the header row from the row count
-                        s = ""
-                        if data_len > 1:
-                            s = "s"
-                        success_message = (
-                            f"{mode} output with {data_len} row{s}.")
-                    success_list.append(success_message)
-                    # Logging q errors when try fails.
-                    logger.debug("q_output details: %s.", result)
-                    logger.info(
-                        "Processing for %s complete. %s written.", mode, file_name)
+                    # Exclude the header row from the row count
+                    s = ""
+                    if row_count > 1:
+                        s = "s"
+                    success_message = (
+                        f"{mode} output with {row_count} row{s}.")
+                successful_items.update({mode: success_message})
+                logger.info(
+                    "Processing for %s complete. %s written.", mode, file_name)
                 self.mode_complete.emit()
             # print(f"After run: {self.modes} with {type(self.modes)}.")
         finally:
@@ -266,7 +263,7 @@ class Worker(QObject):
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
             cancelled_list = self.modes.difference(
-                set(error_list + success_list))
+                set(error_list) | set(successful_items.keys()))
 
             if error_list:  # Some tags failed
                 if len(error_list) == 1:
@@ -275,26 +272,25 @@ class Worker(QObject):
                 else:
                     headline = "Tags could not be queried"
                     summary = "\n".join(error_list)
-                if success_list:
+                if successful_items:
                     headline = "Some tags could not be queried"
                     summary += "\nThe following tags completed successfully:\n"
-                    summary += "\n".join(
-                        success_list)
-                if cancelled_list:
-                    summary += '\nThe process was cancelled before the following tags completed:\n'
-                    summary += '\n'.join(cancelled_list)
-                self.dialog_critical.emit(
-                    headline, summary)
-            elif success_list:  # Nothing failed, everything suceeded
+                    summary += "\n".join(list(successful_items.values()))
+            elif successful_items:  # Nothing failed, everything suceeded
+                headline = "Success"
                 summary = "All tags completed!\n"
-                summary += "\n".join(success_list)
-                self.dialog_information.emit("Success", summary)
+                summary += "\n".join(list(successful_items.values()))
             # Nothing succeeded and nothing failed, probably because user declined to overwrite
             else:
-                self.dialog_information.emit("Nothing saved", "No files saved")
+                headline = "Nothing saved"
+                summary = "No files saved"
+            if cancelled_list:
+                summary += '\nThe process was cancelled before the following tags completed:\n'
+                summary += '\n'.join(cancelled_list)
+            self.dialog_information.emit(headline, summary)
             self.modes.clear()
             # print(f"After clear: {self.modes} with {type(self.modes)}.")
-            logger.info(success_list)
+            logger.info(list(successful_items.values()))
             # Signal the main thread that this thread is complete
             self.done.emit()
 
