@@ -201,8 +201,16 @@ class Worker(QObject):
                     logger.exception(e)
                     error_list += mode
                     continue
-                result.sort_values(
-                    ['action', 'user', 'timestamp'], inplace=True)
+                if self.group_output:
+                    result = self.group_df(result, mode)
+                    sortable_values = ['action', 'users', 'latest_timestamp']
+                else:
+                    sortable_values = ['action', 'user', 'timestamp']
+                try:
+                    result.sort_values(
+                        sortable_values, inplace=True)
+                except KeyError:
+                    pass
                 dataframes[mode] = result
             for mode, result in dataframes.items():
                 data_len = len(result)
