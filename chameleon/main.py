@@ -341,11 +341,10 @@ class Worker(QObject):
             # New and deleted frames
             intermediate_df = df
         output_df = pd.DataFrame()
-        output_df['id'] = intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] + \
-            intermediate_df.index.astype(str)
-        if not self.group_output:
-            output_df[
-                'url'] = (JOSM_URL + output_df['id'])
+        output_df['id'] = (intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] +
+                           intermediate_df.index.astype(str))
+        # if not self.group_output:
+        output_df['url'] = (JOSM_URL + output_df['id'])
         output_df['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
         output_df['timestamp'] = pd.to_datetime(intermediate_df['timestamp_new'].fillna(
@@ -355,35 +354,34 @@ class Worker(QObject):
         try:
             # Succeeds if both csvs had changeset columns
             output_df['changeset'] = intermediate_df['changeset_new']
+            output_df['osmcha'] = (
+                OSMCHA_URL + output_df['changeset'])
         except KeyError:
             try:
                 # Succeeds if one csv had a changeset column
                 output_df['changeset'] = intermediate_df['changeset']
+                output_df['osmcha'] = (
+                    OSMCHA_URL + output_df['changeset'])
             except KeyError:
                 # If neither had one, we just won't include in the output
                 pass
-        try:
-            output_df['osmcha'] = (
-                OSMCHA_URL + output_df['changeset'])
-        except KeyError:
-            # If no changeset was in the previous step, don't do the osmcha link either
-            pass
         if mode != 'name':
             output_df['name'] = intermediate_df['name_new'].fillna(
-                intermediate_df['name_old'])
+                intermediate_df['name_old'].fillna(''))
         if mode != 'highway':
             try:
                 # Succeeds if both csvs had highway columns
                 output_df['highway'] = intermediate_df['highway_new'].fillna(
-                    intermediate_df['highway_old'])
+                    intermediate_df['highway_old'].fillna(''))
             except KeyError:
                 try:
                     # Succeeds if one csv had a highway column
-                    output_df['highway'] = intermediate_df['highway']
+                    output_df['highway'] = intermediate_df['highway'].fillna(
+                        '')
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
-        if mode in self.modes:
+        if mode in self.modes:  # Skips the new and deleted DFs
             output_df[f"old_{mode}"] = intermediate_df[f"{mode}_old"]
             output_df[f"new_{mode}"] = intermediate_df[f"{mode}_new"]
         output_df['action'] = intermediate_df['action']
