@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
 # Import generated UI file
-import chameleon.design
+from chameleon import design, core
 
 
 # Configuration file locations
@@ -514,7 +514,7 @@ class Worker(QObject):
     #     self._isRunning = False
 
 
-class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, chameleon.design.Ui_MainWindow):
+class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     """
 
     Main PyQT window class that allows communication between UI and backend.
