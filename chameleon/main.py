@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
 # Import generated UI file
-from chameleon import core, design, OSMCHA_URL
+from chameleon import core, design
 
 
 # Configuration file locations
@@ -303,7 +303,7 @@ class Worker(QObject):
         with pd.ExcelWriter(file_name) as writer:
             for mode, result in dataframe_set.items():
                 row_count = len(result)
-                result.to_excel(writer, sheet_name=mode)
+                result.to_excel(writer, sheet_name=mode, index=False)
                 if not row_count:
                     # Empty dataframe
                     success_message = (f"{mode} has no change.")
@@ -322,21 +322,21 @@ class Worker(QObject):
     def check_api_deletions(self, df: pd.DataFrame):
         request_interval = 1
         if APP_VERSION:
-            formatted_app_version = f" v{APP_VERSION}"
+            formatted_app_version = f" {APP_VERSION}"
         else:
             formatted_app_version = ''
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
         self.scale_with_api_items.emit(len(deleted_ids))
         # TODO Add while loop to allow for early cancel
         # For use in split/merge detection
-        for id in deleted_ids:
+        for feature_id in deleted_ids:
             self.increment_progbar_api.emit()
-            if id in self.overpass_result_attribs:
-                element_attribs = self.overpass_result_attribs[id]
+            if feature_id in self.overpass_result_attribs:
+                element_attribs = self.overpass_result_attribs[feature_id]
             else:
                 try:
                     r = requests.get(
-                        f'https://www.openstreetmap.org/api/0.6/way/{id}/history', timeout=2,
+                        f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history', timeout=2,
                         headers={'user-agent': f'Kaart Chameleon{formatted_app_version}'})
                     r.raise_for_status()
                 except ConnectionError as e:
@@ -356,43 +356,44 @@ class Worker(QObject):
                             'Server replied with a %s error', r.status_code)
                     continue
                 except etree.XMLSyntaxError:
-                    logger.error('No OSM feature recieved for id %s.', id)
+                    logger.error(
+                        'No OSM feature recieved for id %s.', feature_id)
                     continue
                 else:
                     root = etree.fromstring(r.content)
                     # TODO Generalize for nodes and relations
                     latest_version = root.findall(f"way")[-1]
                     element_attribs = {
-                        'user': latest_version.attrib['user'],
-                        'changeset': latest_version.attrib['changeset'],
-                        'osmcha': OSMCHA_URL + latest_version.attrib['changeset'],
-                        'version': latest_version.attrib['version'],
-                        'timestamp': latest_version.attrib['timestamp']
+                        'user_new': latest_version.attrib['user'],
+                        'changeset_new': latest_version.attrib['changeset'],
+                        'version_new': latest_version.attrib['version'],
+                        'timestamp_new': latest_version.attrib['timestamp']
                     }
 
                     if latest_version.attrib['visible'] == "false":
                         # The most recent way version has the way deleted
-                        element_attribs.update({
-                            'url': ''
-                        })
+                        # element_attribs.update({
+                        #     'url': ''
+                        # })
                         prior_version_num = str(
-                            int(element_attribs['version']) - 1)
+                            int(element_attribs['version_new']) - 1)
                         prior_version = root.find(
                             f"way[@version=\"{prior_version_num}\"]")
                         member_nodes = [int(el.attrib['ref'])
                                         for el in prior_version.findall("nd")]
                         # Save last members of the deleted way
                         # for later use in detecting splits/merges
-                        self.deleted_way_members[id] = member_nodes
+                        self.deleted_way_members[feature_id] = member_nodes
                     elif latest_version.attrib['visible'] == 'true':
                         # The way was not deleted, just dropped from the latter dataset
                         element_attribs.update({
                             'action': 'dropped'
                         })
-                    self.overpass_result_attribs[id] = element_attribs
+                    self.overpass_result_attribs[feature_id] = element_attribs
 
             for attribute, value in element_attribs.items():
-                df.loc[id][attribute] = value
+                df.at[feature_id, attribute] = value
+                pass
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(request_interval)
@@ -500,7 +501,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                         self.popTag3, self.popTag4, self.popTag5]
 
         # Populate the buttons defined above
-        self.fav_btn_populate(FAVORITE_LOCATION, self.fav_btn)
+        self.fav_btn_populate(FAVORITE_LOCATION)
 
         # Connecting signals to slots within init
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
@@ -561,8 +562,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             "and <a href=https://www.pyinstaller.org>PyInstaller</a>.</i>")
         about.show()
 
-    @staticmethod
-    def fav_btn_populate(favorite_path: Path, fav_btn: list):
+    def fav_btn_populate(self, favorite_path: Path):
         """
         Populates the listed buttons with favorites from the given file
 
@@ -570,8 +570,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         ----------
         favorite_path : Path
             Location of YAML file with favorite values to be loaded
-        fav_btn : list
-            List of buttons to be populated with values
         """
         # Holds the button values until they are inserted
         fav_list = []
@@ -585,29 +583,30 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.warning("favorites.yaml could not be found. "
                            "This is normal when running the program for the first time.")
         except PermissionError:
-            logger.exception("favorites.yaml could not be opened.")
+            logger.exception("favorites.yaml found but could not be opened.")
         else:  # Don't bother doing anything with favorites if the file couldn't be read
             logger.debug(
                 f"Fav history is: {fav_list} with type: {type(fav_list)}.")
-        if len(fav_list) < len(fav_btn):
+        if len(fav_list) < len(self.fav_btn):
             # If we run out of favorites, start adding non-redundant default tags
             # We use these when there aren't enough favorites
             default_tags = ['highway', 'name', 'ref',
                             'addr:housenumber', 'addr:street']
             # Count how many def tags are needed
-            def_count = len(fav_btn) - len(fav_list)
+            def_count = len(self.fav_btn) - len(fav_list)
             # Add requisite number of non-redundant tags from the default list
             fav_list += [i for i in default_tags
                          if i not in fav_list][:def_count]
         # Loop through the buttons and apply our ordered tag values
-        for index, btn in enumerate(fav_btn):
+        for index, btn in enumerate(self.fav_btn):
             try:
                 # The fav_btn and set_lists should have a 1:1 correspondence
                 btn.setText(fav_list[index])
             # Capture errors from the set_list not being created properly
             except IndexError as e:
                 logger.exception(
-                    "Index %s of fav_btn doesn't exist! Attempted to insert from %s.", index, fav_list)
+                    "Index %s of fav_btn doesn't exist! Attempted to insert from %s.",
+                    index, fav_list)
                 raise IndexError(f"Index {index} of fav_btn doesn't exist! "
                                  f"Attempted to insert from{fav_list}.") from e
 
