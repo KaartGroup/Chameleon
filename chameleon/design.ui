@@ -14,7 +14,7 @@
    <string>Chameleon</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0,0">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1,0,0,0">
     <property name="sizeConstraint">
      <enum>QLayout::SetMinimumSize</enum>
     </property>
@@ -33,23 +33,6 @@
        <widget class="QLabel" name="oldFileLabel">
         <property name="text">
          <string>Old File</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="newFileLabel">
-        <property name="text">
-         <string>New File</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="outputFileLabel">
-        <property name="text">
-         <string>Output File</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignJustify|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
@@ -104,6 +87,13 @@
         </item>
        </layout>
       </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="newFileLabel">
+        <property name="text">
+         <string>New File</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="1">
        <layout class="QHBoxLayout" name="newHLayout" stretch="0,0">
         <property name="spacing">
@@ -151,6 +141,16 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="outputFileLabel">
+        <property name="text">
+         <string>Output File</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignJustify|Qt::AlignVCenter</set>
+        </property>
+       </widget>
       </item>
       <item row="2" column="1">
        <layout class="QHBoxLayout" name="outHLayout" stretch="1,0,0,0">
@@ -221,6 +221,60 @@
        </layout>
       </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="fileFormatGroup">
+      <property name="layoutDirection">
+       <enum>Qt::RightToLeft</enum>
+      </property>
+      <property name="title">
+       <string>File Format</string>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="topMargin">
+        <number>6</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>6</number>
+       </property>
+       <item>
+        <widget class="QRadioButton" name="excelRadio">
+         <property name="text">
+          <string>Excel</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="csvRadio">
+         <property name="text">
+          <string>CSV</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="fileFormatSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </item>
     <item>
      <widget class="QFrame" name="freeFormTag">
@@ -440,6 +494,15 @@
        <bool>true</bool>
       </property>
       <layout class="QHBoxLayout" name="apiHLayout">
+       <property name="topMargin">
+        <number>6</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>6</number>
+       </property>
        <item>
         <widget class="QRadioButton" name="onlineRadio">
          <property name="toolTip">

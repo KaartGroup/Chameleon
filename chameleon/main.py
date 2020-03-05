@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
 # Import generated UI file
-from chameleon import design, core
+from chameleon import core, design
 
 
 # Configuration file locations
@@ -132,7 +132,8 @@ class Worker(QObject):
     dialog_critical = Signal(str, str)
     dialog_information = Signal(str, str)
 
-    def __init__(self, parent, modes: set, files: dict, group_output=False, use_api=False):
+    def __init__(self, parent, modes: set, files: dict, group_output=False,
+                 use_api=False, file_format='csv'):
         super().__init__()
         # Define set of selected modes
         self.modes = modes
@@ -141,8 +142,11 @@ class Worker(QObject):
         self.use_api = use_api
         self.parent = parent
         self.response = None
+        self.format = file_format
         self.deleted_way_members = {}
         self.overpass_result_attribs = {}
+        self.error_list = []
+        self.successful_items = {}
 
     @Slot()
     def run(self):
@@ -179,89 +183,31 @@ class Worker(QObject):
                     self.parent.history_dict = file_strings
                 except NameError:
                     pass
-        # Will hold any failed steps for display at the end
-        error_list = []
-        # Will hold all successful steps for display at the end
-        successful_items = {}
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
-        dataframes = {}
-        special_dataframes = {}
         try:
             mode = None
-            merged_df = self.merge_files(self.files)
+            dataframe_set = core.ChameleonDataFrameSet(
+                self.files['old'], self.files['new'], use_api=self.use_api)
             if self.use_api:
-                self.check_api_deletions(merged_df)
-            special_dataframes = {'new': merged_df[merged_df['action'] == 'new'],
-                                  'deleted': merged_df[merged_df['action'] == 'deleted']}
-            merged_df = merged_df[~merged_df['action'].isin(
-                {'new', 'deleted'})]
-            for mode, df in special_dataframes.items():
-                dataframes[mode] = self.query_df(df, mode)
+                self.check_api_deletions(dataframe_set.source_data)
+                dataframe_set.separate_special_dfs()
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
                 # sanitized_mode = mode.replace(":", "_")
                 try:
-                    result = self.query_df(merged_df, mode)
+                    result = core.ChameleonDataFrame(
+                        dataframe_set.source_data, mode, grouping=self.group_output).query()
                 except KeyError as e:
                     # File reading failed, usually because a nonexistent column
                     logger.exception(e)
-                    error_list += mode
+                    self.error_list += mode
                     continue
-                if self.group_output:
-                    result = self.group_df(result, mode)
-                    sortable_values = ['action', 'users', 'latest_timestamp']
-                else:
-                    sortable_values = ['action', 'user', 'timestamp']
-                try:
-                    result.sort_values(
-                        sortable_values, inplace=True)
-                except KeyError:
-                    pass
-                dataframes[mode] = result
-            for mode, result in dataframes.items():
-                row_count = len(result)
-                file_name = Path(
-                    f"{self.files['output']}_{mode}.csv")
-                logger.info("Writing %s", (file_name))
-                try:
-                    with file_name.open('x') as output_file:
-                        result.to_csv(output_file, sep='\t', index=False)
-                except FileExistsError:
-                    # Prompt and wait for confirmation before overwriting
-                    try:  # This block ensures the mutex is unlocked even in the worst case
-                        self.overwrite_confirm.emit(str(file_name))
-                        self.parent.mutex.lock()
-                        # Don't check for a response until after the user has a chance to give one
-                        self.parent.waiting_for_input.wait(
-                            self.parent.mutex)
-                        if not self.response:
-                            logger.info("Skipping %s.", (mode))
-                            continue
-                        else:
-                            with file_name.open('w') as output_file:
-                                result.to_csv(
-                                    output_file, sep='\t', index=False)
-                    finally:
-                        self.parent.mutex.unlock()
-                except OSError:
-                    logger.exception("Write error.")
-                    error_list += mode
-                    continue
-                if not row_count:
-                    # Empty dataframe
-                    success_message = (f"{mode} has no change.")
-                else:
-                    # Exclude the header row from the row count
-                    s = ""
-                    if row_count > 1:
-                        s = "s"
-                    success_message = (
-                        f"{mode} output with {row_count} row{s}.")
-                successful_items.update({mode: success_message})
-                logger.info(
-                    "Processing for %s complete. %s written.", mode, file_name)
-                self.mode_complete.emit()
+                dataframe_set[mode] = result
+            if self.format == 'csv':
+                self.write_csv(dataframe_set)
+            elif self.format == 'excel':
+                self.write_excel(dataframe_set)
             # print(f"After run: {self.modes} with {type(self.modes)}.")
         finally:
             # print(f"End run: {self.modes} with {type(self.modes)}.")
@@ -270,23 +216,23 @@ class Worker(QObject):
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
             cancelled_list = self.modes.difference(
-                set(error_list) | set(successful_items.keys()))
+                set(self.error_list) | set(self.successful_items.keys()))
 
-            if error_list:  # Some tags failed
-                if len(error_list) == 1:
+            if self.error_list:  # Some tags failed
+                if len(self.error_list) == 1:
                     headline = "A tag could not be queried"
-                    summary = error_list[0]
+                    summary = self.error_list[0]
                 else:
                     headline = "Tags could not be queried"
-                    summary = "\n".join(error_list)
-                if successful_items:
+                    summary = "\n".join(self.error_list)
+                if self.successful_items:
                     headline = "Some tags could not be queried"
                     summary += "\nThe following tags completed successfully:\n"
-                    summary += "\n".join(list(successful_items.values()))
-            elif successful_items:  # Nothing failed, everything suceeded
+                    summary += "\n".join(list(self.successful_items.values()))
+            elif self.successful_items:  # Nothing failed, everything suceeded
                 headline = "Success"
                 summary = "All tags completed!\n"
-                summary += "\n".join(list(successful_items.values()))
+                summary += "\n".join(list(self.successful_items.values()))
             # Nothing succeeded and nothing failed, probably because user declined to overwrite
             else:
                 headline = "Nothing saved"
@@ -297,9 +243,84 @@ class Worker(QObject):
             self.dialog_information.emit(headline, summary)
             self.modes.clear()
             # print(f"After clear: {self.modes} with {type(self.modes)}.")
-            logger.info(list(successful_items.values()))
+            logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
             self.done.emit()
+
+    def write_csv(self, dataframe_set: core.ChameleonDataFrameSet):
+        for mode, result in dataframe_set.items():
+            row_count = len(result)
+            file_name = Path(
+                f"{self.files['output']}_{mode}.csv")
+            logger.info("Writing %s", (file_name))
+            try:
+                with file_name.open('x') as output_file:
+                    result.to_csv(output_file, sep='\t', index=False)
+            except FileExistsError:
+                # Prompt and wait for confirmation before overwriting
+                try:  # This block ensures the mutex is unlocked even in the worst case
+                    self.overwrite_confirm.emit(str(file_name))
+                    self.parent.mutex.lock()
+                    # Don't check for a response until after the user has a chance to give one
+                    self.parent.waiting_for_input.wait(
+                        self.parent.mutex)
+                    if not self.response:
+                        logger.info("Skipping %s.", (mode))
+                        continue
+                    else:
+                        with file_name.open('w') as output_file:
+                            result.to_csv(
+                                output_file, sep='\t', index=False)
+                finally:
+                    self.parent.mutex.unlock()
+            except OSError:
+                logger.exception("Write error.")
+                self.error_list += mode
+                continue
+            if not row_count:
+                # Empty dataframe
+                success_message = (f"{mode} has no change.")
+            else:
+                # Exclude the header row from the row count
+                s = ""
+                if row_count > 1:
+                    s = "s"
+                success_message = (
+                    f"{mode} output with {row_count} row{s}.")
+            self.successful_items.update({mode: success_message})
+            logger.info(
+                "Processing for %s complete. %s written.", mode, file_name)
+            self.mode_complete.emit()
+
+    def write_excel(self, dataframe_set: core.ChameleonDataFrameSet):
+        file_name = Path(f"{self.files['output']}.xlsx")
+        if file_name.is_file():
+            self.overwrite_confirm.emit(str(file_name))
+            self.parent.mutex.lock()
+            # Don't check for a response until after the user has a chance to give one
+            self.parent.waiting_for_input.wait(
+                self.parent.mutex)
+            if not self.response:
+                logger.info("Not writing output")
+                return
+        with pd.ExcelWriter(file_name) as writer:
+            for mode, result in dataframe_set.items():
+                row_count = len(result)
+                result.to_excel(writer, sheet_name=mode)
+                if not row_count:
+                    # Empty dataframe
+                    success_message = (f"{mode} has no change.")
+                else:
+                    # Exclude the header row from the row count
+                    s = ""
+                    if row_count > 1:
+                        s = "s"
+                    success_message = (
+                        f"{mode} output with {row_count} row{s}.")
+                self.successful_items.update({mode: success_message})
+
+    def write_geojson(self):
+        pass
 
     @staticmethod
     def merge_files(files: dict) -> pd.DataFrame:
@@ -318,119 +339,27 @@ class Worker(QObject):
         # new_df[col] = new_df[col].astype(col_type)
         # Used to indicate which sheet(s) each row came from post-join
         old_df['present'] = new_df['present'] = True
-        merged_df = old_df.join(new_df, how='outer',
-                                lsuffix='_old', rsuffix='_new')
-        merged_df['present_old'] = merged_df['present_old'].fillna(
+        dataframe_set = old_df.join(new_df, how='outer',
+                                    lsuffix='_old', rsuffix='_new')
+        dataframe_set['present_old'] = dataframe_set['present_old'].fillna(
             False)
-        merged_df['present_new'] = merged_df['present_new'].fillna(
+        dataframe_set['present_new'] = dataframe_set['present_new'].fillna(
             False)
         # Eliminate special chars that mess pandas up
-        merged_df.columns = merged_df.columns.str.replace('@', '')
+        dataframe_set.columns = dataframe_set.columns.str.replace('@', '')
         # Strip whitespace
-        merged_df.columns = merged_df.columns.str.strip()
+        dataframe_set.columns = dataframe_set.columns.str.strip()
         try:
-            merged_df.loc[merged_df.present_old &
-                          merged_df.present_new, 'action'] = 'modified'
-            merged_df.loc[merged_df.present_old & ~
-                          merged_df.present_new, 'action'] = 'deleted'
-            merged_df.loc[~merged_df.present_old &
-                          merged_df.present_new, 'action'] = 'new'
+            dataframe_set.loc[dataframe_set.present_old &
+                              dataframe_set.present_new, 'action'] = 'modified'
+            dataframe_set.loc[dataframe_set.present_old & ~
+                              dataframe_set.present_new, 'action'] = 'deleted'
+            dataframe_set.loc[~dataframe_set.present_old &
+                              dataframe_set.present_new, 'action'] = 'new'
         except ValueError:
             # No change for this mode, add a placeholder column
-            merged_df['action'] = ''
-        return merged_df
-
-    def query_df(self, df: pd.DataFrame, mode: str) -> pd.DataFrame:
-        if mode in self.modes:
-            intermediate_df = df.loc[(df[f"{mode}_old"].fillna(
-                '') != df[f"{mode}_new"].fillna(''))]
-        else:
-            # New and deleted frames
-            intermediate_df = df
-        output_df = pd.DataFrame()
-        output_df['id'] = (intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] +
-                           intermediate_df.index.astype(str))
-        # if not self.group_output:
-        output_df['url'] = (JOSM_URL + output_df['id'])
-        output_df['user'] = intermediate_df['user_new'].fillna(
-            intermediate_df['user_old'])
-        output_df['timestamp'] = pd.to_datetime(intermediate_df['timestamp_new'].fillna(
-            intermediate_df['timestamp_old'])).dt.strftime('%Y-%m-%d')
-        output_df['version'] = intermediate_df['version_new'].fillna(
-            intermediate_df['version_old'])
-        try:
-            # Succeeds if both csvs had changeset columns
-            output_df['changeset'] = intermediate_df['changeset_new']
-            output_df['osmcha'] = (
-                OSMCHA_URL + output_df['changeset'])
-        except KeyError:
-            try:
-                # Succeeds if one csv had a changeset column
-                output_df['changeset'] = intermediate_df['changeset']
-                output_df['osmcha'] = (
-                    OSMCHA_URL + output_df['changeset'])
-            except KeyError:
-                # If neither had one, we just won't include in the output
-                pass
-        if mode != 'name':
-            output_df['name'] = intermediate_df['name_new'].fillna(
-                intermediate_df['name_old'].fillna(''))
-        if mode != 'highway':
-            try:
-                # Succeeds if both csvs had highway columns
-                output_df['highway'] = intermediate_df['highway_new'].fillna(
-                    intermediate_df['highway_old'].fillna(''))
-            except KeyError:
-                try:
-                    # Succeeds if one csv had a highway column
-                    output_df['highway'] = intermediate_df['highway'].fillna(
-                        '')
-                except KeyError:
-                    # If neither had one, we just won't include in the output
-                    pass
-        if mode in self.modes:  # Skips the new and deleted DFs
-            output_df[f"old_{mode}"] = intermediate_df[f"{mode}_old"]
-            output_df[f"new_{mode}"] = intermediate_df[f"{mode}_new"]
-        output_df['action'] = intermediate_df['action']
-        output_df['notes'] = ''
-        return output_df
-
-    def group_df(self, df: pd.DataFrame, mode: str) -> pd.DataFrame:
-        df['count'] = df['id']
-        agg_functions = {
-            'id': lambda id: JOSM_URL + ','.join(id),
-            'count': 'count',
-            'user': lambda user: ','.join(user.unique()),
-            'timestamp': 'max',
-            'version': 'max',
-            'changeset': lambda changeset: ','.join(changeset.unique()),
-        }
-        if mode != 'name':
-            agg_functions.update({
-                'name': lambda name: ','.join(str(id) for id in name.unique())
-            })
-        if mode != 'highway':
-            agg_functions.update({
-                'highway': lambda highway: ','.join(str(id) for id in highway.unique())
-            })
-        # Create the new dataframe
-        grouped_df = df.groupby(
-            [f"old_{mode}", f"new_{mode}", 'action'], as_index=False).aggregate(agg_functions)
-        # Get the grouped columns out of the index to be more visible
-        grouped_df.reset_index(inplace=True)
-        # Send those columns to the end of the frame
-        new_column_order = (list(agg_functions.keys()) +
-                            [f'old_{mode}', f'new_{mode}', 'action'])
-        grouped_df = grouped_df[new_column_order]
-        grouped_df.rename(columns={
-            'id': 'url',
-            'user': 'users',
-            'timestamp': 'latest_timestamp',
-            'changeset': 'changesets'
-        }, inplace=True)
-        # Add a blank notes column
-        grouped_df['notes'] = ''
-        return grouped_df
+            dataframe_set['action'] = ''
+        return dataframe_set
 
     def check_api_deletions(self, df: pd.DataFrame):
         REQUEST_INTERVAL = 1
@@ -619,6 +548,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
         self.newFileSelectButton.clicked.connect(self.open_input_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
+        # Changes the displayed file name template depending on the selected file format
+        self.excelRadio.clicked.connect(self.suffix_updater)
+        self.csvRadio.clicked.connect(self.suffix_updater)
         self.runButton.clicked.connect(self.run_query)
         for i in self.fav_btn:
             i.clicked.connect(self.add_tag)
@@ -875,6 +807,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         if output_file_name:  # Clear the box before adding the new path
             # Since this is a prefix, the user shouldn't be adding their own extension
             output_file_name = output_file_name.replace('.csv', '')
+            output_file_name = output_file_name.replace('.xls', '')
+            output_file_name = output_file_name.replace('.xlsx', '')
             self.outputFileNameBox.clear()
             self.outputFileNameBox.insert(output_file_name)
 
@@ -884,6 +818,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         list_not_empty = self.listWidget.count() > 0
         self.runButton.setEnabled(list_not_empty)
+        self.repaint()
+
+    @Slot()
+    def suffix_updater(self):
+        if self.excelRadio.isChecked():
+            self.fileSuffix.setText('.xlsx')
+        else:
+            self.fileSuffix.setText(r'_{mode}.csv')
         self.repaint()
 
     def dialog_critical(self, text: str, info: str):
@@ -969,6 +911,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # rather than as true radio buttons
         use_api = self.onlineRadio.isChecked()
 
+        if self.excelRadio.isChecked():
+            file_format = 'excel'
+        else:
+            file_format = 'csv'
+
         # Add one mode more that the length so that a full bar represents completion
         # When the final tag is started, the bar will show one increment remaining
         # Disables the system default close, minimize, maximuize buttons
@@ -979,7 +926,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Handles Worker class and QThreads for Worker
         self.work_thread = QThread(parent=self)
         self.worker = Worker(self, modes, file_paths,
-                             group_output=group_output, use_api=use_api)
+                             group_output=group_output, use_api=use_api, file_format=file_format)
         # Connect to count_mode() when 1 mode begins in Worker
         self.worker.mode_start.connect(self.progress_bar.count_mode)
         self.worker.mode_complete.connect(self.progress_bar.mode_complete)
@@ -1118,6 +1065,7 @@ class chameleonProgressDialog(QProgressDialog):
         self.use_api = use_api
         self.setModal(True)
         self.setMinimumWidth(400)
+        self.setLabelText('Beginning analysis...')
         self.setWindowFlags(
             QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
 

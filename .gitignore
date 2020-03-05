@@ -12,9 +12,9 @@ __pycache__/
 .vscode/
 *.pyc
 build/
+chameleon/scratch.py
 dist/
 main.spec
 output_test.csv
-q_output_test.py
-test/output_name.csv
 resources/version.txt
+test/output_name.csv
