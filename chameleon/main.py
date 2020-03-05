@@ -319,45 +319,6 @@ class Worker(QObject):
         # Placeholder for future development
         pass
 
-    @staticmethod
-    def merge_files(files: dict) -> pd.DataFrame:
-        # dtypes = {
-        #     # '@id': int,
-        #     # '@version': int
-        #     '@timestamp': datetime
-        # }
-        old_df = pd.read_csv(files['old'], sep='\t',
-                             index_col='@id', dtype=str)
-        new_df = pd.read_csv(files['new'], sep='\t',
-                             index_col='@id', dtype=str)
-        # Cast a couple items to more specific types
-        # for col, col_type in dtypes.items():
-        # old_df[col] = old_df[col].astype(col_type)
-        # new_df[col] = new_df[col].astype(col_type)
-        # Used to indicate which sheet(s) each row came from post-join
-        old_df['present'] = new_df['present'] = True
-        dataframe_set = old_df.join(new_df, how='outer',
-                                    lsuffix='_old', rsuffix='_new')
-        dataframe_set['present_old'] = dataframe_set['present_old'].fillna(
-            False)
-        dataframe_set['present_new'] = dataframe_set['present_new'].fillna(
-            False)
-        # Eliminate special chars that mess pandas up
-        dataframe_set.columns = dataframe_set.columns.str.replace('@', '')
-        # Strip whitespace
-        dataframe_set.columns = dataframe_set.columns.str.strip()
-        try:
-            dataframe_set.loc[dataframe_set.present_old &
-                              dataframe_set.present_new, 'action'] = 'modified'
-            dataframe_set.loc[dataframe_set.present_old & ~
-                              dataframe_set.present_new, 'action'] = 'deleted'
-            dataframe_set.loc[~dataframe_set.present_old &
-                              dataframe_set.present_new, 'action'] = 'new'
-        except ValueError:
-            # No change for this mode, add a placeholder column
-            dataframe_set['action'] = ''
-        return dataframe_set
-
     def check_api_deletions(self, df: pd.DataFrame):
         request_interval = 1
         if APP_VERSION:
