@@ -320,6 +320,7 @@ class Worker(QObject):
         pass
 
     def check_api_deletions(self, df: pd.DataFrame):
+        # How long to wait between API calls
         request_interval = 1
         if APP_VERSION:
             formatted_app_version = f" {APP_VERSION}"
