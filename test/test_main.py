@@ -174,9 +174,7 @@ class TestGUI(unittest.TestCase):
         """
         self.mainapp = chameleon.main.MainApp()
         self.favorite_location = Path('test/test_favorites.yaml')
-        self.fav_btn = [self.mainapp.popTag1, self.mainapp.popTag2,
-                        self.mainapp.popTag3, self.mainapp.popTag4, self.mainapp.popTag5]
-        self.mainapp.fav_btn_populate(self.favorite_location, self.fav_btn)
+        self.mainapp.fav_btn_populate(self.favorite_location)
 
     def test_add_to_list(self):
         """

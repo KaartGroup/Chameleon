@@ -481,28 +481,14 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # YAML file loaders
         # Load file paths into boxes from previous session
 
-        # Check for history file and load if exists
-        try:
-            with HISTORY_LOCATION.open('r') as history_file:
-                self.history_dict = yaml.safe_load(history_file)
-        # If file doesn't exist, fail silently
-        except FileNotFoundError:
-            logger.warning(
-                "History file could not be found. "
-                "This is normal when running the program for the first time.")
-        except PermissionError:
-            logger.exception("History file found but not readable.")
-        else:
-            if isinstance(self.history_dict, dict):
-                for k, v in self.text_fields.items():
-                    v.insert(self.history_dict.get(k, ''))
+        self.history_loader()
 
         # List all of our buttons to populate so we can iterate through them
         self.fav_btn = [self.popTag1, self.popTag2,
                         self.popTag3, self.popTag4, self.popTag5]
 
         # Populate the buttons defined above
-        self.fav_btn_populate(FAVORITE_LOCATION)
+        self.fav_btn_populate()
 
         # Connecting signals to slots within init
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
@@ -531,11 +517,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     def about_menu(self):
         """
         Handles about page information.
-
-        Parameters
-        ----------
-        path: str
-            File path to application logo
         """
         logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
 
@@ -563,20 +544,45 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             "and <a href=https://www.pyinstaller.org>PyInstaller</a>.</i>")
         about.show()
 
-    def fav_btn_populate(self, favorite_path: Path):
+    def auto_completer(self, tags: list):
+        """
+        Autocompletion of user searches in searchBox.
+        Utilizes resource file for associated autocomplete options.
+        """
+        # Needs to have tags reference a resource file of OSM tags
+        # Check current autocomplete list
+        logger.debug(
+            "A total of %s tags was added to auto-complete.", len(tags))
+        completer = QCompleter(tags)
+        self.searchBox.setCompleter(completer)
+
+    def history_loader(self):
+        # Check for history file and load if exists
+        self.history_dict = {}
+        try:
+            with HISTORY_LOCATION.open('r') as history_file:
+                self.history_dict = yaml.safe_load(history_file)
+            for k, v in self.text_fields.items():
+                v.insert(self.history_dict.get(k, ''))
+        # If file doesn't exist, fail silently
+        except FileNotFoundError:
+            logger.warning(
+                "History file could not be found. "
+                "This is normal when running the program for the first time.")
+        except PermissionError:
+            logger.exception("History file found but not readable.")
+        except AttributeError:
+            logger.exception()
+
+    def fav_btn_populate(self, favorite_location: Path = FAVORITE_LOCATION):
         """
         Populates the listed buttons with favorites from the given file
-
-        Parameters
-        ----------
-        favorite_path : Path
-            Location of YAML file with favorite values to be loaded
         """
         # Holds the button values until they are inserted
         fav_list = []
         # Check for favorite file and load if exists
         try:
-            with favorite_path.open('r') as favorite_read:
+            with favorite_location.open('r') as favorite_read:
                 # Load in popular tags from history file
                 # Default values are taken if history file does not exist
                 fav_list = yaml.safe_load(favorite_read)  # dict()
@@ -610,18 +616,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                     index, fav_list)
                 raise IndexError(f"Index {index} of fav_btn doesn't exist! "
                                  f"Attempted to insert from{fav_list}.") from e
-
-    def auto_completer(self, tags: list):
-        """
-        Autocompletion of user searches in searchBox.
-        Utilizes resource file for associated autocomplete options.
-        """
-        # Needs to have tags reference a resource file of OSM tags
-        # Check current autocomplete list
-        logger.debug(
-            "A total of %s tags was added to auto-complete.", len(tags))
-        completer = QCompleter(tags)
-        self.searchBox.setCompleter(completer)
 
     def add_tag(self):
         """
@@ -685,7 +679,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.listWidget.repaint()
 
     @staticmethod
-    def document_tag(run_tags: set, counter_location: Path, favorite_location: Path):
+    def document_tag(run_tags: set, counter_location: Path = COUNTER_LOCATION,
+                     favorite_location: Path = FAVORITE_LOCATION):
         """
         Python counter for tags that are frequently chosen by user.
         Document counter and favorites using yaml file storage.
@@ -861,8 +856,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # modes var needs to be type set()
         modes = {i.text() for i in self.listWidget.findItems(
             '*', QtCore.Qt.MatchWildcard)}
-        self.document_tag(modes, COUNTER_LOCATION,
-                          FAVORITE_LOCATION)  # Execute favorite tracking
+        self.document_tag(modes)  # Execute favorite tracking
         logger.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
         # The offline radio button is a dummy. The online button functions as a checkbox
@@ -997,22 +991,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Fail silently if history.yaml does not exist
         except AttributeError:
             logger.warning("All Chameleon analysis processing completed.")
-
-
-def main():
-    """
-    Creates a new instance of the QtWidget application, sets the form to be
-    out MainWIndow (design) and executes the application.
-    """
-    app = QApplication(sys.argv)
-    # Enable High DPI display with PyQt5
-    QtWidgets.QApplication.setAttribute(
-        QtCore.Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-        app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
-    form = MainApp()
-    form.show()
-    sys.exit(app.exec_())
 
 
 class chameleonProgressDialog(QProgressDialog):
