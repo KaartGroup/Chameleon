@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
 # Import generated UI file
-from chameleon import core, design
+from chameleon import core, design, OSMCHA_URL
 
 
 # Configuration file locations
@@ -37,9 +37,6 @@ CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
 FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
-
-JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
-OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 
 # Differentiate sys settings between pre and post-bundling
 if getattr(sys, 'frozen', False):
@@ -282,9 +279,9 @@ class Worker(QObject):
                 success_message = (f"{mode} has no change.")
             else:
                 # Exclude the header row from the row count
-                s = ""
+                s = ''
                 if row_count > 1:
-                    s = "s"
+                    s = 's'
                 success_message = (
                     f"{mode} output with {row_count} row{s}.")
             self.successful_items.update({mode: success_message})
@@ -311,15 +308,15 @@ class Worker(QObject):
                     # Empty dataframe
                     success_message = (f"{mode} has no change.")
                 else:
-                    # Exclude the header row from the row count
-                    s = ""
+                    s = ''
                     if row_count > 1:
-                        s = "s"
+                        s = 's'
                     success_message = (
                         f"{mode} output with {row_count} row{s}.")
                 self.successful_items.update({mode: success_message})
 
     def write_geojson(self):
+        # Placeholder for future development
         pass
 
     @staticmethod
@@ -362,7 +359,7 @@ class Worker(QObject):
         return dataframe_set
 
     def check_api_deletions(self, df: pd.DataFrame):
-        REQUEST_INTERVAL = 1
+        request_interval = 1
         if APP_VERSION:
             formatted_app_version = f" v{APP_VERSION}"
         else:
@@ -437,7 +434,7 @@ class Worker(QObject):
                 df.loc[id][attribute] = value
 
             # Wait between iterations to avoid ratelimit problems
-            time.sleep(REQUEST_INTERVAL)
+            time.sleep(request_interval)
 
     # def stop(self):
     #     self._isRunning = False

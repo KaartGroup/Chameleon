@@ -6,12 +6,12 @@ from typing import Union
 
 import pandas as pd
 
+SPECIAL_MODES = {'new', 'deleted'}
+JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
+OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
+
 
 class ChameleonDataFrame(pd.DataFrame):
-    SPECIAL_MODES = {'new', 'deleted'}
-    JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
-    OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
-
     def __init__(self, df: pd.DataFrame, mode: str, grouping=False, dtype=None):
         # dtypes = {
         #     # '@id': int,
@@ -25,7 +25,7 @@ class ChameleonDataFrame(pd.DataFrame):
         self.grouping = grouping
 
     def query(self) -> ChameleonDataFrame:
-        if self.mode not in self.SPECIAL_MODES:
+        if self.mode not in SPECIAL_MODES:
             intermediate_df = self.source_data.loc[(self.source_data[f"{self.mode}_old"].fillna(
                 '') != self.source_data[f"{self.mode}_new"].fillna(''))]
         else:
@@ -36,7 +36,7 @@ class ChameleonDataFrame(pd.DataFrame):
         self['id'] = (intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] +
                       intermediate_df.index.astype(str))
         # if not self.group_output:
-        self['url'] = (self.JOSM_URL + self['id'])
+        self['url'] = (JOSM_URL + self['id'])
         self['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
         self['timestamp'] = pd.to_datetime(intermediate_df['timestamp_new'].fillna(
@@ -47,13 +47,13 @@ class ChameleonDataFrame(pd.DataFrame):
             # Succeeds if both csvs had changeset columns
             self['changeset'] = intermediate_df['changeset_new']
             self['osmcha'] = (
-                self.OSMCHA_URL + self['changeset'])
+                OSMCHA_URL + self['changeset'])
         except KeyError:
             try:
                 # Succeeds if one csv had a changeset column
                 self['changeset'] = intermediate_df['changeset']
                 self['osmcha'] = (
-                    self.OSMCHA_URL + self['changeset'])
+                    OSMCHA_URL + self['changeset'])
             except KeyError:
                 # If neither had one, we just won't include in the output
                 pass
@@ -73,7 +73,7 @@ class ChameleonDataFrame(pd.DataFrame):
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
-        if self.mode not in self.SPECIAL_MODES:  # Skips the new and deleted DFs
+        if self.mode not in SPECIAL_MODES:  # Skips the new and deleted DFs
             self[f"old_{self.mode}"] = intermediate_df[f"{self.mode}_old"]
             self[f"new_{self.mode}"] = intermediate_df[f"{self.mode}_new"]
         self['action'] = intermediate_df['action']
@@ -85,7 +85,7 @@ class ChameleonDataFrame(pd.DataFrame):
         def group(self):
             self['count'] = self['id']
             agg_functions = {
-                'id': lambda id: self.JOSM_URL + ','.join(id),
+                'id': lambda id: JOSM_URL + ','.join(id),
                 'count': 'count',
                 'user': lambda user: ','.join(user.unique()),
                 'timestamp': 'max',
@@ -132,8 +132,6 @@ class ChameleonDataFrame(pd.DataFrame):
 
 
 class ChameleonDataFrameSet(UserDict):
-    SPECIAL_MODES = {'new', 'deleted'}
-
     def __init__(self, oldfile: Union[str, Path], newfile: Union[str, Path], use_api=False):
         super().__init__(self)
         self.source_data = None
@@ -183,6 +181,6 @@ class ChameleonDataFrameSet(UserDict):
                               'deleted': self.source_data[self.source_data['action'] == 'deleted']}
         # Remove the new/deleted ways from the source_data
         self.source_data = self.source_data[~self.source_data['action'].isin(
-            self.SPECIAL_MODES)]
+            SPECIAL_MODES)]
         for mode, df in special_dataframes.items():
             self[mode] = ChameleonDataFrame(df, mode).query()
