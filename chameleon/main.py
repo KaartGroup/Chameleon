@@ -126,8 +126,7 @@ class Worker(QObject):
     scale_with_api_items = Signal(int)
     increment_progbar_api = Signal()
     overwrite_confirm = Signal(str)
-    dialog_critical = Signal(str, str)
-    dialog_information = Signal(str, str)
+    dialog = Signal(str, str, QMessageBox.Icon)
 
     def __init__(self, parent, modes: set, files: dict, group_output=False,
                  use_api=False, file_format='csv'):
@@ -214,8 +213,9 @@ class Worker(QObject):
             # the process was cancelled before they could be completed
             cancelled_list = self.modes.difference(
                 set(self.error_list) | set(self.successful_items.keys()))
-
+            dialog_icon = QMessageBox.Information
             if self.error_list:  # Some tags failed
+                dialog_icon = QMessageBox.Critical
                 if len(self.error_list) == 1:
                     headline = "A tag could not be queried"
                     summary = self.error_list[0]
@@ -237,9 +237,8 @@ class Worker(QObject):
             if cancelled_list:
                 summary += '\nThe process was cancelled before the following tags completed:\n'
                 summary += '\n'.join(cancelled_list)
-            self.dialog_information.emit(headline, summary)
+            self.dialog.emit(headline, summary, dialog_icon)
             self.modes.clear()
-            # print(f"After clear: {self.modes} with {type(self.modes)}.")
             logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
             self.done.emit()
@@ -781,7 +780,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.fileSuffix.setText(r'_{mode}.csv')
         self.repaint()
 
-    def dialog_critical(self, text: str, info: str):
+    @Slot(str, str, QMessageBox.Icon)
+    def dialog(self, text: str, info: str, icon: QMessageBox.Icon):
         """
         Method to pop-up critical error box
 
@@ -792,23 +792,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         dialog = QMessageBox(self)
         dialog.setText(text)
-        dialog.setIcon(QMessageBox.Critical)
-        dialog.setInformativeText(info)
-        dialog.exec()
-
-    def dialog_information(self, text: str, info: str):
-        """
-        Method to pop-up informational error box
-
-        Parameters
-        ----------
-        text, info : str
-            Optional error box text.
-        """
-        dialog = QMessageBox(self)
-        dialog.setMinimumWidth(300)
-        dialog.setText(text)
-        dialog.setIcon(QMessageBox.Information)
+        dialog.setIcon(icon)
         dialog.setInformativeText(info)
         dialog.exec()
 
@@ -821,9 +805,10 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Check for blank values
         for k, v in self.text_fields.items():
             if not v.text().strip():
-                self.dialog_critical(
+                self.dialog(
                     f"{k.title()} file field is blank.",
-                    "Please enter a value"
+                    'Please enter a value',
+                    'critical'
                 )
                 return
         # Wrap the file references in Path object to prepare "file not found" warning
@@ -832,25 +817,26 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Check if either old or new file/directory exists. If not, notify user.
         if not file_paths['old'].is_file() or not file_paths['new'].is_file():
             if not file_paths['old'].is_file() and not file_paths['new'].is_file():
-                self.dialog_critical("File or directories not found!", "")
+                self.dialog('File or directories not found!', '', 'critical')
             elif not file_paths['old'].is_file():
-                self.dialog_critical(
-                    "Old file or directory not found!", "")
+                self.dialog(
+                    'Old file or directory not found!', '', 'critical')
             elif not file_paths['new'].is_file():
-                self.dialog_critical(
-                    "New file or directory not found!", "")
+                self.dialog(
+                    'New file or directory not found!', '', 'critical')
             return
         # Check if output directory is writable
         try:
             if not os.access(file_paths['output'].parent, os.W_OK):
-                self.dialog_critical(
-                    "Output directory not writeable!", "")
+                self.dialog(
+                    'Output directory not writeable!', '', 'critical')
                 return
         except IndexError:
             # This shouldn't be reachable normally, but belt-and-suspenders...
-            self.dialog_critical(
-                "Output file field is blank.",
-                "Please enter a value."
+            self.dialog(
+                'Output file field is blank.',
+                'Please enter a value.',
+                'critical'
             )
             return
         # modes var needs to be type set()
@@ -891,8 +877,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
         self.worker.overwrite_confirm.connect(self.overwrite_message)
-        self.worker.dialog_critical.connect(self.dialog_critical)
-        self.worker.dialog_information.connect(self.dialog_information)
+        self.worker.dialog.connect(self.dialog)
         self.worker.moveToThread(self.work_thread)
         self.work_thread.started.connect(self.worker.run)
         self.work_thread.start()
@@ -943,6 +928,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         logger.info("All Chameleon analysis processing completed.")
         self.run_checker()
 
+    @Slot(str)
     def overwrite_message(self, file_name: str):
         """
         Display user notification box for overwrite file option.
@@ -1005,6 +991,7 @@ class chameleonProgressDialog(QProgressDialog):
         self.setWindowFlags(
             QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
 
+    @Slot(str)
     def count_mode(self, mode: str):
         """
         Tracker for completion of individual modes in Worker class.
@@ -1027,6 +1014,7 @@ class chameleonProgressDialog(QProgressDialog):
         # Advance index of modes by 1
         self.mode_progress += 1
 
+    @Slot(int)
     def scale_with_api_items(self, item_count: int):
         self.current_item = 0
         self.item_count = item_count
