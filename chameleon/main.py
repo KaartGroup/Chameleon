@@ -1044,4 +1044,12 @@ class chameleonProgressDialog(QProgressDialog):
 
 
 if __name__ == '__main__':
-    main()
+    app = QApplication(sys.argv)
+    # Enable High DPI display with PyQt5
+    app.setAttribute(
+        QtCore.Qt.AA_EnableHighDpiScaling, True)
+    if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+        app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
+    form = MainApp()
+    form.show()
+    sys.exit(app.exec_())
