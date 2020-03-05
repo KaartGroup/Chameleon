@@ -126,7 +126,7 @@ class Worker(QObject):
     scale_with_api_items = Signal(int)
     increment_progbar_api = Signal()
     overwrite_confirm = Signal(str)
-    dialog = Signal(str, str, QMessageBox.Icon)
+    dialog = Signal(str, str, str)
 
     def __init__(self, parent, modes: set, files: dict, group_output=False,
                  use_api=False, file_format='csv'):
@@ -166,19 +166,7 @@ class Worker(QObject):
             except OSError:
                 logger.debug("Config directory could not be created.")
         if self.files:
-            file_strings = {k: str(v)
-                            for k, v in self.files.items()}
-            try:
-                with HISTORY_LOCATION.open('w') as history_file:
-                    yaml.dump(file_strings, history_file)
-            except OSError:
-                logger.exception("Couldn't write history.yaml.")
-            else:
-                # In some rare cases (like testing) MainApp may not exist
-                try:
-                    self.parent.history_dict = file_strings
-                except NameError:
-                    pass
+            self.history_writer()
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             mode = None
@@ -213,9 +201,9 @@ class Worker(QObject):
             # the process was cancelled before they could be completed
             cancelled_list = self.modes.difference(
                 set(self.error_list) | set(self.successful_items.keys()))
-            dialog_icon = QMessageBox.Information
+            dialog_icon = 'information'
             if self.error_list:  # Some tags failed
-                dialog_icon = QMessageBox.Critical
+                dialog_icon = 'critical'
                 if len(self.error_list) == 1:
                     headline = "A tag could not be queried"
                     summary = self.error_list[0]
@@ -242,6 +230,23 @@ class Worker(QObject):
             logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
             self.done.emit()
+
+    def history_writer(self):
+        staged_history_dict = {k: str(v)
+                               for k, v in self.files.items()}
+        staged_history_dict['use_api'] = self.use_api
+        staged_history_dict['file_format'] = self.format
+        try:
+            with HISTORY_LOCATION.open('w') as history_file:
+                yaml.dump(staged_history_dict, history_file)
+        except OSError:
+            logger.exception("Couldn't write history.yaml.")
+        else:
+            # In some rare cases (like testing) MainApp may not exist
+            try:
+                self.parent.history_dict = staged_history_dict
+            except NameError:
+                pass
 
     def write_csv(self, dataframe_set: core.ChameleonDataFrameSet):
         for mode, result in dataframe_set.items():
@@ -563,6 +568,10 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 self.history_dict = yaml.safe_load(history_file)
             for k, v in self.text_fields.items():
                 v.insert(self.history_dict.get(k, ''))
+            self.offlineRadio.setChecked(
+                ~self.history_dict.get('use_api', True))
+            if self.history_dict.get('file_format', 'csv') == 'excel':
+                self.excelRadio.setChecked(True)
         # If file doesn't exist, fail silently
         except FileNotFoundError:
             logger.warning(
@@ -780,8 +789,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.fileSuffix.setText(r'_{mode}.csv')
         self.repaint()
 
-    @Slot(str, str, QMessageBox.Icon)
-    def dialog(self, text: str, info: str, icon: QMessageBox.Icon):
+    @Slot(str, str, str)
+    def dialog(self, text: str, info: str, icon: str):
         """
         Method to pop-up critical error box
 
@@ -792,7 +801,10 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         dialog = QMessageBox(self)
         dialog.setText(text)
-        dialog.setIcon(icon)
+        if icon == 'critical':
+            dialog.setIcon(QMessageBox.Critical)
+        else:
+            dialog.setIcon(QMessageBox.Information)
         dialog.setInformativeText(info)
         dialog.exec()
 
@@ -962,8 +974,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         files = {k: v.text()
                  for k, v in self.text_fields.items()}
         # Prompt if user has changed input values from what was loaded
+        file_keys = {'old', 'new', 'output'}
         try:
-            if self.history_dict != files:
+            if {k: self.history_dict[k] for k in file_keys} != {k: files[k] for k in file_keys}:
                 exit_prompt = QtWidgets.QMessageBox()
                 exit_prompt.setIcon(QMessageBox.Question)
                 exit_response = exit_prompt.question(
