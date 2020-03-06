@@ -734,6 +734,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         except OSError:
             logger.exception("Couldn't write favorite file.")
 
+    @Slot()
     def open_input_file(self):
         """
         Adds functionality to the Open Old/New File (...) button, opens the
@@ -742,28 +743,29 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender = self.sender()
         destination = sender.box_control
         # Gets first non-empty value in order
-        file_dir = next(e for e in (
+        file_dir = [e for e in (
             destination.text().strip(),
             self.oldFileNameBox.text().strip(),
             self.newFileNameBox.text().strip(),
             os.path.expanduser("~/Downloads")
-        ) if e)
+        ) if e][0]
         file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
             self, f"Select CSV file with {sender.shortname} data", file_dir, "CSV (*.csv)")
         if file_name:  # Clear the box before adding the new path
-            destination.clear()
+            destination.selectAll()
             destination.insert(file_name)
 
+    @Slot()
     def output_file(self):
         """
         Adds functionality to the Output File (...) button, opens the
         '/downloads' system path for user to name an output file.
         """
         # If no previous location, default to Documents folder
-        output_file_dir = next(e for e in (
+        output_file_dir = [e for e in (
             os.path.dirname(self.outputFileNameBox.text().strip()),
             os.path.expanduser("~/Documents")
-        ) if e)
+        ) if e][0]
         output_file_name, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir)
         if output_file_name:  # Clear the box before adding the new path
@@ -771,7 +773,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             output_file_name = output_file_name.replace('.csv', '')
             output_file_name = output_file_name.replace('.xls', '')
             output_file_name = output_file_name.replace('.xlsx', '')
-            self.outputFileNameBox.clear()
+            self.outputFileNameBox.selectAll()
             self.outputFileNameBox.insert(output_file_name)
 
     def run_checker(self):

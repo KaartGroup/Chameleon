@@ -54,7 +54,8 @@ class QLineEditDragDrop(QtWidgets.QLineEdit):
             event.accept()
             print(f"setting text to new box, {file_path}")
             # Inherits QLineEdit from main.py (self)
-            self.setText(str(file_path))
+            self.selectAll()
+            self.insert(str(file_path))
         else:
             # Silently ignore the dropEvent()
             event.ignore()
