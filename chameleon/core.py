@@ -12,30 +12,35 @@ OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 
 
 class ChameleonDataFrame(pd.DataFrame):
-    def __init__(self, df: pd.DataFrame, mode: str, grouping=False, dtype=None):
+
+    _metadata = ['chameleon_mode', 'grouping']
+
+    def __init__(self, df: pd.DataFrame = None, mode: str = None, grouping=False, dtype=None):
         # dtypes = {
         #     # '@id': int,
         #     # '@version': int
         #     '@timestamp': datetime
         # }
         # Initialize as an "empty" dataframe, with the source data in an attribute
-        super().__init__(data=None, index=None, dtype=dtype, copy=False)
-        self.source_data = df
-        self.mode = mode
+        self.chameleon_mode = mode
         self.grouping = grouping
+        super().__init__(data=df, index=None, dtype=dtype, copy=False)
+
+    @property
+    def _constructor(self):
+        return ChameleonDataFrame
 
     def query(self) -> ChameleonDataFrame:
-        if self.mode not in SPECIAL_MODES:
-            intermediate_df = self.source_data.loc[(self.source_data[f"{self.mode}_old"].fillna(
-                '') != self.source_data[f"{self.mode}_new"].fillna(''))]
+        if self.chameleon_mode not in SPECIAL_MODES:
+            intermediate_df = self.loc[(self[f"{self.chameleon_mode}_old"].fillna(
+                '') != self[f"{self.chameleon_mode}_new"].fillna(''))]
         else:
             # New and deleted frames
-            intermediate_df = self.source_data
-        # Free up memory
-        self.source_data = None
+            intermediate_df = self
+        # self = ChameleonDataFrame(
+        #     mode=self.chameleon_mode, grouping=self.grouping)
         self['id'] = (intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] +
                       intermediate_df.index.astype(str))
-        # if not self.group_output:
         self['url'] = (JOSM_URL + self['id'])
         self['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
@@ -43,6 +48,7 @@ class ChameleonDataFrame(pd.DataFrame):
             intermediate_df['timestamp_old'])).dt.strftime('%Y-%m-%d')
         self['version'] = intermediate_df['version_new'].fillna(
             intermediate_df['version_old'])
+        self = self[['id', 'url', 'user', 'timestamp', 'version']]
         try:
             # Succeeds if both csvs had changeset columns
             self['changeset'] = intermediate_df['changeset_new']
@@ -57,10 +63,10 @@ class ChameleonDataFrame(pd.DataFrame):
             except KeyError:
                 # If neither had one, we just won't include in the output
                 pass
-        if self.mode != 'name':
+        if self.chameleon_mode != 'name':
             self['name'] = intermediate_df['name_new'].fillna(
                 intermediate_df['name_old'].fillna(''))
-        if self.mode != 'highway':
+        if self.chameleon_mode != 'highway':
             try:
                 # Succeeds if both csvs had highway columns
                 self['highway'] = intermediate_df['highway_new'].fillna(
@@ -73,53 +79,59 @@ class ChameleonDataFrame(pd.DataFrame):
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
-        if self.mode not in SPECIAL_MODES:  # Skips the new and deleted DFs
-            self[f"old_{self.mode}"] = intermediate_df[f"{self.mode}_old"]
-            self[f"new_{self.mode}"] = intermediate_df[f"{self.mode}_new"]
+        if self.chameleon_mode not in SPECIAL_MODES:  # Skips the new and deleted DFs
+            self[f"old_{self.chameleon_mode}"] = intermediate_df[f"{self.chameleon_mode}_old"]
+            self[f"new_{self.chameleon_mode}"] = intermediate_df[f"{self.chameleon_mode}_new"]
         self['action'] = intermediate_df['action']
         self['notes'] = ''
         if self.grouping:
-            self.group()
+            self = self.group()
+        self.sort()
         return self
 
-        def group(self):
-            self['count'] = self['id']
-            agg_functions = {
-                'id': lambda id: JOSM_URL + ','.join(id),
-                'count': 'count',
-                'user': lambda user: ','.join(user.unique()),
-                'timestamp': 'max',
-                'version': 'max',
-                'changeset': lambda changeset: ','.join(changeset.unique()),
-            }
-            if self.mode != 'name':
-                agg_functions.update({
-                    'name': lambda name: ','.join(str(id) for id in name.unique())
-                })
-            if self.mode != 'highway':
-                agg_functions.update({
-                    'highway': lambda highway: ','.join(str(id) for id in highway.unique())
-                })
-            # Create the new dataframe
-            self = self.groupby(
-                [f"old_{self.mode}", f"new_{self.mode}", 'action'],
-                as_index=False).aggregate(agg_functions)
-            # Get the grouped columns out of the index to be more visible
-            self.reset_index(inplace=True)
-            # Send those columns to the end of the frame
-            new_column_order = (list(agg_functions.keys()) +
-                                [f'old_{self.mode}', f'new_{self.mode}', 'action'])
-            self = self[new_column_order]
-            self.rename(columns={
-                'id': 'url',
-                'user': 'users',
-                'timestamp': 'latest_timestamp',
-                'changeset': 'changesets'
-            }, inplace=True)
-            # Add a blank notes column
-            self['notes'] = ''
+    def group(self) -> ChameleonDataFrame:
+        self['count'] = self['id']
+        agg_functions = {
+            'id': lambda id: JOSM_URL + ','.join(id),
+            'count': 'count',
+            'user': lambda user: ','.join(user.unique()),
+            'timestamp': 'max',
+            'version': 'max',
+            'changeset': lambda changeset: ','.join(changeset.unique()),
+        }
+        if self.chameleon_mode != 'name':
+            agg_functions.update({
+                'name': lambda name: ','.join(str(id) for id in name.unique())
+            })
+        if self.chameleon_mode != 'highway':
+            agg_functions.update({
+                'highway': lambda highway: ','.join(str(id) for id in highway.unique())
+            })
+        # Create the new dataframe
+        grouped_df = self.groupby(
+            [f"old_{self.chameleon_mode}",
+                f"new_{self.chameleon_mode}", 'action'],
+            as_index=False).aggregate(agg_functions)
+        # Get the grouped columns out of the index to be more visible
+        grouped_df.reset_index(inplace=True)
+        # Send those columns to the end of the frame
+        new_column_order = (list(agg_functions.keys()) +
+                            [f'old_{self.chameleon_mode}', f'new_{self.chameleon_mode}', 'action'])
+        grouped_df = grouped_df[new_column_order]
+        grouped_df.rename(columns={
+            'id': 'url',
+            'user': 'users',
+            'timestamp': 'latest_timestamp',
+            'changeset': 'changesets'
+        }, inplace=True)
+        # Add a blank notes column
+        grouped_df['notes'] = ''
+        # TODO Once github.com/pandas-dev/pandas/issues/28330 is fixed, change to grouping in place
+        self = ChameleonDataFrame(
+            df=grouped_df, mode=self.chameleon_mode, grouping=self.grouping)
+        return self
 
-    def sort(self):
+    def sort(self) -> ChameleonDataFrame:
         if self.grouping:
             sortable_values = ['action', 'users', 'latest_timestamp']
         else:
@@ -129,6 +141,7 @@ class ChameleonDataFrame(pd.DataFrame):
                 sortable_values, inplace=True)
         except KeyError:
             pass
+        return self
 
 
 class ChameleonDataFrameSet(UserDict):
@@ -175,7 +188,7 @@ class ChameleonDataFrameSet(UserDict):
             # No change for this mode, add a placeholder column
             self.source_data['action'] = ''
 
-    def separate_special_dfs(self):
+    def separate_special_dfs(self) -> ChameleonDataFrame:
         # Create special dataframes for creations and deletions
         special_dataframes = {'new': self.source_data[self.source_data['action'] == 'new'],
                               'deleted': self.source_data[self.source_data['action'] == 'deleted']}
@@ -183,4 +196,5 @@ class ChameleonDataFrameSet(UserDict):
         self.source_data = self.source_data[~self.source_data['action'].isin(
             SPECIAL_MODES)]
         for mode, df in special_dataframes.items():
-            self[mode] = ChameleonDataFrame(df, mode).query()
+            self[mode] = ChameleonDataFrame(df=df, mode=mode).query()
+        return self

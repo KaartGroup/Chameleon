@@ -29,8 +29,8 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
                              QProgressDialog)
 
 # Import generated UI file
-from chameleon import core, design
-
+from chameleon import design
+from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -170,7 +170,7 @@ class Worker(QObject):
         # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             mode = None
-            dataframe_set = core.ChameleonDataFrameSet(
+            dataframe_set = ChameleonDataFrameSet(
                 self.files['old'], self.files['new'], use_api=self.use_api)
             if self.use_api:
                 self.check_api_deletions(dataframe_set.source_data)
@@ -180,8 +180,9 @@ class Worker(QObject):
                 self.mode_start.emit(mode)
                 # sanitized_mode = mode.replace(":", "_")
                 try:
-                    result = core.ChameleonDataFrame(
-                        dataframe_set.source_data, mode, grouping=self.group_output).query()
+                    result = ChameleonDataFrame(dataframe_set.source_data,
+                                                mode=mode,
+                                                grouping=self.group_output).query()
                 except KeyError as e:
                     # File reading failed, usually because a nonexistent column
                     logger.exception(e)
@@ -248,7 +249,7 @@ class Worker(QObject):
             except NameError:
                 pass
 
-    def write_csv(self, dataframe_set: core.ChameleonDataFrameSet):
+    def write_csv(self, dataframe_set: ChameleonDataFrameSet):
         for mode, result in dataframe_set.items():
             row_count = len(result)
             file_name = Path(
@@ -293,7 +294,7 @@ class Worker(QObject):
                 "Processing for %s complete. %s written.", mode, file_name)
             self.mode_complete.emit()
 
-    def write_excel(self, dataframe_set: core.ChameleonDataFrameSet):
+    def write_excel(self, dataframe_set: ChameleonDataFrameSet):
         file_name = Path(f"{self.files['output']}.xlsx")
         if file_name.is_file():
             self.overwrite_confirm.emit(str(file_name))
