@@ -6,13 +6,12 @@ extracts their paths
 import logging
 from pathlib import Path
 
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QToolTip
+from PyQt5.QtWidgets import QToolTip, QLineEdit
 
 logger = logging.getLogger(__name__)
 
 
-class QLineEditDragDrop(QtWidgets.QLineEdit):
+class QLineEditDragDrop(QLineEdit):
     """
 
     Custom QWidget class from "promoted" QLineEdit widget. To allow
