@@ -186,7 +186,7 @@ class Worker(QObject):
                 except KeyError as e:
                     # File reading failed, usually because a nonexistent column
                     logger.exception(e)
-                    self.error_list += mode
+                    self.error_list.append(mode)
                     continue
                 dataframe_set[mode] = result
             if self.format == 'csv':
@@ -308,7 +308,8 @@ class Worker(QObject):
         with pd.ExcelWriter(file_name) as writer:
             for mode, result in dataframe_set.items():
                 row_count = len(result)
-                result.to_excel(writer, sheet_name=mode, index=False)
+                result.to_excel(writer, sheet_name=mode,
+                                index=False, freeze_panes=(2, 0))
                 if not row_count:
                     # Empty dataframe
                     success_message = (f"{mode} has no change.")
@@ -646,6 +647,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         splitter.whitespace_split = True
         label_list = sorted(list(splitter))
         for i, label in enumerate(label_list):
+            label = label.strip(' "\'')
             # Check if the label is in the list already
             existing_item = self.listWidget.findItems(
                 label, QtCore.Qt.MatchExactly)
@@ -856,7 +858,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             )
             return
         # modes var needs to be type set()
-        modes = {i.text() for i in self.listWidget.findItems(
+        modes = {i.text().replace(':', '_') for i in self.listWidget.findItems(
             '*', QtCore.Qt.MatchWildcard)}
         self.document_tag(modes)  # Execute favorite tracking
         logger.info("Modes to be processed: %s.", (modes))

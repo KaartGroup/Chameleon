@@ -21,7 +21,7 @@ class ChameleonDataFrame(pd.DataFrame):
     # pandas will maintain these instance attributes across manipulations
     _metadata = ['chameleon_mode', 'grouping']
 
-    def __init__(self, df: pd.DataFrame = None, mode: str = None, grouping=False, dtype=None):
+    def __init__(self, df: pd.DataFrame = None, mode: str = '', grouping=False, dtype=None):
         # dtypes = {
         #     # '@id': int,
         #     # '@version': int
@@ -198,6 +198,8 @@ class ChameleonDataFrameSet(UserDict):
         # Eliminate special chars that mess pandas up
         self.source_data.columns = self.source_data.columns.str.replace(
             '@', '')
+        self.source_data.columns = self.source_data.columns.str.replace(
+            ':', '_')
         # Strip whitespace
         self.source_data.columns = self.source_data.columns.str.strip()
         try:
