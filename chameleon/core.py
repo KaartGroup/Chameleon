@@ -1,3 +1,6 @@
+"""
+UI-independent classes for processing data
+"""
 from __future__ import annotations
 
 from collections import UserDict
@@ -12,7 +15,10 @@ OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 
 
 class ChameleonDataFrame(pd.DataFrame):
-
+    """
+    Dataframe with some relevant attributes and preset queries as methods
+    """
+    # pandas will maintain these instance attributes across manipulations
     _metadata = ['chameleon_mode', 'grouping']
 
     def __init__(self, df: pd.DataFrame = None, mode: str = None, grouping=False, dtype=None):
@@ -26,11 +32,17 @@ class ChameleonDataFrame(pd.DataFrame):
         self.grouping = grouping
         super().__init__(data=df, index=None, dtype=dtype, copy=False)
 
+    # Required for subclassing pandas classes, otherwise manipulation return vanilla pandas
+    # classes instead of our subclass
     @property
     def _constructor(self):
         return ChameleonDataFrame
 
     def query(self) -> ChameleonDataFrame:
+        """
+        Takes a dataframe that has already been merged from two input files and queries it
+        for changes in the given tag
+        """
         if self.chameleon_mode not in SPECIAL_MODES:
             intermediate_df = self.loc[(self[f"{self.chameleon_mode}_old"].fillna(
                 '') != self[f"{self.chameleon_mode}_new"].fillna(''))]
@@ -90,6 +102,9 @@ class ChameleonDataFrame(pd.DataFrame):
         return self
 
     def group(self) -> ChameleonDataFrame:
+        """
+        Groups changes by type of change. (Each combination of old_value, new_value, and action)
+        """
         self['count'] = self['id']
         agg_functions = {
             'id': lambda id: JOSM_URL + ','.join(id),
@@ -145,6 +160,10 @@ class ChameleonDataFrame(pd.DataFrame):
 
 
 class ChameleonDataFrameSet(UserDict):
+    """
+    Specialized dict that holds all dataframes in a run until they are written
+    """
+
     def __init__(self, oldfile: Union[str, Path], newfile: Union[str, Path], use_api=False):
         super().__init__(self)
         self.source_data = None
@@ -152,7 +171,11 @@ class ChameleonDataFrameSet(UserDict):
         if not use_api:
             self.separate_special_dfs()
 
-    def merge_files(self, oldfile: Union[str, Path], newfile: Union[str, Path]):
+    def merge_files(self,
+                    oldfile: Union[str, Path], newfile: Union[str, Path]) -> ChameleonDataFrame:
+        """
+        Merge two csv inputs into a single combined dataframe
+        """
         # dtypes = {
         #     # '@id': int,
         #     # '@version': int
@@ -187,9 +210,12 @@ class ChameleonDataFrameSet(UserDict):
         except ValueError:
             # No change for this mode, add a placeholder column
             self.source_data['action'] = ''
+        return self
 
     def separate_special_dfs(self) -> ChameleonDataFrame:
-        # Create special dataframes for creations and deletions
+        """
+        Separate creations and deletions into their own dataframes
+        """
         special_dataframes = {'new': self.source_data[self.source_data['action'] == 'new'],
                               'deleted': self.source_data[self.source_data['action'] == 'deleted']}
         # Remove the new/deleted ways from the source_data

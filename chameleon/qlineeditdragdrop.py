@@ -1,7 +1,15 @@
+"""
+Extension of QLineEdit that accepts files dragged onto it from the system's file browser and
+extracts their paths
+"""
+
+import logging
 from pathlib import Path
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QToolTip, QWidget
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QToolTip
+
+logger = logging.getLogger(__name__)
 
 
 class QLineEditDragDrop(QtWidgets.QLineEdit):
@@ -25,7 +33,7 @@ class QLineEditDragDrop(QtWidgets.QLineEdit):
         # If more than one file is selected, only the first will be used
         file_path = Path(event.mimeData().urls()[0].toLocalFile())
         if file_path.suffix == ".csv":
-            print(f"Drag enter accepted, {str(file_path)}")
+            logger.debug(f"Drag enter accepted, {str(file_path)}")
             event.accept()
         else:
             # Error prompt for when dragged object is not valid type
@@ -47,12 +55,12 @@ class QLineEditDragDrop(QtWidgets.QLineEdit):
         """
         # If more than one file is dragged in, we will only accept the first selected
         file_path = Path(event.mimeData().urls()[0].toLocalFile())
-        print("data: ", str(file_path))
+        logger.debug("data: ", str(file_path))
         if file_path.suffix == ".csv":  # Check to see if file is .csv
-            print(f"Text to enter is {file_path}")
+            logger.debug(f"Text to enter is {file_path}")
             # Accept dropEvent
             event.accept()
-            print(f"setting text to new box, {file_path}")
+            logger.debug(f"setting text to new box, {file_path}")
             # Inherits QLineEdit from main.py (self)
             self.selectAll()
             self.insert(str(file_path))
