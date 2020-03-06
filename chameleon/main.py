@@ -342,7 +342,8 @@ class Worker(QObject):
             else:
                 try:
                     r = requests.get(
-                        f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history', timeout=2,
+                        f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history',
+                        timeout=2,
                         headers={'user-agent': f'Kaart Chameleon{formatted_app_version}'})
                     r.raise_for_status()
                 except ConnectionError as e:
