@@ -305,11 +305,12 @@ class Worker(QObject):
             if not self.response:
                 logger.info("Not writing output")
                 return
-        with pd.ExcelWriter(file_name) as writer:
+        with pd.ExcelWriter(file_name,
+                            engine='xlsxwriter') as writer:
             for mode, result in dataframe_set.items():
                 row_count = len(result)
                 result.to_excel(writer, sheet_name=mode,
-                                index=False, freeze_panes=(2, 0))
+                                index=False, freeze_panes=(1, 0))
                 if not row_count:
                     # Empty dataframe
                     success_message = (f"{mode} has no change.")
