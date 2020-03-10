@@ -259,9 +259,8 @@ class Worker(QObject):
             formatted_app_version = ''
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
         self.scale_with_api_items.emit(len(deleted_ids))
-        # TODO Add while loop to allow for early cancel
-        # For use in split/merge detection
         for feature_id in deleted_ids:
+            # Allow ending the check early
             if self.thread().isInterruptionRequested():
                 return
             self.increment_progbar_api.emit()
