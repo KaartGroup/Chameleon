@@ -339,6 +339,8 @@ class Worker(QObject):
         # TODO Add while loop to allow for early cancel
         # For use in split/merge detection
         for feature_id in deleted_ids:
+            if self.thread().isInterruptionRequested():
+                return
             self.increment_progbar_api.emit()
             if feature_id in self.overpass_result_attribs:
                 element_attribs = self.overpass_result_attribs[feature_id]
@@ -574,7 +576,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             for k, v in self.text_fields.items():
                 v.insert(self.history_dict.get(k, ''))
             self.offlineRadio.setChecked(
-                ~self.history_dict.get('use_api', True))
+                not self.history_dict.get('use_api', True))
             if self.history_dict.get('file_format', 'csv') == 'excel':
                 self.excelRadio.setChecked(True)
         # If file doesn't exist, fail silently
@@ -892,7 +894,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.progress_bar.increment_progbar_api)
         self.worker.scale_with_api_items.connect(
             self.progress_bar.scale_with_api_items)
-        self.progress_bar.canceled.connect(self.finished)
+        self.progress_bar.canceled.connect(self.stop_thread)
         # Connect to finished() when all modes are done in Worker
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
@@ -930,6 +932,13 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         return super(MainApp, self).eventFilter(obj, event)
 
+    @Slot()
+    def stop_thread(self):
+        """
+        End the work thread early
+        """
+        self.work_thread.requestInterruption()
+
     # Re-enable run button when function complete
     def finished(self):
         """
@@ -938,7 +947,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         # Quits work_thread and reset
         # Needs worker logging
-        # self.worker.stop()
         self.work_thread.quit()
         self.work_thread.wait()
         # In theory this deletes the worker only when done
