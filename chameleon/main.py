@@ -174,7 +174,8 @@ class Worker(QObject):
                 self.files['old'], self.files['new'], use_api=self.use_api)
             if self.use_api:
                 self.check_api_deletions(dataframe_set.source_data)
-                dataframe_set.separate_special_dfs()
+            # Separate out the new and deleted dataframes
+            dataframe_set.separate_special_dfs()
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
