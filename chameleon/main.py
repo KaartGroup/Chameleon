@@ -250,83 +250,6 @@ class Worker(QObject):
             except NameError:
                 pass
 
-    def write_csv(self, dataframe_set: ChameleonDataFrameSet):
-        for mode, result in dataframe_set.items():
-            row_count = len(result)
-            file_name = Path(
-                f"{self.files['output']}_{mode}.csv")
-            logger.info("Writing %s", (file_name))
-            try:
-                with file_name.open('x') as output_file:
-                    result.to_csv(output_file, sep='\t', index=False)
-            except FileExistsError:
-                # Prompt and wait for confirmation before overwriting
-                try:  # This block ensures the mutex is unlocked even in the worst case
-                    self.overwrite_confirm.emit(str(file_name))
-                    self.parent.mutex.lock()
-                    # Don't check for a response until after the user has a chance to give one
-                    self.parent.waiting_for_input.wait(
-                        self.parent.mutex)
-                    if not self.response:
-                        logger.info("Skipping %s.", (mode))
-                        continue
-                    else:
-                        with file_name.open('w') as output_file:
-                            result.to_csv(
-                                output_file, sep='\t', index=False)
-                finally:
-                    self.parent.mutex.unlock()
-            except OSError:
-                logger.exception("Write error.")
-                self.error_list += mode
-                continue
-            if not row_count:
-                # Empty dataframe
-                success_message = (f"{mode} has no change.")
-            else:
-                # Exclude the header row from the row count
-                s = ''
-                if row_count > 1:
-                    s = 's'
-                success_message = (
-                    f"{mode} output with {row_count} row{s}.")
-            self.successful_items.update({mode: success_message})
-            logger.info(
-                "Processing for %s complete. %s written.", mode, file_name)
-            self.mode_complete.emit()
-
-    def write_excel(self, dataframe_set: ChameleonDataFrameSet):
-        file_name = Path(f"{self.files['output']}.xlsx")
-        if file_name.is_file():
-            self.overwrite_confirm.emit(str(file_name))
-            self.parent.mutex.lock()
-            # Don't check for a response until after the user has a chance to give one
-            self.parent.waiting_for_input.wait(
-                self.parent.mutex)
-            if not self.response:
-                logger.info("Not writing output")
-                return
-        with pd.ExcelWriter(file_name,
-                            engine='xlsxwriter') as writer:
-            for mode, result in dataframe_set.items():
-                row_count = len(result)
-                result.to_excel(writer, sheet_name=mode,
-                                index=False, freeze_panes=(1, 0))
-                if not row_count:
-                    # Empty dataframe
-                    success_message = (f"{mode} has no change.")
-                else:
-                    s = ''
-                    if row_count > 1:
-                        s = 's'
-                    success_message = (
-                        f"{mode} output with {row_count} row{s}.")
-                self.successful_items.update({mode: success_message})
-
-    def write_geojson(self):
-        # Placeholder for future development
-        pass
-
     def check_api_deletions(self, df: pd.DataFrame):
         # How long to wait between API calls
         request_interval = 1
@@ -405,13 +328,86 @@ class Worker(QObject):
 
             for attribute, value in element_attribs.items():
                 df.at[feature_id, attribute] = value
-                pass
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(request_interval)
 
-    # def stop(self):
-    #     self._isRunning = False
+    def write_csv(self, dataframe_set: ChameleonDataFrameSet):
+        for mode, result in dataframe_set.items():
+            row_count = len(result)
+            file_name = Path(
+                f"{self.files['output']}_{mode}.csv")
+            logger.info("Writing %s", (file_name))
+            try:
+                with file_name.open('x') as output_file:
+                    result.to_csv(output_file, sep='\t', index=False)
+            except FileExistsError:
+                # Prompt and wait for confirmation before overwriting
+                try:  # This block ensures the mutex is unlocked even in the worst case
+                    self.overwrite_confirm.emit(str(file_name))
+                    self.parent.mutex.lock()
+                    # Don't check for a response until after the user has a chance to give one
+                    self.parent.waiting_for_input.wait(
+                        self.parent.mutex)
+                    if not self.response:
+                        logger.info("Skipping %s.", (mode))
+                        continue
+                    else:
+                        with file_name.open('w') as output_file:
+                            result.to_csv(
+                                output_file, sep='\t', index=False)
+                finally:
+                    self.parent.mutex.unlock()
+            except OSError:
+                logger.exception("Write error.")
+                self.error_list += mode
+                continue
+            if not row_count:
+                # Empty dataframe
+                success_message = (f"{mode} has no change.")
+            else:
+                # Exclude the header row from the row count
+                s = ''
+                if row_count > 1:
+                    s = 's'
+                success_message = (
+                    f"{mode} output with {row_count} row{s}.")
+            self.successful_items.update({mode: success_message})
+            logger.info(
+                "Processing for %s complete. %s written.", mode, file_name)
+            self.mode_complete.emit()
+
+    def write_excel(self, dataframe_set: ChameleonDataFrameSet):
+        file_name = Path(f"{self.files['output']}.xlsx")
+        if file_name.is_file():
+            self.overwrite_confirm.emit(str(file_name))
+            self.parent.mutex.lock()
+            # Don't check for a response until after the user has a chance to give one
+            self.parent.waiting_for_input.wait(
+                self.parent.mutex)
+            if not self.response:
+                logger.info("Not writing output")
+                return
+        with pd.ExcelWriter(file_name,
+                            engine='xlsxwriter') as writer:
+            for mode, result in dataframe_set.items():
+                row_count = len(result)
+                result.to_excel(writer, sheet_name=mode,
+                                index=False, freeze_panes=(1, 0))
+                if not row_count:
+                    # Empty dataframe
+                    success_message = (f"{mode} has no change.")
+                else:
+                    s = ''
+                    if row_count > 1:
+                        s = 's'
+                    success_message = (
+                        f"{mode} output with {row_count} row{s}.")
+                self.successful_items.update({mode: success_message})
+
+    def write_geojson(self):
+        # Placeholder for future development
+        pass
 
 
 class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
