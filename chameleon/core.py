@@ -168,8 +168,6 @@ class ChameleonDataFrameSet(UserDict):
         super().__init__(self)
         self.source_data = None
         self.merge_files(oldfile, newfile)
-        if not use_api:
-            self.separate_special_dfs()
 
     def merge_files(self,
                     oldfile: Union[str, Path], newfile: Union[str, Path]) -> ChameleonDataFrame:
