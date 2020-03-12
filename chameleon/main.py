@@ -23,6 +23,7 @@ from lxml import etree
 from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import QObject, QThread
+# Rename for Pyside compatibility
 from PyQt5.QtCore import pyqtSignal as Signal
 from PyQt5.QtCore import pyqtSlot as Slot
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
