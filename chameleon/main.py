@@ -260,7 +260,7 @@ class Worker(QObject):
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
-            # Allow ending the check early
+            # Ends the API check early if the user cancels it
             if self.thread().isInterruptionRequested():
                 return
             self.increment_progbar_api.emit()
@@ -871,11 +871,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         else:
             file_format = 'csv'
 
-        # Add one mode more that the length so that a full bar represents completion
-        # When the final tag is started, the bar will show one increment remaining
-        # Disables the system default close, minimize, maximuize buttons
-        # First task of Worker is to check for highway tag in source files
-        self.progress_bar = chameleonProgressDialog(len(modes), use_api)
+        self.progress_bar = ChameleonProgressDialog(len(modes), use_api)
         self.progress_bar.show()
 
         # Handles Worker class and QThreads for Worker
@@ -890,18 +886,19 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.worker.scale_with_api_items.connect(
             self.progress_bar.scale_with_api_items)
         self.progress_bar.canceled.connect(self.stop_thread)
-        # Connect to finished() when all modes are done in Worker
+        # Run finished() when all modes are done in Worker
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
         self.worker.overwrite_confirm.connect(self.overwrite_message)
         self.worker.dialog.connect(self.dialog)
+
         self.worker.moveToThread(self.work_thread)
         self.work_thread.started.connect(self.worker.run)
         self.work_thread.start()
 
     def eventFilter(self, obj, event):
         """
-        Allows installed objects to filter QKeyEvents.
+        Allows installed objects to filter QKeyEvents. Overrides the Qt default method.
 
         Parameters
         ----------
@@ -1003,7 +1000,11 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.warning("All Chameleon analysis processing completed.")
 
 
-class chameleonProgressDialog(QProgressDialog):
+class ChameleonProgressDialog(QProgressDialog):
+    """
+    Customizes QProgressDialog with methods specific to this app.
+    """
+
     def __init__(self, length: int, use_api=False):
         self.length = length
         super().__init__('', 'Cancel', 0, self.length)
@@ -1028,6 +1029,7 @@ class chameleonProgressDialog(QProgressDialog):
         logger.info("mode_start signal -> caught mode: %s.", (mode))
 
         self.mode = mode
+        # If we aren't using the API, we can simply set the bar as (modes completed)/(modes to do)
         if not self.use_api:
             self.setValue(self.mode_progress)
         self.label_text_base = f"Analyzing {mode} tag…"
@@ -1040,6 +1042,15 @@ class chameleonProgressDialog(QProgressDialog):
 
     @Slot(int)
     def scale_with_api_items(self, item_count: int):
+        """
+        Scales the bar by the number of items the API will be called for, so that the deleted mode
+        is the same size as the other modes, but subdivided by the API item count
+
+        Parameters
+        ----------
+        item_count : int
+            Count of API items that will be run
+        """
         self.current_item = 0
         self.item_count = item_count
         scaled_value = self.mode_progress * self.item_count
