@@ -95,7 +95,7 @@ def logger_setup(log_dir: Path):
                 # Remove extra log files that exceed 15 records
                 for f in log_list[:rm_count]:
                     try:
-                        logger.info("removing...%s", str(f))
+                        logger.info("removing…%s", str(f))
                         f.unlink()
                     except OSError as e:
                         logger.exception(e)
@@ -501,16 +501,20 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
         self.newFileSelectButton.clicked.connect(self.open_input_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
+
         # Changes the displayed file name template depending on the selected file format
         self.excelRadio.clicked.connect(self.suffix_updater)
         self.csvRadio.clicked.connect(self.suffix_updater)
-        self.runButton.clicked.connect(self.run_query)
+
         for i in self.fav_btn:
             i.clicked.connect(self.add_tag)
         self.searchButton.clicked.connect(self.add_tag)
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
+        self.runButton.clicked.connect(self.run_query)
+
         # Clears the search box after an item is selected from the autocomplete list
+        # QueuedConnection is needed to make sure the events fire in the right order
         self.clear_search_box.connect(
             self.searchBox.clear, QtCore.Qt.QueuedConnection)
 
@@ -564,7 +568,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.searchBox.setCompleter(completer)
 
     def history_loader(self):
-        # Check for history file and load if exists
+        """
+        Check for history file and load if exists
+        """
         self.history_dict = {}
         try:
             with HISTORY_LOCATION.open('r') as history_file:
@@ -740,7 +746,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     @Slot()
     def open_input_file(self):
         """
-        Adds functionality to the Open Old/New File (...) button, opens the
+        Adds functionality to the Open Old/New File (…) button, opens the
         '/downloads' system path to find csv file.
         """
         sender = self.sender()
@@ -761,7 +767,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     @Slot()
     def output_file(self):
         """
-        Adds functionality to the Output File (...) button, opens the
+        Adds functionality to the Output File (…) button, opens the
         '/downloads' system path for user to name an output file.
         """
         # If no previous location, default to Documents folder
@@ -850,7 +856,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                     'Output directory not writeable!', '', 'critical')
                 return
         except IndexError:
-            # This shouldn't be reachable normally, but belt-and-suspenders...
+            # This shouldn't be reachable normally, but belt-and-suspenders…
             self.dialog(
                 'Output file field is blank.',
                 'Please enter a value.',
@@ -1013,7 +1019,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.use_api = use_api
         self.setModal(True)
         self.setMinimumWidth(400)
-        self.setLabelText('Beginning analysis...')
+        self.setLabelText('Beginning analysis…')
         self.setWindowFlags(
             QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
 
