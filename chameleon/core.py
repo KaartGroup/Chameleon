@@ -32,10 +32,13 @@ class ChameleonDataFrame(pd.DataFrame):
         self.grouping = grouping
         super().__init__(data=df, index=None, dtype=dtype, copy=False)
 
-    # Required for subclassing pandas classes, otherwise manipulation return vanilla pandas
-    # classes instead of our subclass
     @property
     def _constructor(self):
+        """
+        Required for subclassing pandas classes,
+        otherwise manipulation will return vanilla pandas classes
+        instead of our subclass
+        """
         return ChameleonDataFrame
 
     def query(self) -> ChameleonDataFrame:
