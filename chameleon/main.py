@@ -12,7 +12,6 @@ import sys
 import time
 from collections import Counter
 from datetime import datetime
-from pathlib import Path
 
 import oyaml as yaml
 import pandas as pd
@@ -32,6 +31,8 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
 # Import generated UI file
 from chameleon import design
 from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
+# Replaced std Path with a subclass adding an extra method
+from chameleon.path import Path
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
