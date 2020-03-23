@@ -865,16 +865,17 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Wrap the file references in Path object to prepare "file not found" warning
         file_paths = {k: Path(v.text())
                       for k, v in self.text_fields.items()}
+
         # Check if either old or new file/directory exists. If not, notify user.
         if not file_paths['old'].is_file() or not file_paths['new'].is_file():
             if not file_paths['old'].is_file() and not file_paths['new'].is_file():
-                self.dialog('File or directories not found!', '', 'critical')
+                self.dialog('Neither file could be found!', '', 'critical')
             elif not file_paths['old'].is_file():
                 self.dialog(
-                    'Old file or directory not found!', '', 'critical')
+                    'Old file not found!', '', 'critical')
             elif not file_paths['new'].is_file():
                 self.dialog(
-                    'New file or directory not found!', '', 'critical')
+                    'New file not found!', '', 'critical')
             return
         # Check if output directory is writable
         try:
