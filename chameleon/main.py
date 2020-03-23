@@ -544,6 +544,9 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.oldFileSelectButton.box_control = self.oldFileNameBox
         self.newFileSelectButton.box_control = self.newFileNameBox
 
+        # Set the output name template
+        self.suffix_updater()
+
     @Slot()
     def about_menu(self):
         """
