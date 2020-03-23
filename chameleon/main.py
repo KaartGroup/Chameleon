@@ -114,6 +114,13 @@ else:
     logger.debug('VSCode debug library successful.')
 
 
+class UserCancelledError(Exception):
+    """
+    Raised when the user hits the cancel button on a long operation
+    """
+    pass
+
+
 class Worker(QObject):
     """
 
@@ -126,6 +133,7 @@ class Worker(QObject):
     mode_complete = Signal()
     scale_with_api_items = Signal(int)
     increment_progbar_api = Signal()
+    check_api_done = Signal()
     overwrite_confirm = Signal(str)
     dialog = Signal(str, str, str)
 
@@ -174,7 +182,14 @@ class Worker(QObject):
             dataframe_set = ChameleonDataFrameSet(
                 self.files['old'], self.files['new'], use_api=self.use_api)
             if self.use_api:
-                self.check_api_deletions(dataframe_set.source_data)
+                try:
+                    self.check_api_deletions(dataframe_set.source_data)
+                except UserCancelledError:
+                    # User cancelled the API check manually
+                    return
+                except RuntimeError:
+                    # Rate-limited by server
+                    return
             # Separate out the new and deleted dataframes
             dataframe_set.separate_special_dfs()
             for mode in self.modes:
@@ -256,6 +271,9 @@ class Worker(QObject):
                 pass
 
     def check_api_deletions(self, df: pd.DataFrame):
+        """
+        Pings OSM server to see if ways were actually deleted or just dropped
+        """
         # How long to wait between API calls
         request_interval = 1
         if APP_VERSION:
@@ -267,7 +285,7 @@ class Worker(QObject):
         for feature_id in deleted_ids:
             # Ends the API check early if the user cancels it
             if self.thread().isInterruptionRequested():
-                return
+                raise UserCancelledError
             self.increment_progbar_api.emit()
             if feature_id in self.overpass_result_attribs:
                 element_attribs = self.overpass_result_attribs[feature_id]
@@ -277,6 +295,7 @@ class Worker(QObject):
                         f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history',
                         timeout=2,
                         headers={'user-agent': f'Kaart Chameleon{formatted_app_version}'})
+                    # Raises exceptions for non-successful status codes
                     r.raise_for_status()
                 except ConnectionError as e:
                     # Couldn't contact the server, could be client-side
@@ -285,11 +304,10 @@ class Worker(QObject):
                 except r.HTTPError:
                     if str(r.status_code) == '429':
                         retry_after = r.headers.get('retry-after', '')
-
                         logger.error(
                             "The OSM server says you've made too many requests."
                             "You can retry after %s seconds.", retry_after)
-                        break
+                        raise RuntimeError
                     else:
                         logger.error(
                             'Server replied with a %s error', r.status_code)
@@ -335,6 +353,7 @@ class Worker(QObject):
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(request_interval)
+        self.check_api_done.emit()
 
     def write_csv(self, dataframe_set: ChameleonDataFrameSet):
         for mode, result in dataframe_set.items():
@@ -897,6 +916,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.worker.scale_with_api_items.connect(
             self.progress_bar.scale_with_api_items)
         self.progress_bar.canceled.connect(self.stop_thread)
+        self.worker.check_api_done.connect(self.progress_bar.check_api_done)
         # Run finished() when all modes are done in Worker
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
@@ -1018,9 +1038,19 @@ class ChameleonProgressDialog(QProgressDialog):
 
     def __init__(self, length: int, use_api=False):
         self.length = length
-        super().__init__('', 'Cancel', 0, self.length)
-        self.mode_progress = 0
         self.use_api = use_api
+        # Tracks how many actual modes have been completed, independent of scaling
+        self.mode_progress = 0
+
+        super().__init__('', None, 0, self.length)
+
+        self.cancel_button = QtWidgets.QPushButton('Cancel')
+        self.cancel_button.setEnabled(False)
+        self.setCancelButton(self.cancel_button)
+
+        self.setAutoClose(False)
+        self.setAutoReset(False)
+
         self.setModal(True)
         self.setMinimumWidth(400)
         self.setLabelText('Beginning analysis…')
@@ -1062,6 +1092,7 @@ class ChameleonProgressDialog(QProgressDialog):
         item_count : int
             Count of API items that will be run
         """
+        self.cancel_button.setEnabled(True)
         self.current_item = 0
         self.item_count = item_count
         scaled_value = self.mode_progress * self.item_count
@@ -1075,6 +1106,13 @@ class ChameleonProgressDialog(QProgressDialog):
         self.setValue(self.value() + 1)
         self.setLabelText(
             f"Checking deleted items on OSM server ({self.current_item} of {self.item_count})")
+
+    @Slot()
+    def check_api_done(self):
+        """
+        Disables the cancel button after the API check is complete
+        """
+        self.cancel_button.setEnabled(False)
 
 
 def dir_uri(the_path: Path) -> str:
