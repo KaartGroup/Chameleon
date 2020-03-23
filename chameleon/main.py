@@ -16,10 +16,8 @@ from pathlib import Path
 
 import oyaml as yaml
 import pandas as pd
-import requests
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
-from lxml import etree
 from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import QObject, QThread
@@ -148,8 +146,7 @@ class Worker(QObject):
         self.parent = parent
         self.response = None
         self.format = file_format
-        self.deleted_way_members = {}
-        self.overpass_result_attribs = {}
+
         self.error_list = []
         self.successful_items = {}
 
@@ -182,7 +179,7 @@ class Worker(QObject):
                 self.files['old'], self.files['new'], use_api=self.use_api)
             if self.use_api:
                 try:
-                    self.check_api_deletions(dataframe_set.source_data)
+                    self.check_api_deletions(dataframe_set)
                 except UserCancelledError:
                     # User cancelled the API check manually
                     return
@@ -264,16 +261,15 @@ class Worker(QObject):
             except NameError:
                 pass
 
-    def check_api_deletions(self, df: pd.DataFrame):
+    def check_api_deletions(self, cdfs: ChameleonDataFrameSet):
         """
         Pings OSM server to see if ways were actually deleted or just dropped
         """
         # How long to wait between API calls
-        request_interval = 1
-        if APP_VERSION:
-            formatted_app_version = f" {APP_VERSION}"
-        else:
-            formatted_app_version = ''
+        REQUEST_INTERVAL = 1
+
+        df = cdfs.source_data
+
         deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
@@ -281,72 +277,15 @@ class Worker(QObject):
             if self.thread().isInterruptionRequested():
                 raise UserCancelledError
             self.increment_progbar_api.emit()
-            if feature_id in self.overpass_result_attribs:
-                element_attribs = self.overpass_result_attribs[feature_id]
-            else:
-                try:
-                    r = requests.get(
-                        f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history',
-                        timeout=2,
-                        headers={'user-agent': f'Kaart Chameleon{formatted_app_version}'})
-                    # Raises exceptions for non-successful status codes
-                    r.raise_for_status()
-                except ConnectionError as e:
-                    # Couldn't contact the server, could be client-side
-                    logger.exception(e)
-                    continue
-                except r.HTTPError:
-                    if str(r.status_code) == '429':
-                        retry_after = r.headers.get('retry-after', '')
-                        logger.error(
-                            "The OSM server says you've made too many requests."
-                            "You can retry after %s seconds.", retry_after)
-                        raise RuntimeError
-                    else:
-                        logger.error(
-                            'Server replied with a %s error', r.status_code)
-                    continue
-                except etree.XMLSyntaxError:
-                    logger.error(
-                        'No OSM feature recieved for id %s.', feature_id)
-                    continue
-                else:
-                    root = etree.fromstring(r.content)
-                    # TODO Generalize for nodes and relations
-                    latest_version = root.findall(f"way")[-1]
-                    element_attribs = {
-                        'user_new': latest_version.attrib['user'],
-                        'changeset_new': latest_version.attrib['changeset'],
-                        'version_new': latest_version.attrib['version'],
-                        'timestamp_new': latest_version.attrib['timestamp']
-                    }
 
-                    if latest_version.attrib['visible'] == "false":
-                        # The most recent way version has the way deleted
-                        # element_attribs.update({
-                        #     'url': ''
-                        # })
-                        prior_version_num = str(
-                            int(element_attribs['version_new']) - 1)
-                        prior_version = root.find(
-                            f"way[@version=\"{prior_version_num}\"]")
-                        member_nodes = [int(el.attrib['ref'])
-                                        for el in prior_version.findall("nd")]
-                        # Save last members of the deleted way
-                        # for later use in detecting splits/merges
-                        self.deleted_way_members[feature_id] = member_nodes
-                    elif latest_version.attrib['visible'] == 'true':
-                        # The way was not deleted, just dropped from the latter dataset
-                        element_attribs.update({
-                            'action': 'dropped'
-                        })
-                    self.overpass_result_attribs[feature_id] = element_attribs
+            element_attribs = cdfs.check_feature_on_api(
+                feature_id, app_version=APP_VERSION)
 
             for attribute, value in element_attribs.items():
                 df.at[feature_id, attribute] = value
 
             # Wait between iterations to avoid ratelimit problems
-            time.sleep(request_interval)
+            time.sleep(REQUEST_INTERVAL)
         self.check_api_done.emit()
 
     def write_csv(self, dataframe_set: ChameleonDataFrameSet):

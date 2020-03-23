@@ -3,11 +3,16 @@ UI-independent classes for processing data
 """
 from __future__ import annotations
 
+import json
+import logging
 from collections import UserDict
 from pathlib import Path
 from typing import Union
 
 import pandas as pd
+import requests
+
+logger = logging.getLogger(__name__)
 
 SPECIAL_MODES = {'new', 'deleted'}
 JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
@@ -187,6 +192,8 @@ class ChameleonDataFrameSet(UserDict):
         self.source_data = None
         self.oldfile = Path(oldfile)
         self.newfile = Path(newfile)
+        self.deleted_way_members = {}
+        self.overpass_result_attribs = {}
 
         self.merge_files()
 
@@ -250,3 +257,63 @@ class ChameleonDataFrameSet(UserDict):
         for mode, df in special_dataframes.items():
             self[mode] = ChameleonDataFrame(df=df, mode=mode).query()
         return self
+
+    def check_feature_on_api(self, feature_id, app_version: str = '') -> dict:
+        """
+        Checks whether a way was deleted on the server
+        """
+        if app_version:
+            app_version = f" {app_version}".rstrip()
+
+        # TODO Change from XML to JSON
+        if feature_id in self.overpass_result_attribs:
+            element_attribs = self.overpass_result_attribs[feature_id]
+        else:
+            try:
+                response = requests.get(
+                    f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history.json',
+                    timeout=2,
+                    headers={'user-agent': f'Kaart Chameleon{app_version}'})
+                # Raises exceptions for non-successful status codes
+                response.raise_for_status()
+            except ConnectionError as e:
+                # Couldn't contact the server, could be client-side
+                logger.exception(e)
+                return
+            except response.HTTPError:
+                if str(response.status_code) == '429':
+                    retry_after = response.headers.get('retry-after', '')
+                    logger.error(
+                        "The OSM server says you've made too many requests."
+                        "You can retry after %s seconds.", retry_after)
+                    raise RuntimeError
+                else:
+                    logger.error(
+                        'Server replied with a %s error', response.status_code)
+                return
+            else:
+                loaded_response = json.loads(response.text)
+                # TODO Generalize for nodes and relations
+                latest_version = loaded_response['elements'][-1]
+                element_attribs = {
+                    'user_new': latest_version['user'],
+                    'changeset_new': str(latest_version['changeset']),
+                    'version_new': str(latest_version['version']),
+                    'timestamp_new': latest_version['timestamp']
+                }
+
+                if not latest_version.get('visible', True):
+                    # The most recent way version has the way deleted
+                    prior_version_num = int(latest_version['version']) - 1
+                    prior_version = [i for i in loaded_response['elements']
+                                     if int(i['version']) == prior_version_num][0]
+
+                    # Save last members of the deleted way
+                    # for later use in detecting splits/merges
+                    self.deleted_way_members[feature_id] = prior_version['nodes']
+                else:
+                    # The way was not deleted, just dropped from the latter dataset
+                    element_attribs.update({
+                        'action': 'dropped'
+                    })
+                return element_attribs
