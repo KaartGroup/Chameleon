@@ -841,6 +841,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         else:
             dialog.setIcon(QMessageBox.Information)
         dialog.setInformativeText(info)
+        dialog.setTextFormat(QtCore.Qt.RichText)
         dialog.exec()
 
     def run_query(self):
