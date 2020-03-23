@@ -115,7 +115,7 @@ class ChameleonDataFrame(pd.DataFrame):
             self[f"new_{self.chameleon_mode}"] = intermediate_df[f"{self.chameleon_mode}_new"]
 
         self['action'] = intermediate_df['action']
-        self['notes'] = ''
+        self['notes'] = self['QCer'] = self['QC_notes'] = self['resolution'] = ''
         if self.grouping:
             self = self.group()
         self.sort()
