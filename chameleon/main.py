@@ -176,7 +176,6 @@ class Worker(QObject):
                 logger.debug("Config directory could not be created.")
         if self.files:
             self.history_writer()
-        # print(f"Before run: {self.modes} with {type(self.modes)}.")
         try:
             mode = None
             dataframe_set = ChameleonDataFrameSet(
@@ -195,7 +194,6 @@ class Worker(QObject):
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", (mode))
                 self.mode_start.emit(mode)
-                # sanitized_mode = mode.replace(":", "_")
                 try:
                     result = ChameleonDataFrame(dataframe_set.source_data,
                                                 mode=mode,
@@ -210,11 +208,7 @@ class Worker(QObject):
                 self.write_csv(dataframe_set)
             elif self.format == 'excel':
                 self.write_excel(dataframe_set)
-            # print(f"After run: {self.modes} with {type(self.modes)}.")
         finally:
-            # print(f"End run: {self.modes} with {type(self.modes)}.")
-            # print(f"Before clear: {self.modes} with {type(self.modes)}.")
-
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
             cancelled_list = self.modes.difference(
@@ -550,6 +544,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.oldFileSelectButton.box_control = self.oldFileNameBox
         self.newFileSelectButton.box_control = self.newFileNameBox
 
+    @Slot()
     def about_menu(self):
         """
         Handles about page information.
@@ -659,6 +654,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 raise IndexError(f"Index {index} of fav_btn doesn't exist! "
                                  f"Attempted to insert from{fav_list}.") from e
 
+    @Slot()
     def add_tag(self):
         """
         Adds user defined tags into processing list on QListWidget.
@@ -695,6 +691,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.run_checker()
         self.listWidget.repaint()
 
+    @Slot()
     def delete_tag(self):
         """
         Clears selected list items with "Delete" button.
@@ -711,6 +708,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.exception()
         self.listWidget.repaint()
 
+    @Slot()
     def clear_tag(self):
         """
         Wipes all tags listed on QList with "Clear" button.
@@ -965,7 +963,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         self.work_thread.requestInterruption()
 
-    # Re-enable run button when function complete
+    @Slot()
     def finished(self):
         """
         Helper method finalizes run process: re-enable run button
@@ -980,6 +978,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.progress_bar.close()
         # Logging processing completion
         logger.info("All Chameleon analysis processing completed.")
+        # Re-enable run button when function complete
         self.run_checker()
 
     @Slot(str)
