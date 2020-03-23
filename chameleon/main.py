@@ -208,26 +208,30 @@ class Worker(QObject):
             if self.error_list:  # Some tags failed
                 dialog_icon = 'critical'
                 if len(self.error_list) == 1:
-                    headline = "A tag could not be queried"
+                    headline = "<p>A tag could not be queried</p>"
                     summary = self.error_list[0]
                 else:
-                    headline = "Tags could not be queried"
+                    headline = "<p>Tags could not be queried</p>"
                     summary = "\n".join(self.error_list)
                 if self.successful_items:
-                    headline = "Some tags could not be queried"
+                    headline = "<p>Some tags could not be queried</p>"
                     summary += "\nThe following tags completed successfully:\n"
                     summary += "\n".join(list(self.successful_items.values()))
             elif self.successful_items:  # Nothing failed, everything suceeded
-                headline = "Success"
+                headline = "<p>Success!</p>"
                 summary = "All tags completed!\n"
                 summary += "\n".join(list(self.successful_items.values()))
             # Nothing succeeded and nothing failed, probably because user declined to overwrite
             else:
-                headline = "Nothing saved"
+                headline = "<p>Nothing saved</p>"
                 summary = "No files saved"
             if cancelled_list:
                 summary += '\nThe process was cancelled before the following tags completed:\n'
                 summary += '\n'.join(cancelled_list)
+            if self.successful_items:
+                # We want to always show in the file explorer, so we'll always link to a directory
+                headline += ("<p>Output file written to "
+                             f"<a href='{dir_uri(self.output_path)}'>{self.output_path}</a></p>")
             self.dialog.emit(headline, summary, dialog_icon)
             self.modes.clear()
             logger.info(list(self.successful_items.values()))
