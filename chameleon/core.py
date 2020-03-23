@@ -27,9 +27,10 @@ class ChameleonDataFrame(pd.DataFrame):
         #     # '@version': int
         #     '@timestamp': datetime
         # }
-        # Initialize as an "empty" dataframe, with the source data in an attribute
+
         self.chameleon_mode = mode
         self.grouping = grouping
+        # Initialize as an "empty" dataframe, with the source data in an attribute
         super().__init__(data=df, index=None, dtype=dtype, copy=False)
 
     @property
@@ -47,22 +48,30 @@ class ChameleonDataFrame(pd.DataFrame):
         for changes in the given tag
         """
         if self.chameleon_mode not in SPECIAL_MODES:
-            intermediate_df = self.loc[(self[f"{self.chameleon_mode}_old"].fillna(
-                '') != self[f"{self.chameleon_mode}_new"].fillna(''))]
+            intermediate_df = self.loc[(
+                self[f"{self.chameleon_mode}_old"].fillna('') !=
+                self[f"{self.chameleon_mode}_new"].fillna('')
+            )]
         else:
             # New and deleted frames
             intermediate_df = self
         # self = ChameleonDataFrame(
         #     mode=self.chameleon_mode, grouping=self.grouping)
-        self['id'] = (intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] +
-                      intermediate_df.index.astype(str))
+
+        self['id'] = (
+            intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] +
+            intermediate_df.index.astype(str)
+        )
         self['url'] = (JOSM_URL + self['id'])
         self['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
-        self['timestamp'] = pd.to_datetime(intermediate_df['timestamp_new'].fillna(
-            intermediate_df['timestamp_old'])).dt.strftime('%Y-%m-%d')
+        self['timestamp'] = pd.to_datetime(
+            intermediate_df['timestamp_new'].fillna(
+                intermediate_df['timestamp_old'])).dt.strftime('%Y-%m-%d')
         self['version'] = intermediate_df['version_new'].fillna(
             intermediate_df['version_old'])
+
+        # Drop all but these columns
         self = self[['id', 'url', 'user', 'timestamp', 'version']]
         try:
             # Succeeds if both csvs had changeset columns
@@ -94,9 +103,12 @@ class ChameleonDataFrame(pd.DataFrame):
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
+
+        # Renaming columns to be consistent with old Chameleon outputs
         if self.chameleon_mode not in SPECIAL_MODES:  # Skips the new and deleted DFs
             self[f"old_{self.chameleon_mode}"] = intermediate_df[f"{self.chameleon_mode}_old"]
             self[f"new_{self.chameleon_mode}"] = intermediate_df[f"{self.chameleon_mode}_new"]
+
         self['action'] = intermediate_df['action']
         self['notes'] = ''
         if self.grouping:
@@ -128,13 +140,16 @@ class ChameleonDataFrame(pd.DataFrame):
         # Create the new dataframe
         grouped_df = self.groupby(
             [f"old_{self.chameleon_mode}",
-                f"new_{self.chameleon_mode}", 'action'],
+             f"new_{self.chameleon_mode}",
+             'action'],
             as_index=False).aggregate(agg_functions)
         # Get the grouped columns out of the index to be more visible
         grouped_df.reset_index(inplace=True)
         # Send those columns to the end of the frame
         new_column_order = (list(agg_functions.keys()) +
-                            [f'old_{self.chameleon_mode}', f'new_{self.chameleon_mode}', 'action'])
+                            [f'old_{self.chameleon_mode}',
+                             f'new_{self.chameleon_mode}',
+                             'action'])
         grouped_df = grouped_df[new_column_order]
         grouped_df.rename(columns={
             'id': 'url',
@@ -170,10 +185,12 @@ class ChameleonDataFrameSet(UserDict):
     def __init__(self, oldfile: Union[str, Path], newfile: Union[str, Path], use_api=False):
         super().__init__(self)
         self.source_data = None
-        self.merge_files(oldfile, newfile)
+        self.oldfile = Path(oldfile)
+        self.newfile = Path(newfile)
 
-    def merge_files(self,
-                    oldfile: Union[str, Path], newfile: Union[str, Path]) -> ChameleonDataFrame:
+        self.merge_files()
+
+    def merge_files(self) -> ChameleonDataFrame:
         """
         Merge two csv inputs into a single combined dataframe
         """
@@ -182,9 +199,9 @@ class ChameleonDataFrameSet(UserDict):
         #     # '@version': int
         #     '@timestamp': datetime
         # }
-        old_df = pd.read_csv(oldfile, sep='\t',
+        old_df = pd.read_csv(self.oldfile, sep='\t',
                              index_col='@id', dtype=str)
-        new_df = pd.read_csv(newfile, sep='\t',
+        new_df = pd.read_csv(self.newfile, sep='\t',
                              index_col='@id', dtype=str)
         # Cast a couple items to more specific types
         # for col, col_type in dtypes.items():
@@ -192,10 +209,12 @@ class ChameleonDataFrameSet(UserDict):
         # new_df[col] = new_df[col].astype(col_type)
         # Used to indicate which sheet(s) each row came from post-join
         old_df['present'] = new_df['present'] = True
+
         self.source_data = old_df.join(new_df, how='outer',
                                        lsuffix='_old', rsuffix='_new')
         self.source_data['present_old'].fillna(False, inplace=True)
         self.source_data['present_new'].fillna(False, inplace=True)
+
         # Eliminate special chars that mess pandas up
         self.source_data.columns = self.source_data.columns.str.replace(
             '@', '')
@@ -203,6 +222,7 @@ class ChameleonDataFrameSet(UserDict):
             ':', '_')
         # Strip whitespace
         self.source_data.columns = self.source_data.columns.str.strip()
+
         try:
             self.source_data.loc[self.source_data.present_old &
                                  self.source_data.present_new, 'action'] = 'modified'
@@ -219,11 +239,14 @@ class ChameleonDataFrameSet(UserDict):
         """
         Separate creations and deletions into their own dataframes
         """
-        special_dataframes = {'new': self.source_data[self.source_data['action'] == 'new'],
-                              'deleted': self.source_data[self.source_data['action'] == 'deleted']}
+        special_dataframes = {
+            'new': self.source_data[self.source_data['action'] == 'new'],
+            'deleted': self.source_data[self.source_data['action'] == 'deleted']
+        }
         # Remove the new/deleted ways from the source_data
-        self.source_data = self.source_data[~self.source_data['action'].isin(
-            SPECIAL_MODES)]
+        self.source_data = self.source_data[
+            ~ self.source_data['action'].isin(SPECIAL_MODES)
+        ]
         for mode, df in special_dataframes.items():
             self[mode] = ChameleonDataFrame(df=df, mode=mode).query()
         return self
