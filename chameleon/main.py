@@ -399,9 +399,10 @@ class Worker(QObject):
             logger.info(
                 "Processing for %s complete. %s written.", mode, file_name)
             self.mode_complete.emit()
+        self.output_path = self.files['output'].parent
 
     def write_excel(self, dataframe_set: ChameleonDataFrameSet):
-        file_name = Path(f"{self.files['output']}.xlsx")
+        file_name = self.files['output'].with_suffix('.xlsx')
         if file_name.is_file():
             self.overwrite_confirm.emit(str(file_name))
             self.parent.mutex.lock()
@@ -427,6 +428,7 @@ class Worker(QObject):
                     success_message = (
                         f"{mode} output with {row_count} row{s}.")
                 self.successful_items.update({mode: success_message})
+        self.output_path = file_name
 
     def write_geojson(self):
         # Placeholder for future development
