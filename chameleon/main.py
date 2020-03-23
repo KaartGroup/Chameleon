@@ -12,6 +12,7 @@ import sys
 import time
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 
 import oyaml as yaml
 import pandas as pd
@@ -31,8 +32,6 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
 # Import generated UI file
 from chameleon import design
 from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
-# Replaced std Path with a subclass adding an extra method
-from chameleon.path import Path
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -1072,6 +1071,18 @@ class ChameleonProgressDialog(QProgressDialog):
         self.setValue(self.value() + 1)
         self.setLabelText(
             f"Checking deleted items on OSM server ({self.current_item} of {self.item_count})")
+
+
+def dir_uri(the_path: Path) -> str:
+    """
+    Return the URI of the nearest directory,
+    which can be self if it is a directory
+    or else the parent
+    """
+    if not the_path.is_dir():
+        return the_path.parent.as_uri()
+    else:
+        return the_path.as_uri()
 
 
 if __name__ == '__main__':
