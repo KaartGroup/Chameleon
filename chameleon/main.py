@@ -243,8 +243,12 @@ class Worker(QObject):
                 summary += '\nThe process was cancelled before the following tags completed:\n'
                 summary += '\n'.join(cancelled_list)
             if self.successful_items:
+                if self.format != 'excel':
+                    s = 's'
+                else:
+                    s = ''
                 # We want to always show in the file explorer, so we'll always link to a directory
-                headline += ("<p>Output file written to "
+                headline += (f"<p>Output file{s} written to "
                              f"<a href='{dir_uri(self.output_path)}'>{self.output_path}</a></p>")
             self.dialog.emit(headline, summary, dialog_icon)
             self.modes.clear()
@@ -297,6 +301,9 @@ class Worker(QObject):
         self.check_api_done.emit()
 
     def write_csv(self, dataframe_set: ChameleonDataFrameSet):
+        """
+        Writes all members of a ChameleonDataFrameSet to a set of CSV files
+        """
         for mode, result in dataframe_set.items():
             row_count = len(result)
             file_name = Path(
@@ -331,9 +338,10 @@ class Worker(QObject):
                 success_message = (f"{mode} has no change.")
             else:
                 # Exclude the header row from the row count
-                s = ''
                 if row_count > 1:
                     s = 's'
+                else:
+                    s = ''
                 success_message = (
                     f"{mode} output with {row_count} row{s}.")
             self.successful_items.update({mode: success_message})
@@ -343,6 +351,9 @@ class Worker(QObject):
         self.output_path = self.files['output'].parent
 
     def write_excel(self, dataframe_set: ChameleonDataFrameSet):
+        """
+        Writes all members of a ChameleonDataFrameSet as sheets in an Excel file
+        """
         file_name = self.files['output'].with_suffix('.xlsx')
         if file_name.is_file():
             self.overwrite_confirm.emit(str(file_name))
