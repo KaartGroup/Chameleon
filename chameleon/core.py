@@ -183,6 +183,7 @@ class ChameleonDataFrame(pd.DataFrame):
 
 
 class ChameleonDataFrameSet(UserDict):
+    # TODO Change this from dict to set, and use each df's .chameleon_mode property in lieu of the dict key
     """
     Specialized dict that holds all dataframes in a run until they are written
     """
