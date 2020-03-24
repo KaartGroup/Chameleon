@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>583</width>
-    <height>627</height>
+    <height>678</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -243,6 +243,13 @@
        <property name="bottomMargin">
         <number>6</number>
        </property>
+       <item>
+        <widget class="QRadioButton" name="geojsonRadio">
+         <property name="text">
+          <string>GeoJSON</string>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QRadioButton" name="excelRadio">
          <property name="text">

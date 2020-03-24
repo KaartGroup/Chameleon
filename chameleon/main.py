@@ -9,10 +9,16 @@ import logging
 import os
 import shlex
 import sys
+import tempfile
 import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+
+import geojson
+import geopandas as gpd
+import osm2geojson
+import overpass
 
 import oyaml as yaml
 import pandas as pd
@@ -205,6 +211,8 @@ class Worker(QObject):
                 self.write_csv(dataframe_set)
             elif self.format == 'excel':
                 self.write_excel(dataframe_set)
+            elif self.format == 'geojson':
+                self.write_geojson(dataframe_set)
         finally:
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
@@ -363,9 +371,62 @@ class Worker(QObject):
                 self.successful_items.update({mode: success_message})
         self.output_path = file_name
 
-    def write_geojson(self):
-        # Placeholder for future development
-        pass
+    def write_geojson(self, dataframe_set: ChameleonDataFrameSet):
+        """
+        Writes all members of a ChameleonDataFrameSet to a set of geojson files,
+        using the overpass API
+        """
+        # TODO Add overwrite protection/response
+        for mode, result in dataframe_set.items():
+            if mode == 'deleted':
+                continue
+
+            file_name = Path(
+                f"{self.files['output']}_{mode}.geojson")
+            id_list = list(result['id'].fillna('').str.replace('w', ''))
+            # Eliminate empty items
+            id_list = [i for i in id_list if i]
+            # Skip this iteration if the list is empty
+            if not id_list:
+                continue
+            overpass_query = f"way(id:{','.join(id_list)})"
+
+            api = overpass.API(timeout=120)
+            response = api.get(overpass_query, verbosity='meta geom',
+                               responseformat='json')
+            geojson_response = osm2geojson.json2geojson(response)
+            with tempfile.TemporaryDirectory() as d:
+                temp_geojson = Path(d) / 'overpass.geojson'
+                with temp_geojson.open('w') as f:
+                    f.write(geojson.dumps(geojson_response))
+                gdf = gpd.read_file(temp_geojson)
+            # gdf = gpd.GeoDataFrame(geojson.dumps(geojson_response))
+            gdf['id'] = [('w' + str(i)) for i in gdf['id']]
+            merged = gdf.merge(result, on='id')
+            columns_to_keep = ['id', "url", 'user', 'timestamp', 'version',
+                               'changeset', 'osmcha', 'name', 'highway']
+            if mode != 'new':
+                columns_to_keep += [f'old_{mode}', f'new_{mode}']
+            columns_to_keep += ['action']
+            # Drop all but these columns
+            merged = merged[columns_to_keep]
+
+            row_count = len(gdf)
+            if not row_count:
+                # Empty dataframe
+                success_message = (f"{mode} has no change.")
+            else:
+                # Exclude the header row from the row count
+                s = ''
+                if row_count > 1:
+                    s = 's'
+                success_message = (
+                    f"{mode} output with {row_count} row{s}.")
+            self.successful_items.update({mode: success_message})
+            logger.info(
+                "Processing for %s complete. %s written.", mode, file_name)
+            self.mode_complete.emit()
+        self.output_path = self.files['output'].parent
 
 
 class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
@@ -463,6 +524,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Changes the displayed file name template depending on the selected file format
         self.excelRadio.clicked.connect(self.suffix_updater)
         self.csvRadio.clicked.connect(self.suffix_updater)
+        self.geojsonRadio.clicked.connect(self.suffix_updater)
 
         for i in self.fav_btn:
             i.clicked.connect(self.add_tag)
@@ -543,6 +605,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 not self.history_dict.get('use_api', True))
             if self.history_dict.get('file_format', 'csv') == 'excel':
                 self.excelRadio.setChecked(True)
+            elif self.history_dict.get('file_format', 'csv') == 'geojson':
+                self.geojsonRadio.setChecked(True)
         # If file doesn't exist, fail silently
         except FileNotFoundError:
             logger.warning(
@@ -762,6 +826,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     def suffix_updater(self):
         if self.excelRadio.isChecked():
             self.fileSuffix.setText('.xlsx')
+        elif self.geojsonRadio.isChecked():
+            self.fileSuffix.setText(r'_{mode}.geojson')
         else:
             self.fileSuffix.setText(r'_{mode}.csv')
         self.repaint()
@@ -842,6 +908,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         if self.excelRadio.isChecked():
             file_format = 'excel'
+        elif self.geojsonRadio.isChecked():
+            file_format = 'geojson'
         else:
             file_format = 'csv'
 
