@@ -35,7 +35,7 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
 
 # Import generated UI file
 from chameleon import design
-from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
+from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet, SPECIAL_MODES
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -305,7 +305,7 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
         for mode, result in dataframe_set.items():
-            row_count = len(result)
+            row_count = len(result.index)
             file_name = Path(
                 f"{self.files['output']}_{mode}.csv")
             logger.info("Writing %s", (file_name))
@@ -337,13 +337,8 @@ class Worker(QObject):
                 # Empty dataframe
                 success_message = (f"{mode} has no change.")
             else:
-                # Exclude the header row from the row count
-                if row_count > 1:
-                    s = 's'
-                else:
-                    s = ''
                 success_message = (
-                    f"{mode} output with {row_count} row{s}.")
+                    f"{mode} output with {row_count} row{pluralize(row_count)}.")
             self.successful_items.update({mode: success_message})
             logger.info(
                 "Processing for %s complete. %s written.", mode, file_name)
@@ -356,29 +351,29 @@ class Worker(QObject):
         """
         file_name = self.files['output'].with_suffix('.xlsx')
         if file_name.is_file():
-            self.overwrite_confirm.emit(str(file_name))
-            self.parent.mutex.lock()
-            # Don't check for a response until after the user has a chance to give one
-            self.parent.waiting_for_input.wait(
-                self.parent.mutex)
-            if not self.response:
-                logger.info("Not writing output")
-                return
+            try:
+                self.overwrite_confirm.emit(str(file_name))
+                self.parent.mutex.lock()
+                # Don't check for a response until after the user has a chance to give one
+                self.parent.waiting_for_input.wait(
+                    self.parent.mutex)
+                if not self.response:
+                    logger.info("Not writing output")
+                    return
+            finally:
+                self.parent.mutex.unlock()
         with pd.ExcelWriter(file_name,
                             engine='xlsxwriter') as writer:
             for mode, result in dataframe_set.items():
-                row_count = len(result)
+                row_count = len(result.index)
                 result.to_excel(writer, sheet_name=mode,
                                 index=False, freeze_panes=(1, 0))
                 if not row_count:
                     # Empty dataframe
                     success_message = (f"{mode} has no change.")
                 else:
-                    s = ''
-                    if row_count > 1:
-                        s = 's'
                     success_message = (
-                        f"{mode} output with {row_count} row{s}.")
+                        f"{mode} output with {row_count} row{pluralize(row_count)}.")
                 self.successful_items.update({mode: success_message})
         self.output_path = file_name
 
@@ -394,45 +389,61 @@ class Worker(QObject):
 
             file_name = Path(
                 f"{self.files['output']}_{mode}.geojson")
+            if file_name.is_file():
+                try:  # This block ensures the mutex is unlocked even in the worst case
+                    self.overwrite_confirm.emit(str(file_name))
+                    self.parent.mutex.lock()
+                    # Don't check for a response until after the user has a chance to give one
+                    self.parent.waiting_for_input.wait(
+                        self.parent.mutex)
+                    if not self.response:
+                        logger.info("Skipping %s.", (mode))
+                        continue
+                finally:
+                    self.parent.mutex.unlock()
             id_list = list(result['id'].fillna('').str.replace('w', ''))
             # Eliminate empty items
             id_list = [i for i in id_list if i]
-            # Skip this iteration if the list is empty
-            if not id_list:
-                continue
-            overpass_query = f"way(id:{','.join(id_list)})"
+            if id_list:  # Skip this iteration if the list is empty
+                overpass_query = f"way(id:{','.join(id_list)})"
 
-            api = overpass.API(timeout=120)
-            response = api.get(overpass_query, verbosity='meta geom',
-                               responseformat='json')
-            geojson_response = osm2geojson.json2geojson(response)
-            with tempfile.TemporaryDirectory() as d:
-                temp_geojson = Path(d) / 'overpass.geojson'
-                with temp_geojson.open('w') as f:
-                    f.write(geojson.dumps(geojson_response))
-                gdf = gpd.read_file(temp_geojson)
-            # gdf = gpd.GeoDataFrame(geojson.dumps(geojson_response))
-            gdf['id'] = [('w' + str(i)) for i in gdf['id']]
-            merged = gdf.merge(result, on='id')
-            columns_to_keep = ['id', "url", 'user', 'timestamp', 'version',
-                               'changeset', 'osmcha', 'name', 'highway']
-            if mode != 'new':
-                columns_to_keep += [f'old_{mode}', f'new_{mode}']
-            columns_to_keep += ['action']
-            # Drop all but these columns
-            merged = merged[columns_to_keep]
+                api = overpass.API(timeout=120)
+                response = api.get(overpass_query, verbosity='meta geom',
+                                   responseformat='json')
+                geojson_response = osm2geojson.json2geojson(response)
+                with tempfile.TemporaryDirectory() as d:
+                    temp_geojson = Path(d) / 'overpass.geojson'
+                    with temp_geojson.open('w') as f:
+                        f.write(geojson.dumps(geojson_response))
+                    gdf = gpd.read_file(temp_geojson)
+                # gdf = gpd.GeoDataFrame(geojson.dumps(geojson_response))
+                gdf['id'] = 'w' + gdf['id'].astype(str)
+                row_count = len(gdf['id'])
+                merged = gdf.merge(result, on='id')
+                columns_to_keep = ['id', "url", 'user', 'timestamp', 'version',
+                                   'changeset', 'osmcha', 'name', 'highway']
+                if mode not in SPECIAL_MODES:
+                    columns_to_keep += [f'old_{mode}', f'new_{mode}']
+                columns_to_keep += ['action', 'geometry']
+                # Drop all but these columns
+                merged = merged[columns_to_keep]
 
-            row_count = len(gdf)
+                try:
+                    merged.to_file(file_name, driver='GeoJSON')
+                except OSError:
+                    logger.exception("Write error.")
+                    self.error_list += mode
+                    continue
+            else:
+                row_count = 0
+
+            # TODO Fix incorrect count
             if not row_count:
                 # Empty dataframe
                 success_message = (f"{mode} has no change.")
             else:
-                # Exclude the header row from the row count
-                s = ''
-                if row_count > 1:
-                    s = 's'
                 success_message = (
-                    f"{mode} output with {row_count} row{s}.")
+                    f"{mode} output with {row_count} row{pluralize(row_count)}.")
             self.successful_items.update({mode: success_message})
             logger.info(
                 "Processing for %s complete. %s written.", mode, file_name)
@@ -1149,6 +1160,17 @@ def dir_uri(the_path: Path) -> str:
         return the_path.parent.as_uri()
     else:
         return the_path.as_uri()
+
+
+def pluralize(count: int):
+    """
+    Meant to used within f-strings, fills in an 's' where appropriate,
+    based on input parameter. i.e., f"You have {count} item{pluralize(count)}."
+    """
+    if count == 1:
+        return ''
+    else:
+        return 's'
 
 
 if __name__ == '__main__':
