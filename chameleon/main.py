@@ -382,7 +382,6 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a set of geojson files,
         using the overpass API
         """
-        # TODO Add overwrite protection/response
         for mode, result in dataframe_set.items():
             if mode == 'deleted':
                 continue
@@ -420,8 +419,13 @@ class Worker(QObject):
                 gdf['id'] = 'w' + gdf['id'].astype(str)
                 row_count = len(gdf['id'])
                 merged = gdf.merge(result, on='id')
-                columns_to_keep = ['id', "url", 'user', 'timestamp', 'version',
-                                   'changeset', 'osmcha', 'name', 'highway']
+                columns_to_keep = ['id', 'url', 'user', 'timestamp', 'version']
+                if 'changeset' in list(merged.columns) and 'osmcha' in list(merged.columns):
+                    columns_to_keep += ['changeset', 'osmcha']
+                if mode != 'name':
+                    columns_to_keep += ['name']
+                if mode != 'highway':
+                    columns_to_keep += ['highway']
                 if mode not in SPECIAL_MODES:
                     columns_to_keep += [f'old_{mode}', f'new_{mode}']
                 columns_to_keep += ['action', 'geometry']
