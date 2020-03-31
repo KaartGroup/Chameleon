@@ -6,7 +6,7 @@ extracts their paths
 import logging
 from pathlib import Path
 
-from PyQt5.QtWidgets import QToolTip, QLineEdit
+from PySide2.QtWidgets import QToolTip, QLineEdit
 
 logger = logging.getLogger(__name__)
 

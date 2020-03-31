@@ -4,13 +4,6 @@ import platform
 import subprocess
 from pathlib import Path
 
-# for i in ["appdirs", "coverage", "nose", "oyaml", "PyQt5", "pytest"]:
-#     try:
-#         import i
-#     except ImportError:
-#         print(f"Missing python package {i}.")
-#         quit()
-
 try:
     from git import Repo
 except ImportError:
@@ -23,7 +16,7 @@ else:
         f.write(last_tag)
     print("version.txt written")
 
-subprocess.call(["pyuic5", "chameleon/design.ui",
+subprocess.call(["pyside2-uic", "chameleon/design.ui",
                  "-o", "chameleon/design.py"])
 print("pyuic complete")
 

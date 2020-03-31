@@ -1,6 +1,10 @@
 appdirs
 coverage
+geopandas
 nose
+osm2geojson
+overpass
 oyaml
-PyQt5
+pandas
+PySide2
 pytest

@@ -24,18 +24,17 @@ import oyaml as yaml
 import pandas as pd
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
-from PyQt5 import QtCore, QtGui, QtWidgets
-# from PyQt5.QtGui import QKeyEvent
-from PyQt5.QtCore import QObject, QThread
+from PySide2 import QtCore, QtGui, QtWidgets
 # Rename for Pyside compatibility
-from PyQt5.QtCore import pyqtSignal as Signal
-from PyQt5.QtCore import pyqtSlot as Slot
-from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
-                             QProgressDialog)
+# from PySide2.QtGui import QKeyEvent
+from PySide2.QtCore import QObject, QThread, Signal, Slot
+from PySide2.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
+                               QProgressDialog)
 
 # Import generated UI file
 from chameleon import design
-from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet, SPECIAL_MODES
+from chameleon.core import (SPECIAL_MODES, ChameleonDataFrame,
+                            ChameleonDataFrameSet)
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -156,7 +155,6 @@ class Worker(QObject):
         self.error_list = []
         self.successful_items = {}
 
-    @Slot()
     def run(self):
         """
         Runs when thread started, saves history to file and calls other functions to write files.
@@ -574,7 +572,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Set the output name template
         self.suffix_updater()
 
-    @Slot()
     def about_menu(self):
         """
         Handles about page information.
@@ -598,7 +595,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             "Licensed under <a href=\"https://choosealicense.com/licenses/gpl-3.0/\">GPL3</a>.</p>")
         about.setInformativeText(
             "<i>Powered by: "
-            "<a href=https://www.riverbankcomputing.com/software/pyqt/download5>PyQt5</a>, "
+            "<a href=https://www.qt.io/qt-for-python>Qt for Python</a>, "
             "<a href=https://pandas.pydata.org>pandas</a>, "
             "<a href=https://github.com/ActiveState/appdirs>appdir</a>, "
             "<a href=https://github.com/wimglenn/oyaml>oyaml</a>, "
@@ -686,7 +683,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 raise IndexError(f"Index {index} of fav_btn doesn't exist! "
                                  f"Attempted to insert from{fav_list}.") from e
 
-    @Slot()
     def add_tag(self):
         """
         Adds user defined tags into processing list on QListWidget.
@@ -723,7 +719,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.run_checker()
         self.listWidget.repaint()
 
-    @Slot()
     def delete_tag(self):
         """
         Clears selected list items with "Delete" button.
@@ -740,7 +735,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.exception()
         self.listWidget.repaint()
 
-    @Slot()
     def clear_tag(self):
         """
         Wipes all tags listed on QList with "Clear" button.
@@ -798,7 +792,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         except OSError:
             logger.exception("Couldn't write favorite file.")
 
-    @Slot()
     def open_input_file(self):
         """
         Adds functionality to the Open Old/New File (…) button, opens the
@@ -819,7 +812,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             destination.selectAll()
             destination.insert(file_name)
 
-    @Slot()
     def output_file(self):
         """
         Adds functionality to the Output File (…) button, opens the
@@ -848,7 +840,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.runButton.setEnabled(list_not_empty)
         self.repaint()
 
-    @Slot()
     def suffix_updater(self):
         if self.excelRadio.isChecked():
             self.fileSuffix.setText('.xlsx')
@@ -858,7 +849,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.fileSuffix.setText(r'_{mode}.csv')
         self.repaint()
 
-    @Slot(str, str, str)
     def dialog(self, text: str, info: str, icon: str):
         """
         Method to pop-up critical error box
@@ -993,14 +983,12 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         return super(MainApp, self).eventFilter(obj, event)
 
-    @Slot()
     def stop_thread(self):
         """
         End the work thread early
         """
         self.work_thread.requestInterruption()
 
-    @Slot()
     def finished(self):
         """
         Helper method finalizes run process: re-enable run button
@@ -1018,7 +1006,6 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Re-enable run button when function complete
         self.run_checker()
 
-    @Slot(str)
     def overwrite_message(self, file_name: str):
         """
         Display user notification box for overwrite file option.
@@ -1096,7 +1083,6 @@ class ChameleonProgressDialog(QProgressDialog):
         self.setWindowFlags(
             QtCore.Qt.Window | QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
 
-    @Slot(str)
     def count_mode(self, mode: str):
         """
         Tracker for completion of individual modes in Worker class.
@@ -1115,12 +1101,10 @@ class ChameleonProgressDialog(QProgressDialog):
         self.label_text_base = f"Analyzing {mode} tag…"
         self.setLabelText(self.label_text_base)
 
-    @Slot()
     def mode_complete(self):
         # Advance index of modes by 1
         self.mode_progress += 1
 
-    @Slot(int)
     def scale_with_api_items(self, item_count: int):
         """
         Scales the bar by the number of items the API will be called for, so that the deleted mode
@@ -1139,14 +1123,12 @@ class ChameleonProgressDialog(QProgressDialog):
         self.setValue(scaled_value)
         self.setMaximum(scaled_max)
 
-    @Slot()
     def increment_progbar_api(self):
         self.current_item += 1
         self.setValue(self.value() + 1)
         self.setLabelText(
             f"Checking deleted items on OSM server ({self.current_item} of {self.item_count})")
 
-    @Slot()
     def check_api_done(self):
         """
         Disables the cancel button after the API check is complete
