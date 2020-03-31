@@ -12,16 +12,18 @@ added_files = [
 
 added_files += collect_data_files('geopandas', subdir='datasets')
 added_files += collect_data_files('osm2geojson')
+added_files += collect_data_files('fiona', subdir='gdal_data')
+added_files += collect_data_files('fiona', subdir='proj_data')
 
 
 a = Analysis(
     ['chameleon/main.py'],
-    pathex=['/Users/primaryuser/chameleon-2'],
+    pathex=[],
     binaries=[],
     datas=added_files,
     hiddenimports=[
-        # 'ctypes',
-        # 'ctypes.util',
+        'ctypes',
+        'ctypes.util',
         'fiona',
         'fiona._shim',
         'fiona.schema',
@@ -30,10 +32,10 @@ a = Analysis(
         'pandas._libs.tslibs.timedeltas',
         'pyproj',
         'pyproj.datadir',
-        # 'pytest',
-        # 'rtree',
-        # 'shapely',
-        # 'shapely.geometry',
+        'pytest',
+        'rtree',
+        'shapely',
+        'shapely.geometry',
     ],
     hookspath=[],
     runtime_hooks=[],
