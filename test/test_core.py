@@ -33,7 +33,7 @@ class TestQuery(unittest.TestCase):
     def test_chameleon_dataframe_constructor_ungrouped(self):
         self.df = ChameleonDataFrame(self.df_set.source_data,
                                      mode=self.mode,
-                                     grouping=False).query()
+                                     grouping=False).query_cdf()
 
     def test_chameleon_dataframe_constructor_grouped(self):
         pass
