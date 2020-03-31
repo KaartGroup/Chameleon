@@ -11,16 +11,16 @@
 
 ## About
 
-Chameleon is an Open Source cross-platform (MacOS, Linux, Windows) OpenStreetMap companion software developed by [`Kaart`](http://kaartgroup.com/) with [`PyQt5`](https://www.riverbankcomputing.com/software/pyqt/intro) and [`Python`](https://www.python.org/). This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows users to compare OSM tags from two snapshots. Some metadata OSM tags are default outputs of Chameleon, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon also features change grouping (consolidation similar changes for compared tag) and multi-tag processing (sequential tag comparisons).
+Chameleon is an Open Source cross-platform (MacOS, Linux, Windows) OpenStreetMap companion software developed by [`Kaart`](http://kaartgroup.com/) with [`PySide2`](https://www.qt.io/qt-for-python) and [`Python`](https://www.python.org/). This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows users to compare OSM tags from two snapshots. Some metadata OSM tags are default outputs of Chameleon, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon also features change grouping (consolidation similar changes for compared tag) and multi-tag processing (sequential tag comparisons).
 
 Chameleon aims to inform OSM editors about changes that occurred in an area from the OSM database. The goal of Chameleon is to engage individual and organized OSM community memebers in collaborative editing.
 
 ## Installation
 
-1. Install dependencies: [`PyInstaller`](https://github.com/pyinstaller/pyinstaller), [`oyaml`](https://pypi.org/project/oyaml/), [`appdirs`](https://pypi.org/project/appdirs/), [`PyQt5`](https://pypi.org/project/pyqt5/):
+1. Install dependencies: [`PyInstaller`](https://github.com/pyinstaller/pyinstaller), [`oyaml`](https://pypi.org/project/oyaml/), [`appdirs`](https://pypi.org/project/appdirs/), [`PySide`](https://pypi.org/project/pyside2/), [`geopandas`](https://geopandas.org/):
 
 ```bash
-	pip3 install pyinstaller oyaml appdirs pyqt5
+	pip3 install pyinstaller oyaml appdirs PySide2 geopandas
 ```
 2. Clone the repo
 
