@@ -376,30 +376,34 @@ class Worker(QObject):
 
     def write_geojson(self, dataframe_set: ChameleonDataFrameSet):
         """
-        Writes all members of a ChameleonDataFrameSet to a set of geojson files,
+        Writes all members of a ChameleonDataFrameSet to a geojson file,
         using the overpass API
         """
+        file_name = Path(
+            f"{self.files['output']}.geojson")
+        if file_name.is_file():
+            try:  # This block ensures the mutex is unlocked even in the worst case
+                self.overwrite_confirm.emit(str(file_name))
+                self.parent.mutex.lock()
+                # Don't check for a response until after the user has a chance to give one
+                self.parent.waiting_for_input.wait(
+                    self.parent.mutex)
+                if not self.response:
+                    logger.info("User chose not to overwrite")
+                    return
+            finally:
+                self.parent.mutex.unlock()
+        output_gdf = gpd.GeoDataFrame()
         for mode, result in dataframe_set.items():
             if mode == 'deleted':
                 continue
 
-            file_name = Path(
-                f"{self.files['output']}_{mode}.geojson")
-            if file_name.is_file():
-                try:  # This block ensures the mutex is unlocked even in the worst case
-                    self.overwrite_confirm.emit(str(file_name))
-                    self.parent.mutex.lock()
-                    # Don't check for a response until after the user has a chance to give one
-                    self.parent.waiting_for_input.wait(
-                        self.parent.mutex)
-                    if not self.response:
-                        logger.info("Skipping %s.", (mode))
-                        continue
-                finally:
-                    self.parent.mutex.unlock()
-            id_list = list(result['id'].fillna('').str.replace('w', ''))
-            # Eliminate empty items
-            id_list = [i for i in id_list if i]
+            # TODO Remove all the safety stuff for empty id cells
+            id_list = [
+                i for i in list(
+                    result['id'].fillna('').str.replace('w', '')
+                ) if i
+            ]
             if id_list:  # Skip this iteration if the list is empty
                 overpass_query = f"way(id:{','.join(id_list)})"
 
@@ -425,31 +429,33 @@ class Worker(QObject):
                     columns_to_keep += ['highway']
                 if mode not in SPECIAL_MODES:
                     columns_to_keep += [f'old_{mode}', f'new_{mode}']
+                else:
+                    merged[mode] = mode
+                    columns_to_keep += [mode]
                 columns_to_keep += ['action', 'geometry']
                 # Drop all but these columns
                 merged = merged[columns_to_keep]
-
-                try:
-                    merged.to_file(file_name, driver='GeoJSON')
-                except OSError:
-                    logger.exception("Write error.")
-                    self.error_list += mode
-                    continue
+                output_gdf = output_gdf.append(merged)
             else:
                 row_count = 0
-
-            # TODO Fix incorrect count
             if not row_count:
                 # Empty dataframe
-                success_message = (f"{mode} has no change.")
+                success_message = f"{mode} has no change."
             else:
                 success_message = (
                     f"{mode} output with {row_count} row{pluralize(row_count)}.")
             self.successful_items.update({mode: success_message})
             logger.info(
-                "Processing for %s complete. %s written.", mode, file_name)
+                "Processing for %s complete.", mode)
             self.mode_complete.emit()
-        self.output_path = self.files['output'].parent
+
+        try:
+            output_gdf.to_file(file_name, driver='GeoJSON')
+        except OSError:
+            logger.exception("Write error.")
+            self.error_list += mode
+
+        self.output_path = file_name
 
 
 class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
@@ -846,7 +852,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         if self.excelRadio.isChecked():
             self.fileSuffix.setText('.xlsx')
         elif self.geojsonRadio.isChecked():
-            self.fileSuffix.setText(r'_{mode}.geojson')
+            self.fileSuffix.setText('.geojson')
         else:
             self.fileSuffix.setText(r'_{mode}.csv')
         self.repaint()
