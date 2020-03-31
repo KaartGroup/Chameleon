@@ -28,8 +28,8 @@ class ChameleonDataFrame(pd.DataFrame):
 
     def __init__(self, df: pd.DataFrame = None, mode: str = '', grouping=False, dtype=None):
         # dtypes = {
-        #     # '@id': int,
-        #     # '@version': int
+        #     '@id': int,
+        #     '@version': int
         #     '@timestamp': datetime
         # }
 
@@ -47,7 +47,7 @@ class ChameleonDataFrame(pd.DataFrame):
         """
         return ChameleonDataFrame
 
-    def query(self) -> ChameleonDataFrame:
+    def query_cdf(self) -> ChameleonDataFrame:
         """
         Takes a dataframe that has already been merged from two input files and queries it
         for changes in the given tag
@@ -94,17 +94,16 @@ class ChameleonDataFrame(pd.DataFrame):
                 pass
         if self.chameleon_mode != 'name':
             self['name'] = intermediate_df['name_new'].fillna(
-                intermediate_df['name_old'].fillna(''))
+                intermediate_df['name_old'])
         if self.chameleon_mode != 'highway':
             try:
                 # Succeeds if both csvs had highway columns
                 self['highway'] = intermediate_df['highway_new'].fillna(
-                    intermediate_df['highway_old'].fillna(''))
+                    intermediate_df['highway_old'])
             except KeyError:
                 try:
                     # Succeeds if one csv had a highway column
-                    self['highway'] = intermediate_df['highway'].fillna(
-                        '')
+                    self['highway'] = intermediate_df['highway']
                 except KeyError:
                     # If neither had one, we just won't include in the output
                     pass
@@ -118,6 +117,8 @@ class ChameleonDataFrame(pd.DataFrame):
         self['notes'] = self['QCer'] = self['QC_notes'] = self['resolution'] = ''
         if self.grouping:
             self = self.group()
+        self.dropna(subset=['id'], inplace=True)
+        self.fillna('', inplace=True)
         self.sort()
         return self
 
@@ -127,7 +128,7 @@ class ChameleonDataFrame(pd.DataFrame):
         """
         self['count'] = self['id']
         agg_functions = {
-            'id': lambda id: JOSM_URL + ','.join(id),
+            'id': lambda i: JOSM_URL + ','.join(i),
             'count': 'count',
             'user': lambda user: ','.join(user.unique()),
             'timestamp': 'max',
@@ -136,11 +137,11 @@ class ChameleonDataFrame(pd.DataFrame):
         }
         if self.chameleon_mode != 'name':
             agg_functions.update({
-                'name': lambda name: ','.join(str(id) for id in name.unique())
+                'name': lambda name: ','.join(str(i) for i in name.unique())
             })
         if self.chameleon_mode != 'highway':
             agg_functions.update({
-                'highway': lambda highway: ','.join(str(id) for id in highway.unique())
+                'highway': lambda highway: ','.join(str(i) for i in highway.unique())
             })
         # Create the new dataframe
         grouped_df = self.groupby(
@@ -198,7 +199,7 @@ class ChameleonDataFrameSet(UserDict):
 
         self.merge_files()
 
-    def merge_files(self) -> ChameleonDataFrame:
+    def merge_files(self) -> ChameleonDataFrameSet:
         """
         Merge two csv inputs into a single combined dataframe
         """
@@ -243,7 +244,7 @@ class ChameleonDataFrameSet(UserDict):
             self.source_data['action'] = ''
         return self
 
-    def separate_special_dfs(self) -> ChameleonDataFrame:
+    def separate_special_dfs(self) -> ChameleonDataFrameSet:
         """
         Separate creations and deletions into their own dataframes
         """
@@ -256,7 +257,7 @@ class ChameleonDataFrameSet(UserDict):
             ~ self.source_data['action'].isin(SPECIAL_MODES)
         ]
         for mode, df in special_dataframes.items():
-            self[mode] = ChameleonDataFrame(df=df, mode=mode).query()
+            self[mode] = ChameleonDataFrame(df=df, mode=mode).query_cdf()
         return self
 
     def check_feature_on_api(self, feature_id, app_version: str = '') -> dict:
@@ -268,7 +269,7 @@ class ChameleonDataFrameSet(UserDict):
 
         # TODO Change from XML to JSON
         if feature_id in self.overpass_result_attribs:
-            element_attribs = self.overpass_result_attribs[feature_id]
+            return self.overpass_result_attribs[feature_id]
         else:
             try:
                 response = requests.get(
