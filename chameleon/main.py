@@ -461,7 +461,7 @@ class Worker(QObject):
 class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     """
 
-    Main PyQT window class that allows communication between UI and backend.
+    Main PySide window class that allows communication between UI and backend.
     Passes QMainWindow parameter to provide main application window, establish
     event handling with signal/slot connection.
 
