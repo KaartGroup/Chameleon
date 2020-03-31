@@ -72,36 +72,34 @@ def logger_setup(log_dir: Path):
     logger.addHandler(console_handler)
     # Setup file logging output
     # Generate log file directory
-    if not log_dir.is_dir():
-        try:
-            log_dir.mkdir(parents=True, exist_ok=True)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                logger.error("Cannot create log directory.")
-    if log_dir.is_dir():
-        try:
-            # Initialize Worker class logging
-            log_path = str(log_dir / f"Chameleon_{datetime.now().date()}.log")
-            file_handler = logging.FileHandler(log_path)
-            file_handler.setLevel(logging.DEBUG)
-            file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
-        except OSError:
-            logger.error("Log file could not be generated at %s.", log_path)
-        else:
-            # Clean up log file if there are more than 15 (about 1MB)
-            # Reading and sorting log file directory (ascending)
-            log_list = sorted(
-                [f for f in log_dir.glob("*.log") if f.is_file()])
-            if len(log_list) > 15:
-                rm_count = (len(log_list) - 15)
-                # Remove extra log files that exceed 15 records
-                for f in log_list[:rm_count]:
-                    try:
-                        logger.info("removing…%s", str(f))
-                        f.unlink()
-                    except OSError as e:
-                        logger.exception(e)
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            logger.error("Cannot create log directory.")
+    log_path = str(log_dir / f"Chameleon_{datetime.now().date()}.log")
+    try:
+        # Initialize Worker class logging
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    except OSError:
+        logger.error("Log file could not be generated at %s.", log_path)
+    else:
+        # Clean up log file if there are more than 15 (about 1MB)
+        # Reading and sorting log file directory (ascending)
+        log_list = sorted(
+            [f for f in log_dir.glob("*.log") if f.is_file()])
+        if len(log_list) > 15:
+            rm_count = (len(log_list) - 15)
+            # Remove extra log files that exceed 15 records
+            for f in log_list[:rm_count]:
+                try:
+                    logger.info("removing…%s", str(f))
+                    f.unlink()
+                except OSError as e:
+                    logger.exception(e)
 
 
 # Log file locations
@@ -151,6 +149,7 @@ class Worker(QObject):
         self.parent = parent
         self.response = None
         self.format = file_format
+        self.output_path = None
 
         self.error_list = []
         self.successful_items = {}
@@ -193,12 +192,12 @@ class Worker(QObject):
             # Separate out the new and deleted dataframes
             dataframe_set.separate_special_dfs()
             for mode in self.modes:
-                logger.debug("Executing processing for %s.", (mode))
+                logger.debug("Executing processing for %s.", mode)
                 self.mode_start.emit(mode)
                 try:
                     result = ChameleonDataFrame(dataframe_set.source_data,
                                                 mode=mode,
-                                                grouping=self.group_output).query()
+                                                grouping=self.group_output).query_cdf()
                 except KeyError as e:
                     # File reading failed, usually because a nonexistent column
                     logger.exception(e)
@@ -306,7 +305,7 @@ class Worker(QObject):
             row_count = len(result.index)
             file_name = Path(
                 f"{self.files['output']}_{mode}.csv")
-            logger.info("Writing %s", (file_name))
+            logger.info("Writing %s", file_name)
             try:
                 with file_name.open('x') as output_file:
                     result.to_csv(output_file, sep='\t', index=False)
@@ -319,7 +318,7 @@ class Worker(QObject):
                     self.parent.waiting_for_input.wait(
                         self.parent.mutex)
                     if not self.response:
-                        logger.info("Skipping %s.", (mode))
+                        logger.info("Skipping %s.", mode)
                         continue
                     else:
                         with file_name.open('w') as output_file:
@@ -333,7 +332,7 @@ class Worker(QObject):
                 continue
             if not row_count:
                 # Empty dataframe
-                success_message = (f"{mode} has no change.")
+                success_message = f"{mode} has no change."
             else:
                 success_message = (
                     f"{mode} output with {row_count} row{pluralize(row_count)}.")
@@ -368,7 +367,7 @@ class Worker(QObject):
                                 index=False, freeze_panes=(1, 0))
                 if not row_count:
                     # Empty dataframe
-                    success_message = (f"{mode} has no change.")
+                    success_message = f"{mode} has no change."
                 else:
                     success_message = (
                         f"{mode} output with {row_count} row{pluralize(row_count)}.")
@@ -469,6 +468,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         connection.
         """
         super().__init__()
+        self.progress_bar = None
         self.setupUi(self)
         # Set up application logo on main window
         self.setWindowTitle("Chameleon")
@@ -477,6 +477,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.listWidget.installEventFilter(self)
         self.mutex = QtCore.QMutex()
         self.waiting_for_input = QtCore.QWaitCondition()
+        self.work_thread = None
+        self.worker = None
 
         # Differentiate sys settings between pre and post-bundling
         if getattr(sys, 'frozen', False):
@@ -495,7 +497,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         }
 
         # Menu bar customization
-        # Define Qactions for menu bar
+        # Define QActions for menu bar
         # About action for File menu
         info_action = QAction("&About Chameleon", self)
         info_action.setShortcut("Ctrl+I")
@@ -637,8 +639,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 "This is normal when running the program for the first time.")
         except PermissionError:
             logger.exception("History file found but not readable.")
-        except AttributeError:
-            logger.exception()
+        except AttributeError as e:
+            logger.exception(e)
 
     def fav_btn_populate(self, favorite_location: Path = FAVORITE_LOCATION):
         """
@@ -875,17 +877,17 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         progress bar functionality. Checks for file/directory validity and spacing.
         """
         # Check for blank values
-        for k, v in self.text_fields.items():
-            if not v.text().strip():
+        for name, field in self.text_fields.items():
+            if not field.text().strip():
                 self.dialog(
-                    f"{k.title()} file field is blank.",
+                    f"{name.title()} file field is blank.",
                     'Please enter a value',
                     'critical'
                 )
                 return
         # Wrap the file references in Path object to prepare "file not found" warning
-        file_paths = {k: Path(v.text())
-                      for k, v in self.text_fields.items()}
+        file_paths = {name: Path(field.text())
+                      for name, field in self.text_fields.items()}
 
         # Check if either old or new file/directory exists. If not, notify user.
         if not file_paths['old'].is_file() or not file_paths['new'].is_file():
@@ -1029,6 +1031,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     def closeEvent(self, event):
         """
         Overrides the closeEvent method to allow an exit prompt.
+        Checks if the user's input has changed from the saved value
+        and confirms before exit if so
 
         Parameters
         ----------
@@ -1036,8 +1040,8 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             Event which handles the exit prompt.
         """
         # Make a dict of text field values
-        files = {k: v.text()
-                 for k, v in self.text_fields.items()}
+        files = {name: field.text()
+                 for name, field in self.text_fields.items()}
         # Prompt if user has changed input values from what was loaded
         file_keys = {'old', 'new', 'output'}
         try:
@@ -1063,6 +1067,9 @@ class ChameleonProgressDialog(QProgressDialog):
     """
 
     def __init__(self, length: int, use_api=False):
+        self.current_item = 0
+        self.item_count = None
+        self.mode = None
         self.length = length
         self.use_api = use_api
         # Tracks how many actual modes have been completed, independent of scaling
@@ -1092,14 +1099,13 @@ class ChameleonProgressDialog(QProgressDialog):
         mode : str
             str returned from mode_start.emit()
         """
-        logger.info("mode_start signal -> caught mode: %s.", (mode))
+        logger.info("mode_start signal -> caught mode: %s.", mode)
 
-        self.mode = mode
         # If we aren't using the API, we can simply set the bar as (modes completed)/(modes to do)
         if not self.use_api:
             self.setValue(self.mode_progress)
-        self.label_text_base = f"Analyzing {mode} tag…"
-        self.setLabelText(self.label_text_base)
+        label_text_base = f"Analyzing {mode} tag…"
+        self.setLabelText(label_text_base)
 
     def mode_complete(self):
         # Advance index of modes by 1
@@ -1116,7 +1122,6 @@ class ChameleonProgressDialog(QProgressDialog):
             Count of API items that will be run
         """
         self.cancel_button.setEnabled(True)
-        self.current_item = 0
         self.item_count = item_count
         scaled_value = self.mode_progress * self.item_count
         scaled_max = self.length * self.item_count
@@ -1161,11 +1166,11 @@ def pluralize(count: int):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    # Enable High DPI display with PyQt5
-    app.setAttribute(
-        QtCore.Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-        app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
+    # Enable High DPI display with PySide2
+    # app.setAttribute(
+    #     QtCore.Qt.AA_EnableHighDpiScaling, True)
+    # if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+    #     app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
     form = MainApp()
     form.show()
     sys.exit(app.exec_())
