@@ -16,13 +16,13 @@ else:
         f.write(last_tag)
     print("version.txt written")
 
-subprocess.call(["pyside2-uic", "chameleon/design.ui",
-                 "-o", "chameleon/design.py"])
+subprocess.check_call(["pyside2-uic", "chameleon/design.ui",
+                       "-o", "chameleon/design.py"])
 print("pyuic complete")
 
 if platform.system().lower() == "darwin":
     specfile = "ChameleonMac.spec"
 else:
     specfile = "ChameleonWinLinux.spec"
-subprocess.call(["pyinstaller", specfile, "-y"])
+subprocess.check_call(["pyinstaller", specfile, "-y"])
 print("pyinstaller completed")
