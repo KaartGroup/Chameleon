@@ -19,17 +19,16 @@ import geojson
 import geopandas as gpd
 import osm2geojson
 import overpass
-
 import oyaml as yaml
 import pandas as pd
+
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
-from PySide2 import QtCore, QtGui, QtWidgets
-# Rename for Pyside compatibility
-# from PySide2.QtGui import QKeyEvent
-from PySide2.QtCore import QObject, QThread, Signal, Slot
+
+from PySide2 import QtCore, QtGui
+from PySide2.QtCore import QObject, QThread, Signal
 from PySide2.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
-                               QProgressDialog)
+                               QProgressDialog, QPushButton, QMainWindow, QFileDialog)
 
 # Import generated UI file
 from chameleon import design
@@ -458,13 +457,11 @@ class Worker(QObject):
         self.output_path = file_name
 
 
-class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
+class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     """
-
     Main PySide window class that allows communication between UI and backend.
     Passes QMainWindow parameter to provide main application window, establish
     event handling with signal/slot connection.
-
     """
     clear_search_box = Signal()
 
@@ -812,9 +809,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             destination.text().strip(),
             self.oldFileNameBox.text().strip(),
             self.newFileNameBox.text().strip(),
-            os.path.expanduser("~/Downloads")
-        ) if e][0]
-        file_name, _filter = QtWidgets.QFileDialog.getOpenFileName(
+        file_name, _filter = QFileDialog.getOpenFileName(
             self, f"Select CSV file with {sender.shortname} data", file_dir, "CSV (*.csv)")
         if file_name:  # Clear the box before adding the new path
             destination.selectAll()
@@ -826,11 +821,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         '/downloads' system path for user to name an output file.
         """
         # If no previous location, default to Documents folder
-        output_file_dir = [e for e in (
-            os.path.dirname(self.outputFileNameBox.text().strip()),
-            os.path.expanduser("~/Documents")
-        ) if e][0]
-        output_file_name, _filter = QtWidgets.QFileDialog.getSaveFileName(
+        output_file_name, _filter = QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir)
         if output_file_name:  # Clear the box before adding the new path
             # Since this is a prefix, the user shouldn't be adding their own extension
@@ -1023,7 +1014,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         file_name : str
             File (named by user) to be saved and written.
         """
-        overwrite_prompt = QtWidgets.QMessageBox()
+        overwrite_prompt = QMessageBox()
         overwrite_prompt.setIcon(QMessageBox.Question)
         overwrite_prompt_response = overwrite_prompt.question(
             self, '', f"{file_name} exists. <p> Do you want to overwrite? </p>",
@@ -1052,7 +1043,7 @@ class MainApp(QtWidgets.QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         file_keys = {'old', 'new', 'output'}
         try:
             if {k: self.history_dict[k] for k in file_keys} != {k: files[k] for k in file_keys}:
-                exit_prompt = QtWidgets.QMessageBox()
+                exit_prompt = QMessageBox()
                 exit_prompt.setIcon(QMessageBox.Question)
                 exit_response = exit_prompt.question(
                     self, '', "Discard field inputs?",
@@ -1083,7 +1074,7 @@ class ChameleonProgressDialog(QProgressDialog):
 
         super().__init__('', None, 0, self.length)
 
-        self.cancel_button = QtWidgets.QPushButton('Cancel')
+        self.cancel_button = QPushButton('Cancel')
         self.cancel_button.setEnabled(False)
         self.setCancelButton(self.cancel_button)
 
