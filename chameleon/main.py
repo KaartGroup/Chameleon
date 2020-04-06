@@ -88,8 +88,8 @@ def logger_setup(log_dir: Path):
     else:
         # Clean up log file if there are more than 15 (about 1MB)
         # Reading and sorting log file directory (ascending)
-        log_list = sorted(
-            [f for f in log_dir.glob("*.log") if f.is_file()])
+        log_list = sorted([f for f in log_dir.glob("*.log")
+                           if f.is_file()])
         if len(log_list) > 15:
             rm_count = (len(log_list) - 15)
             # Remove extra log files that exceed 15 records
@@ -400,9 +400,9 @@ class Worker(QObject):
             # TODO Remove all the safety stuff for empty id cells
             id_list = [
                 i for i in list(
-                    result['id'].fillna('').str.replace('w', '')
-                ) if i
-            ]
+                    result['id'].fillna('').str.replace('w', ''))
+                if i]
+            id_list = list(result['id'].str.replace('w', ''))
             if id_list:  # Skip this iteration if the list is empty
                 overpass_query = f"way(id:{','.join(id_list)})"
 
@@ -805,10 +805,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender = self.sender()
         destination = sender.box_control
         # Gets first non-empty value in order
-        file_dir = [e for e in (
-            destination.text().strip(),
-            self.oldFileNameBox.text().strip(),
-            self.newFileNameBox.text().strip(),
+        file_dir = [e for e in (destination.text().strip(),
+                                self.oldFileNameBox.text().strip(),
+                                self.newFileNameBox.text().strip(),
+                                os.path.expanduser("~/Downloads"))
+                    if e][0]
         file_name, _filter = QFileDialog.getOpenFileName(
             self, f"Select CSV file with {sender.shortname} data", file_dir, "CSV (*.csv)")
         if file_name:  # Clear the box before adding the new path
@@ -821,6 +822,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         '/downloads' system path for user to name an output file.
         """
         # If no previous location, default to Documents folder
+        output_file_dir = [e for e in (os.path.dirname(self.outputFileNameBox.text().strip()),
+                                       os.path.expanduser("~/Documents"))
+                           if e][0]
         output_file_name, _filter = QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir)
         if output_file_name:  # Clear the box before adding the new path
@@ -912,8 +916,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             )
             return
         # modes var needs to be type set()
-        modes = {i.text().replace(':', '_') for i in self.listWidget.findItems(
-            '*', QtCore.Qt.MatchWildcard)}
+        modes = {i.text().replace(':', '_')
+                 for i in self.listWidget.findItems('*', QtCore.Qt.MatchWildcard)}
         self.document_tag(modes)  # Execute favorite tracking
         logger.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()
@@ -1037,8 +1041,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             Event which handles the exit prompt.
         """
         # Make a dict of text field values
-        files = {name: field.text()
-                 for name, field in self.text_fields.items()}
+        files = {name: field.text() for name, field
+                 in self.text_fields.items()}
         # Prompt if user has changed input values from what was loaded
         file_keys = {'old', 'new', 'output'}
         try:
