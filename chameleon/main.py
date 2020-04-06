@@ -4,7 +4,6 @@ Opens a window with fields for input and selectors, which in turn opens
 a worker object to process the input files with `q` and create output
 in .csv format.
 """
-import errno
 import logging
 import os
 import shlex
@@ -14,6 +13,18 @@ import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+
+# Differentiate sys settings between pre and post-bundling
+if getattr(sys, 'frozen', False):
+    # Script is in a frozen package, i.e. PyInstaller
+    RESOURCES_DIR = Path(sys._MEIPASS)
+    os.environ['GDAL_DATA'] = str(
+        (RESOURCES_DIR / 'fiona/gdal_data/').resolve())
+    os.environ['proj'] = str((RESOURCES_DIR / 'fiona /').resolve())
+else:
+    # Script is not in a frozen package
+    # __file__.parent is chameleon, .parents[1] is chameleon-2
+    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
 import geojson
 import geopandas as gpd
@@ -41,14 +52,12 @@ HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
 FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
-# Differentiate sys settings between pre and post-bundling
-if getattr(sys, 'frozen', False):
-    # Script is in a frozen package, i.e. PyInstaller
-    RESOURCES_DIR = Path(sys._MEIPASS)
-else:
-    # Script is not in a frozen package
-    # __file__.parent is chameleon, .parents[1] is chameleon-2
-    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
+
+# Configuration file locations
+CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
+HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
+FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
+COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
 logger = logging.getLogger()
 
@@ -73,9 +82,8 @@ def logger_setup(log_dir: Path):
     # Generate log file directory
     try:
         log_dir.mkdir(parents=True, exist_ok=True)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            logger.error("Cannot create log directory.")
+    except OSError:
+        logger.error("Cannot create log directory.")
     log_path = str(log_dir / f"Chameleon_{datetime.now().date()}.log")
     try:
         # Initialize Worker class logging
