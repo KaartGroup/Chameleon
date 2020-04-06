@@ -379,6 +379,7 @@ class Worker(QObject):
                     success_message = (
                         f"{mode} output with {row_count} row{pluralize(row_count)}.")
                 self.successful_items.update({mode: success_message})
+                self.mode_complete.emit()
         self.output_path = file_name
 
     def write_geojson(self, dataframe_set: ChameleonDataFrameSet):
@@ -417,6 +418,7 @@ class Worker(QObject):
                 api = overpass.API(timeout=120)
                 response = api.get(overpass_query, verbosity='meta geom',
                                    responseformat='json')
+                logger.info('Response recieved from Overpass.')
                 geojson_response = osm2geojson.json2geojson(response)
                 with tempfile.TemporaryDirectory() as d:
                     temp_geojson = Path(d) / 'overpass.geojson'
@@ -424,6 +426,7 @@ class Worker(QObject):
                         f.write(geojson.dumps(geojson_response))
                     gdf = gpd.read_file(temp_geojson)
                 # gdf = gpd.GeoDataFrame(geojson.dumps(geojson_response))
+                logger.info('GeoDataFrame created.')
                 gdf['id'] = 'w' + gdf['id'].astype(str)
                 row_count = len(gdf['id'])
                 merged = gdf.merge(result, on='id')
@@ -456,6 +459,7 @@ class Worker(QObject):
                 "Processing for %s complete.", mode)
             self.mode_complete.emit()
 
+        logger.info('Writing geojson…')
         try:
             output_gdf.to_file(file_name, driver='GeoJSON')
         except OSError:
@@ -479,7 +483,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         connection.
         """
         super().__init__()
-        self.progress_bar = None
         self.setupUi(self)
         # Set up application logo on main window
         self.setWindowTitle("Chameleon")
@@ -488,16 +491,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.listWidget.installEventFilter(self)
         self.mutex = QtCore.QMutex()
         self.waiting_for_input = QtCore.QWaitCondition()
+        self.progress_bar = None
         self.work_thread = None
         self.worker = None
 
-        # Differentiate sys settings between pre and post-bundling
-        if getattr(sys, 'frozen', False):
-            logo = Path(sys._MEIPASS) / "chameleon.png"
-            logo_path = str(Path.resolve(logo))
-        else:
-            logo = Path(__file__).parents[1] / "resources/chameleon.png"
-            logo_path = str(Path.resolve(logo))
+        logo_path = str((RESOURCES_DIR / "chameleon.png").resolve())
         self.setWindowIcon(QtGui.QIcon(logo_path))
         self.logo = logo_path
 
@@ -526,7 +524,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         file_menu.addAction(extract_action)
 
         # Logging initialization of Chameleon
-        logger.info("Chameleon started at %s.", (datetime.now()))
+        logger.info("Chameleon started at %s.", datetime.now())
 
         # Sets run button to not enabled
         self.run_checker()
@@ -838,8 +836,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         if output_file_name:  # Clear the box before adding the new path
             # Since this is a prefix, the user shouldn't be adding their own extension
             output_file_name = output_file_name.replace('.csv', '')
-            output_file_name = output_file_name.replace('.xls', '')
-            output_file_name = output_file_name.replace('.xlsx', '')
             self.outputFileNameBox.selectAll()
             self.outputFileNameBox.insert(output_file_name)
 
