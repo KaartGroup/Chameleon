@@ -209,7 +209,7 @@ class Worker(QObject):
                     logger.exception(e)
                     self.error_list.append(mode)
                     continue
-                dataframe_set[mode] = result
+                dataframe_set.add(result)
             if self.format == 'csv':
                 self.write_csv(dataframe_set)
             elif self.format == 'excel':
@@ -307,10 +307,10 @@ class Worker(QObject):
         """
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
-        for mode, result in dataframe_set.items():
+        for result in dataframe_set:
             row_count = len(result.index)
             file_name = Path(
-                f"{self.files['output']}_{mode}.csv")
+                f"{self.files['output']}_{result.chameleon_mode}.csv")
             logger.info("Writing %s", file_name)
             try:
                 with file_name.open('x') as output_file:
@@ -324,7 +324,7 @@ class Worker(QObject):
                     self.parent.waiting_for_input.wait(
                         self.parent.mutex)
                     if not self.response:
-                        logger.info("Skipping %s.", mode)
+                        logger.info("Skipping %s.", result.chameleon_mode)
                         continue
                     else:
                         with file_name.open('w') as output_file:
@@ -334,17 +334,18 @@ class Worker(QObject):
                     self.parent.mutex.unlock()
             except OSError:
                 logger.exception("Write error.")
-                self.error_list += mode
+                self.error_list += result.chameleon_mode
                 continue
             if not row_count:
                 # Empty dataframe
-                success_message = f"{mode} has no change."
+                success_message = f"{result.chameleon_mode} has no change."
             else:
                 success_message = (
-                    f"{mode} output with {row_count} row{pluralize(row_count)}.")
-            self.successful_items.update({mode: success_message})
+                    f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
+            self.successful_items.update(
+                {result.chameleon_mode: success_message})
             logger.info(
-                "Processing for %s complete. %s written.", mode, file_name)
+                "Processing for %s complete. %s written.", result.chameleon_mode, file_name)
             self.mode_complete.emit()
         self.output_path = self.files['output'].parent
 
@@ -367,17 +368,18 @@ class Worker(QObject):
                 self.parent.mutex.unlock()
         with pd.ExcelWriter(file_name,
                             engine='xlsxwriter') as writer:
-            for mode, result in dataframe_set.items():
+            for result in dataframe_set:
                 row_count = len(result.index)
-                result.to_excel(writer, sheet_name=mode,
+                result.to_excel(writer, sheet_name=result.chameleon_mode,
                                 index=False, freeze_panes=(1, 0))
                 if not row_count:
                     # Empty dataframe
-                    success_message = f"{mode} has no change."
+                    success_message = f"{result.chameleon_mode} has no change."
                 else:
                     success_message = (
-                        f"{mode} output with {row_count} row{pluralize(row_count)}.")
-                self.successful_items.update({mode: success_message})
+                        f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
+                self.successful_items.update(
+                    {result.chameleon_mode: success_message})
                 self.mode_complete.emit()
         self.output_path = file_name
 
@@ -401,8 +403,8 @@ class Worker(QObject):
             finally:
                 self.parent.mutex.unlock()
         output_gdf = gpd.GeoDataFrame()
-        for mode, result in dataframe_set.items():
-            if mode == 'deleted':
+        for result in dataframe_set:
+            if result.chameleon_mode == 'deleted':
                 continue
 
             # TODO Remove all the safety stuff for empty id cells
@@ -430,15 +432,16 @@ class Worker(QObject):
                 columns_to_keep = ['id', 'url', 'user', 'timestamp', 'version']
                 if 'changeset' in list(merged.columns) and 'osmcha' in list(merged.columns):
                     columns_to_keep += ['changeset', 'osmcha']
-                if mode != 'name':
+                if result.chameleon_mode != 'name':
                     columns_to_keep += ['name']
-                if mode != 'highway':
+                if result.chameleon_mode != 'highway':
                     columns_to_keep += ['highway']
-                if mode not in SPECIAL_MODES:
-                    columns_to_keep += [f'old_{mode}', f'new_{mode}']
+                if result.chameleon_mode not in SPECIAL_MODES:
+                    columns_to_keep += [f'old_{result.chameleon_mode}',
+                                        f'new_{result.chameleon_mode}']
                 else:
-                    merged[mode] = mode
-                    columns_to_keep += [mode]
+                    merged[result.chameleon_mode] = result.chameleon_mode
+                    columns_to_keep += [result.chameleon_mode]
                 columns_to_keep += ['action', 'geometry']
                 # Drop all but these columns
                 merged = merged[columns_to_keep]
@@ -447,13 +450,14 @@ class Worker(QObject):
                 row_count = 0
             if not row_count:
                 # Empty dataframe
-                success_message = f"{mode} has no change."
+                success_message = f"{result.chameleon_mode} has no change."
             else:
                 success_message = (
-                    f"{mode} output with {row_count} row{pluralize(row_count)}.")
-            self.successful_items.update({mode: success_message})
+                    f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
+            self.successful_items.update(
+                {result.chameleon_mode: success_message})
             logger.info(
-                "Processing for %s complete.", mode)
+                "Processing for %s complete.", result.chameleon_mode)
             self.mode_complete.emit()
 
         logger.info('Writing geojson…')
@@ -462,7 +466,7 @@ class Worker(QObject):
                 output_file.write(output_gdf.to_json())
         except OSError:
             logger.exception("Write error.")
-            self.error_list = dataframe_set.keys()
+            self.error_list = [i.chameleon_mode for i in dataframe_set]
 
         self.output_path = file_name
 
@@ -917,9 +921,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 'critical'
             )
             return
-        # modes var needs to be type set()
-        modes = {i.text().replace(':', '_')
-                 for i in self.listWidget.findItems('*', QtCore.Qt.MatchWildcard)}
+
+        modes: set = {i.text().replace(':', '_')
+                      for i in self.listWidget.findItems('*', QtCore.Qt.MatchWildcard)}
         self.document_tag(modes)  # Execute favorite tracking
         logger.info("Modes to be processed: %s.", (modes))
         group_output = self.groupingCheckBox.isChecked()

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import UserDict
 from pathlib import Path
 from typing import Union
 
@@ -46,6 +45,9 @@ class ChameleonDataFrame(pd.DataFrame):
         instead of our subclass
         """
         return ChameleonDataFrame
+
+    def __hash__(self):
+        return hash(self.chameleon_mode)
 
     def query_cdf(self) -> ChameleonDataFrame:
         """
@@ -183,8 +185,7 @@ class ChameleonDataFrame(pd.DataFrame):
         return self
 
 
-class ChameleonDataFrameSet(UserDict):
-    # TODO Change this from dict to set, and use each df's .chameleon_mode property in lieu of the dict key
+class ChameleonDataFrameSet(set):
     """
     Specialized dict that holds all dataframes in a run until they are written
     """
@@ -257,7 +258,8 @@ class ChameleonDataFrameSet(UserDict):
             ~ self.source_data['action'].isin(SPECIAL_MODES)
         ]
         for mode, df in special_dataframes.items():
-            self[mode] = ChameleonDataFrame(df=df, mode=mode).query_cdf()
+            i = ChameleonDataFrame(df=df, mode=mode).query_cdf()
+            self.add(i)
         return self
 
     def check_feature_on_api(self, feature_id, app_version: str = '') -> dict:
@@ -267,7 +269,6 @@ class ChameleonDataFrameSet(UserDict):
         if app_version:
             app_version = f" {app_version}".rstrip()
 
-        # TODO Change from XML to JSON
         if feature_id in self.overpass_result_attribs:
             return self.overpass_result_attribs[feature_id]
         else:
