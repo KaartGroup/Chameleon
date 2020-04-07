@@ -10,10 +10,10 @@ added_files = [
     ('resources/version.txt', '.')
 ]
 
-added_files += collect_data_files('geopandas', subdir='datasets')
+added_files += collect_data_files('geopandas')
 added_files += collect_data_files('osm2geojson')
-added_files += collect_data_files('fiona', subdir='gdal_data')
-added_files += collect_data_files('fiona', subdir='proj_data')
+added_files += collect_data_files('fiona')
+added_files += collect_data_files('shapely')
 
 
 a = Analysis(
@@ -22,25 +22,17 @@ a = Analysis(
     binaries=[],
     datas=added_files,
     hiddenimports=[
-        'ctypes',
-        'ctypes.util',
-        'fiona',
         'fiona._shim',
         'fiona.schema',
-        'geopandas.datasets',
-        'geos',
         'pandas._libs.tslibs.timedeltas',
-        'pyproj',
         'pyproj.datadir',
         'pytest',
-        'rtree',
-        'shapely',
-        'shapely.geometry',
     ],
     hookspath=[],
     runtime_hooks=[],
     excludes=[
-        'ptvsd'
+        'ptvsd',
+        'rtree'
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
