@@ -8,7 +8,6 @@ import logging
 import os
 import shlex
 import sys
-import tempfile
 import time
 from collections import Counter
 from datetime import datetime
@@ -26,7 +25,6 @@ else:
     # __file__.parent is chameleon, .parents[1] is chameleon-2
     RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
-import geojson
 import geopandas as gpd
 import osm2geojson
 import overpass
@@ -419,13 +417,9 @@ class Worker(QObject):
                 response = api.get(overpass_query, verbosity='meta geom',
                                    responseformat='json')
                 logger.info('Response recieved from Overpass.')
-                geojson_response = osm2geojson.json2geojson(response)
-                with tempfile.TemporaryDirectory() as d:
-                    temp_geojson = Path(d) / 'overpass.geojson'
-                    with temp_geojson.open('w') as f:
-                        f.write(geojson.dumps(geojson_response))
-                    gdf = gpd.read_file(temp_geojson)
-                # gdf = gpd.GeoDataFrame(geojson.dumps(geojson_response))
+                gdf = gpd.GeoDataFrame().from_features(
+                    osm2geojson.json2geojson(response)
+                )
                 logger.info('GeoDataFrame created.')
                 gdf['id'] = 'w' + gdf['id'].astype(str)
                 row_count = len(gdf['id'])
