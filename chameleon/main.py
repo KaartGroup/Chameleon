@@ -13,6 +13,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+# This block must come before the geopandas import, because geopandas needs
+# the GDAL_DATA envvar to be set
 # Differentiate sys settings between pre and post-bundling
 if getattr(sys, 'frozen', False):
     # Script is in a frozen package, i.e. PyInstaller
