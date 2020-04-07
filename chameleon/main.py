@@ -25,11 +25,11 @@ else:
     # __file__.parent is chameleon, .parents[1] is chameleon-2
     RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
+import pandas as pd
 import geopandas as gpd
 import osm2geojson
 import overpass
 import oyaml as yaml
-import pandas as pd
 
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
@@ -417,8 +417,10 @@ class Worker(QObject):
                 response = api.get(overpass_query, verbosity='meta geom',
                                    responseformat='json')
                 logger.info('Response recieved from Overpass.')
+                geojson_response = osm2geojson.json2geojson(response)
+                logger.info('Geojson created')
                 gdf = gpd.GeoDataFrame().from_features(
-                    osm2geojson.json2geojson(response)
+                    geojson_response
                 )
                 logger.info('GeoDataFrame created.')
                 gdf['id'] = 'w' + gdf['id'].astype(str)
@@ -455,10 +457,11 @@ class Worker(QObject):
 
         logger.info('Writing geojson…')
         try:
-            output_gdf.to_file(file_name, driver='GeoJSON')
+            with file_name.open('w') as output_file:
+                output_file.write(output_gdf.to_json())
         except OSError:
             logger.exception("Write error.")
-            self.error_list += mode
+            self.error_list = dataframe_set.keys()
 
         self.output_path = file_name
 
