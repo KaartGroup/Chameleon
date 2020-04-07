@@ -21,7 +21,7 @@ if getattr(sys, 'frozen', False):
     RESOURCES_DIR = Path(sys._MEIPASS)
     os.environ['GDAL_DATA'] = str(
         (RESOURCES_DIR / 'fiona/gdal_data/').resolve())
-    os.environ['proj'] = str((RESOURCES_DIR / 'fiona /').resolve())
+    os.environ['PROJ_DIR'] = str((RESOURCES_DIR / 'pyproj/').resolve())
 else:
     # Script is not in a frozen package
     # __file__.parent is chameleon, .parents[1] is chameleon-2
@@ -29,7 +29,6 @@ else:
 
 import pandas as pd
 import geopandas as gpd
-import osm2geojson
 import overpass
 import oyaml as yaml
 
@@ -417,17 +416,17 @@ class Worker(QObject):
 
                 api = overpass.API(timeout=120)
                 response = api.get(overpass_query, verbosity='meta geom',
-                                   responseformat='json')
+                                   responseformat='geojson')
                 logger.info('Response recieved from Overpass.')
-                geojson_response = osm2geojson.json2geojson(response)
-                logger.info('Geojson created')
-                gdf = gpd.GeoDataFrame().from_features(
-                    geojson_response
-                )
+                # from_features() doesn't pick up a standard geojson id,
+                # so we have to copy it inside properties
+                for i in response['features']:
+                    i['properties']['id'] = i['id']
+                gdf = gpd.GeoDataFrame().from_features(response)
                 logger.info('GeoDataFrame created.')
                 gdf['id'] = 'w' + gdf['id'].astype(str)
                 row_count = len(gdf['id'])
-                merged = gdf.merge(result, on='id')
+                merged = gdf[['geometry', 'id']].merge(result, on='id')
                 columns_to_keep = ['id', 'url', 'user', 'timestamp', 'version']
                 if 'changeset' in list(merged.columns) and 'osmcha' in list(merged.columns):
                     columns_to_keep += ['changeset', 'osmcha']
