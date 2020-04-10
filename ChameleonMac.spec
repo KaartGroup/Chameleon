@@ -1,7 +1,5 @@
 # -*- mode: python -*-
 
-from PyInstaller.utils.hooks import collect_data_files
-
 block_cipher = None
 
 added_files = [
