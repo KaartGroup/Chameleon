@@ -262,7 +262,7 @@ class ChameleonDataFrameSet(set):
             self.add(i)
         return self
 
-    def check_feature_on_api(self, feature_id, app_version: str = '') -> dict:
+    def check_feature_on_api(self, feature_id: Union[int, str], app_version: str = '') -> dict:
         """
         Checks whether a way was deleted on the server
         """
@@ -282,18 +282,21 @@ class ChameleonDataFrameSet(set):
             except ConnectionError as e:
                 # Couldn't contact the server, could be client-side
                 logger.exception(e)
-                return
-            except response.HTTPError:
+                return {}
+            except requests.ReadTimeout as e:
+                logger.exception(e)
+                return {}
+            except requests.HTTPError:
                 if str(response.status_code) == '429':
                     retry_after = response.headers.get('retry-after', '')
                     logger.error(
                         "The OSM server says you've made too many requests."
                         "You can retry after %s seconds.", retry_after)
-                    raise RuntimeError
+                    raise
                 else:
                     logger.error(
                         'Server replied with a %s error', response.status_code)
-                return
+                return {}
             else:
                 loaded_response = json.loads(response.text)
                 # TODO Generalize for nodes and relations
@@ -304,16 +307,19 @@ class ChameleonDataFrameSet(set):
                     'version_new': str(latest_version['version']),
                     'timestamp_new': latest_version['timestamp']
                 }
-
                 if not latest_version.get('visible', True):
                     # The most recent way version has the way deleted
-                    prior_version_num = int(latest_version['version']) - 1
-                    prior_version = [i for i in loaded_response['elements']
-                                     if int(i['version']) == prior_version_num][0]
-
-                    # Save last members of the deleted way
-                    # for later use in detecting splits/merges
-                    self.deleted_way_members[feature_id] = prior_version['nodes']
+                    prior_version_num = latest_version['version'] - 1
+                    try:
+                        prior_version = [i for i in loaded_response['elements']
+                                         if i['version'] == prior_version_num][0]
+                    except IndexError:
+                        # Prior version doesn't exist for some reason, possibly redaction
+                        pass
+                    else:
+                        # Save last members of the deleted way
+                        # for later use in detecting splits/merges
+                        self.deleted_way_members[feature_id] = prior_version['nodes']
                 else:
                     # The way was not deleted, just dropped from the latter dataset
                     element_attribs.update({

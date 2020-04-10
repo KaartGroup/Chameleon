@@ -10,11 +10,6 @@ added_files = [
     ('resources/version.txt', '.')
 ]
 
-added_files += collect_data_files('geopandas')
-added_files += collect_data_files('osm2geojson')
-added_files += collect_data_files('fiona')
-added_files += collect_data_files('shapely')
-
 
 a = Analysis(
     ['chameleon/main.py'],
@@ -22,17 +17,13 @@ a = Analysis(
     binaries=[],
     datas=added_files,
     hiddenimports=[
-        'fiona._shim',
-        'fiona.schema',
         'pandas._libs.tslibs.timedeltas',
-        'pyproj.datadir',
         'pytest',
     ],
     hookspath=[],
     runtime_hooks=[],
     excludes=[
         'ptvsd',
-        'rtree'
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

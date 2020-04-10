@@ -4,6 +4,7 @@ Opens a window with fields for input and selectors, which in turn opens
 a worker object to process the input files with `q` and create output
 in .csv format.
 """
+import json
 import logging
 import os
 import shlex
@@ -13,37 +14,30 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-# This block must come before the geopandas import, because geopandas needs
-# the GDAL_DATA envvar to be set
-# Differentiate sys settings between pre and post-bundling
-if getattr(sys, 'frozen', False):
-    # Script is in a frozen package, i.e. PyInstaller
-    RESOURCES_DIR = Path(sys._MEIPASS)
-    os.environ['GDAL_DATA'] = str(
-        (RESOURCES_DIR / 'fiona/gdal_data/').resolve())
-    os.environ['PROJ_DIR'] = str((RESOURCES_DIR / 'pyproj/').resolve())
-else:
-    # Script is not in a frozen package
-    # __file__.parent is chameleon, .parents[1] is chameleon-2
-    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
-
 import pandas as pd
-import geopandas as gpd
 import overpass
 import oyaml as yaml
-
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
-
 from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject, QThread, Signal
-from PySide2.QtWidgets import (QAction, QApplication, QCompleter, QMessageBox,
-                               QProgressDialog, QPushButton, QMainWindow, QFileDialog)
+from PySide2.QtWidgets import (QAction, QApplication, QCompleter, QFileDialog,
+                               QMainWindow, QMessageBox, QProgressDialog,
+                               QPushButton)
 
 # Import generated UI file
 from chameleon import design
 from chameleon.core import (SPECIAL_MODES, ChameleonDataFrame,
                             ChameleonDataFrameSet)
+
+# Differentiate sys settings between pre and post-bundling
+if getattr(sys, 'frozen', False):
+    # Script is in a frozen package, i.e. PyInstaller
+    RESOURCES_DIR = Path(sys._MEIPASS)
+else:
+    # Script is not in a frozen package
+    # __file__.parent is chameleon, .parents[1] is chameleon-2
+    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -285,7 +279,7 @@ class Worker(QObject):
 
         df = cdfs.source_data
 
-        deleted_ids = list((df.loc[df['action'] == 'deleted']).index)
+        deleted_ids = list(df.loc[df['action'] == 'deleted'].index)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
             # Ends the API check early if the user cancels it
@@ -296,8 +290,9 @@ class Worker(QObject):
             element_attribs = cdfs.check_feature_on_api(
                 feature_id, app_version=APP_VERSION)
 
-            for attribute, value in element_attribs.items():
-                df.at[feature_id, attribute] = value
+            # for attribute, value in element_attribs.items():
+            #     df.at[feature_id, attribute] = value
+            df.loc[feature_id].update(pd.Series(element_attribs))
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(REQUEST_INTERVAL)
@@ -402,16 +397,14 @@ class Worker(QObject):
                     return
             finally:
                 self.parent.mutex.unlock()
-        output_gdf = gpd.GeoDataFrame()
+        output_geojson = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
         for result in dataframe_set:
             if result.chameleon_mode == 'deleted':
                 continue
 
-            # TODO Remove all the safety stuff for empty id cells
-            id_list = [
-                i for i in list(
-                    result['id'].fillna('').str.replace('w', ''))
-                if i]
             id_list = list(result['id'].str.replace('w', ''))
             if id_list:  # Skip this iteration if the list is empty
                 overpass_query = f"way(id:{','.join(id_list)})"
@@ -420,17 +413,9 @@ class Worker(QObject):
                 response = api.get(overpass_query, verbosity='meta geom',
                                    responseformat='geojson')
                 logger.info('Response recieved from Overpass.')
-                # from_features() doesn't pick up a standard geojson id,
-                # so we have to copy it inside properties
-                for i in response['features']:
-                    i['properties']['id'] = i['id']
-                gdf = gpd.GeoDataFrame().from_features(response)
-                logger.info('GeoDataFrame created.')
-                gdf['id'] = 'w' + gdf['id'].astype(str)
-                row_count = len(gdf['id'])
-                merged = gdf[['geometry', 'id']].merge(result, on='id')
+                row_count = len(response['features'])
                 columns_to_keep = ['id', 'url', 'user', 'timestamp', 'version']
-                if 'changeset' in list(merged.columns) and 'osmcha' in list(merged.columns):
+                if 'changeset' in result.columns and 'osmcha' in result.columns:
                     columns_to_keep += ['changeset', 'osmcha']
                 if result.chameleon_mode != 'name':
                     columns_to_keep += ['name']
@@ -439,13 +424,18 @@ class Worker(QObject):
                 if result.chameleon_mode not in SPECIAL_MODES:
                     columns_to_keep += [f'old_{result.chameleon_mode}',
                                         f'new_{result.chameleon_mode}']
-                else:
-                    merged[result.chameleon_mode] = result.chameleon_mode
-                    columns_to_keep += [result.chameleon_mode]
-                columns_to_keep += ['action', 'geometry']
-                # Drop all but these columns
-                merged = merged[columns_to_keep]
-                output_gdf = output_gdf.append(merged)
+                # else:
+                #     result[result.chameleon_mode] = result.chameleon_mode
+                #     columns_to_keep += [result.chameleon_mode]
+                columns_to_keep += ['action']
+                for i in response['features']:
+                    i['id'] = 'w' + str(i['id'])
+                    i['properties'] = {
+                        column: value
+                        for column, value in result[result['id'] == i['id']].iloc[0].items()
+                        if column in columns_to_keep}
+                output_geojson['features'] += response['features']
+
             else:
                 row_count = 0
             if not row_count:
@@ -463,7 +453,7 @@ class Worker(QObject):
         logger.info('Writing geojson…')
         try:
             with file_name.open('w') as output_file:
-                output_file.write(output_gdf.to_json())
+                json.dump(output_geojson, output_file)
         except OSError:
             logger.exception("Write error.")
             self.error_list = [i.chameleon_mode for i in dataframe_set]
