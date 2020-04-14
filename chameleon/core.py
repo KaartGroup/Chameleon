@@ -274,6 +274,7 @@ class ChameleonDataFrameSet(set):
         else:
             try:
                 response = requests.get(
+                    # TODO Allow any OSM feature type
                     f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history.json',
                     timeout=2,
                     headers={'user-agent': f'Kaart Chameleon{app_version}'})

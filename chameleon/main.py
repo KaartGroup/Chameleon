@@ -137,6 +137,8 @@ class Worker(QObject):
     check_api_done = Signal()
     overwrite_confirm = Signal(str)
     dialog = Signal(str, str, str)
+    overpass_counter = Signal(int)
+    overpass_complete = Signal()
 
     def __init__(self, parent, modes: set, files: dict, group_output=False,
                  use_api=False, file_format='csv'):
@@ -403,12 +405,14 @@ class Worker(QObject):
                            if i.chameleon_mode != 'deleted'}
         id_list = []
         for result in nondeleted_cdfs:
+            # TODO allow any feature type
             id_list += list(result['id'].str.replace('w', ''))
         if id_list:  # Skip this iteration if the list is empty
             overpass_query = f"way(id:{','.join(id_list)})"
 
             api = overpass.API(timeout=timeout)
             try:
+                self.overpass_counter.emit(timeout)
                 response = api.get(overpass_query, verbosity='meta geom',
                                    responseformat='geojson')
             except TimeoutError:
@@ -418,6 +422,8 @@ class Worker(QObject):
                     'critical'
                 )
                 return
+            finally:
+                self.overpass_complete.emit()
             logger.info('Response recieved from Overpass.')
             merged = pd.DataFrame()
             for result in nondeleted_cdfs:
@@ -949,6 +955,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.progress_bar.scale_with_api_items)
         self.progress_bar.canceled.connect(self.stop_thread)
         self.worker.check_api_done.connect(self.progress_bar.check_api_done)
+
+        self.worker.overpass_counter.connect(
+            self.progress_bar.overpass_counter)
+        self.worker.overpass_complete.connect(
+            self.progress_bar.overpass_complete)
         # Run finished() when all modes are done in Worker
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
@@ -1068,7 +1079,7 @@ class ChameleonProgressDialog(QProgressDialog):
     Customizes QProgressDialog with methods specific to this app.
     """
 
-    def __init__(self, length: int, use_api=False):
+    def __init__(self, length: int, use_api=False, use_overpass=False):
         self.current_item = 0
         self.item_count = None
         self.mode = None
@@ -1076,6 +1087,8 @@ class ChameleonProgressDialog(QProgressDialog):
         self.use_api = use_api
         # Tracks how many actual modes have been completed, independent of scaling
         self.mode_progress = 0
+
+        self.is_overpass_complete = False
 
         super().__init__('', None, 0, self.length)
 
@@ -1141,6 +1154,23 @@ class ChameleonProgressDialog(QProgressDialog):
         Disables the cancel button after the API check is complete
         """
         self.cancel_button.setEnabled(False)
+
+    def overpass_counter(self, timeout: int):
+        # self.cancel_button.setEnabled(True)
+        scaled_max = (self.length + 1) * timeout
+        self.setValue(self.length * timeout)
+        self.setMaximum(scaled_max)
+        for i in range(timeout):
+            if self.is_overpass_complete:
+                break
+            self.setLabelText(
+                f"Getting geometry from Overpass. {timeout - i} seconds until timeout")
+            self.setValue(self.value() + 1)
+            time.sleep(1)
+        # self.cancel_button.setEnabled(False)
+
+    def overpass_complete(self):
+        self.is_overpass_complete = True
 
 
 def dir_uri(the_path: Path) -> str:
