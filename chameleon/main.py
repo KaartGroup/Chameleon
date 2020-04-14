@@ -385,6 +385,7 @@ class Worker(QObject):
         """
         file_name = Path(
             f"{self.files['output']}.geojson")
+        self.output_path = file_name
         if file_name.is_file():
             try:  # This block ensures the mutex is unlocked even in the worst case
                 self.overwrite_confirm.emit(str(file_name))
@@ -397,23 +398,29 @@ class Worker(QObject):
                     return
             finally:
                 self.parent.mutex.unlock()
-        output_geojson = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
-        for result in dataframe_set:
-            if result.chameleon_mode == 'deleted':
-                continue
+        nondeleted_cdfs = {i for i in dataframe_set
+                           if i.chameleon_mode != 'deleted'}
+        id_list = []
+        for result in nondeleted_cdfs:
+            id_list += list(result['id'].str.replace('w', ''))
+        if id_list:  # Skip this iteration if the list is empty
+            overpass_query = f"way(id:{','.join(id_list)})"
 
-            id_list = list(result['id'].str.replace('w', ''))
-            if id_list:  # Skip this iteration if the list is empty
-                overpass_query = f"way(id:{','.join(id_list)})"
-
-                api = overpass.API(timeout=120)
+            api = overpass.API(timeout=120)
+            try:
                 response = api.get(overpass_query, verbosity='meta geom',
                                    responseformat='geojson')
-                logger.info('Response recieved from Overpass.')
-                row_count = len(response['features'])
+            except TimeoutError:
+                self.dialog(
+                    'Overpass timeout',
+                    'The Overpass server did not respond in time.',
+                    'critical'
+                )
+                return
+            logger.info('Response recieved from Overpass.')
+            merged = pd.DataFrame()
+            for result in nondeleted_cdfs:
+                row_count = len(result['id'])
                 columns_to_keep = ['id', 'url', 'user', 'timestamp', 'version']
                 if 'changeset' in result.columns and 'osmcha' in result.columns:
                     columns_to_keep += ['changeset', 'osmcha']
@@ -428,37 +435,35 @@ class Worker(QObject):
                 #     result[result.chameleon_mode] = result.chameleon_mode
                 #     columns_to_keep += [result.chameleon_mode]
                 columns_to_keep += ['action']
-                for i in response['features']:
-                    i['id'] = 'w' + str(i['id'])
-                    i['properties'] = {
-                        column: value
-                        for column, value in result[result['id'] == i['id']].iloc[0].items()
-                        if column in columns_to_keep}
-                output_geojson['features'] += response['features']
-
-            else:
-                row_count = 0
-            if not row_count:
-                # Empty dataframe
-                success_message = f"{result.chameleon_mode} has no change."
-            else:
-                success_message = (
-                    f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
-            self.successful_items.update(
-                {result.chameleon_mode: success_message})
-            logger.info(
-                "Processing for %s complete.", result.chameleon_mode)
-            self.mode_complete.emit()
+                result = result[columns_to_keep]
+                merged = merged.append(result)
+                if not row_count:
+                    # Empty dataframe
+                    success_message = f"{result.chameleon_mode} has no change."
+                else:
+                    success_message = (
+                        f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
+                self.successful_items.update(
+                    {result.chameleon_mode: success_message})
+                logger.info(
+                    "Processing for %s complete.", result.chameleon_mode)
+                self.mode_complete.emit()
+            for i in response['features']:
+                i['id'] = 'w' + str(i['id'])
+                i['properties'] = {
+                    column: value
+                    for column, value in merged[merged['id'] == i['id']].iloc[0].items()
+                    if pd.notna(value)
+                    # if column in columns_to_keep
+                }
 
         logger.info('Writing geojson…')
         try:
             with file_name.open('w') as output_file:
-                json.dump(output_geojson, output_file)
+                json.dump(response, output_file)
         except OSError:
             logger.exception("Write error.")
             self.error_list = [i.chameleon_mode for i in dataframe_set]
-
-        self.output_path = file_name
 
 
 class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
