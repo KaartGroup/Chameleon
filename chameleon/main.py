@@ -336,7 +336,7 @@ class Worker(QObject):
                 success_message = f"{result.chameleon_mode} has no change."
             else:
                 success_message = (
-                    f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
+                    f"{result.chameleon_mode} output with {row_count} row{plur(row_count)}.")
             self.successful_items.update(
                 {result.chameleon_mode: success_message})
             logger.info(
@@ -372,7 +372,7 @@ class Worker(QObject):
                     success_message = f"{result.chameleon_mode} has no change."
                 else:
                     success_message = (
-                        f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
+                        f"{result.chameleon_mode} output with {row_count} row{plur(row_count)}.")
                 self.successful_items.update(
                     {result.chameleon_mode: success_message})
                 self.mode_complete.emit()
@@ -383,6 +383,7 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a geojson file,
         using the overpass API
         """
+        timeout = 120
         file_name = Path(
             f"{self.files['output']}.geojson")
         self.output_path = file_name
@@ -406,7 +407,7 @@ class Worker(QObject):
         if id_list:  # Skip this iteration if the list is empty
             overpass_query = f"way(id:{','.join(id_list)})"
 
-            api = overpass.API(timeout=120)
+            api = overpass.API(timeout=timeout)
             try:
                 response = api.get(overpass_query, verbosity='meta geom',
                                    responseformat='geojson')
@@ -442,7 +443,7 @@ class Worker(QObject):
                     success_message = f"{result.chameleon_mode} has no change."
                 else:
                     success_message = (
-                        f"{result.chameleon_mode} output with {row_count} row{pluralize(row_count)}.")
+                        f"{result.chameleon_mode} output with {row_count} row{plur(row_count)}.")
                 self.successful_items.update(
                     {result.chameleon_mode: success_message})
                 logger.info(
@@ -454,7 +455,6 @@ class Worker(QObject):
                     column: value
                     for column, value in merged[merged['id'] == i['id']].iloc[0].items()
                     if pd.notna(value)
-                    # if column in columns_to_keep
                 }
 
         logger.info('Writing geojson…')
@@ -1155,10 +1155,10 @@ def dir_uri(the_path: Path) -> str:
         return the_path.as_uri()
 
 
-def pluralize(count: int):
+def plur(count: int) -> str:
     """
     Meant to used within f-strings, fills in an 's' where appropriate,
-    based on input parameter. i.e., f"You have {count} item{pluralize(count)}."
+    based on input parameter. i.e., f"You have {count} item{plur(count)}."
     """
     if count == 1:
         return ''
