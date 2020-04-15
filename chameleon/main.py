@@ -369,6 +369,19 @@ class Worker(QObject):
                 row_count = len(result.index)
                 result.to_excel(writer, sheet_name=result.chameleon_mode,
                                 index=False, freeze_panes=(1, 0))
+
+                sheet = writer.sheets[result.chameleon_mode]
+
+                # Points at first cell (blank) of last column written
+                column_pointer = len(result.columns) - 1
+
+                sheet.data_validation(
+                    1, column_pointer, row_count, (column_pointer),
+                    {'validate': 'list',
+                        'source': [
+                            # Potential values go here
+                        ]})
+
                 if not row_count:
                     # Empty dataframe
                     success_message = f"{result.chameleon_mode} has no change."
