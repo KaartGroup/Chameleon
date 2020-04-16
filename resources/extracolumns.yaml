@@ -1,0 +1,8 @@
+notes:
+QCer:
+QC notes:
+resolution:
+    validate: list
+    source:
+        - passed
+        - sendback

@@ -156,6 +156,8 @@ class Worker(QObject):
         self.error_list = []
         self.successful_items = {}
 
+        self.extra_columns = self.load_extra_columns()
+
     def run(self):
         """
         Runs when thread started, saves history to file and calls other functions to write files.
@@ -254,6 +256,14 @@ class Worker(QObject):
             logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
             self.done.emit()
+
+    def load_extra_columns(self) -> dict:
+        try:
+            with (RESOURCES_DIR / 'extracolumns.yaml').open('r') as f:
+                return yaml.safe_load(f.read())
+        except OSError:
+            logger.info("No extra columns loaded.")
+            return {}
 
     def history_writer(self):
         staged_history_dict = {k: str(v)
@@ -367,20 +377,21 @@ class Worker(QObject):
                             engine='xlsxwriter') as writer:
             for result in dataframe_set:
                 row_count = len(result.index)
+                # Points at first cell (blank) of last column written
+                column_pointer = len(result.columns)
+                for k in self.extra_columns.keys():
+                    result[k] = ''
                 result.to_excel(writer, sheet_name=result.chameleon_mode,
                                 index=False, freeze_panes=(1, 0))
 
-                sheet = writer.sheets[result.chameleon_mode]
+                if self.extra_columns:
+                    sheet = writer.sheets[result.chameleon_mode]
 
-                # Points at first cell (blank) of last column written
-                column_pointer = len(result.columns) - 1
-
-                sheet.data_validation(
-                    1, column_pointer, row_count, (column_pointer),
-                    {'validate': 'list',
-                        'source': [
-                            # Potential values go here
-                        ]})
+                    for k, v in self.extra_columns.items():
+                        if v is not None and v.get('validate', None):
+                            sheet.data_validation(
+                                1, column_pointer, row_count, column_pointer, v)
+                        column_pointer += 1
 
                 if not row_count:
                     # Empty dataframe
