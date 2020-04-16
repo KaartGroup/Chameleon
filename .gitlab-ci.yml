@@ -1,7 +1,7 @@
 image: python:3
 before_script:
     - pip install -r requirements.txt
-    - pyuic5 chameleon/design.ui -o chameleon/design.py
+    - pyside2-uic chameleon/design.ui -o chameleon/design.py
 test_main:
     variables:
         QT_QPA_PLATFORM: "offscreen"
