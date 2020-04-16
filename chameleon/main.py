@@ -316,7 +316,7 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
         for result in dataframe_set:
-            row_count = len(result.index)
+            row_count = len(result)
             file_name = Path(
                 f"{self.files['output']}_{result.chameleon_mode}.csv")
             logger.info("Writing %s", file_name)
@@ -377,7 +377,7 @@ class Worker(QObject):
         with pd.ExcelWriter(file_name,
                             engine='xlsxwriter') as writer:
             for result in dataframe_set:
-                row_count = len(result.index)
+                row_count = len(result)
                 # Points at first cell (blank) of last column written
                 column_pointer = len(result.columns)
                 for k in self.extra_columns.keys():
@@ -426,19 +426,12 @@ class Worker(QObject):
                     return
             finally:
                 self.parent.mutex.unlock()
-        nondeleted_cdfs = {i for i in dataframe_set
-                           if i.chameleon_mode != 'deleted'}
-        id_list = []
-        for result in nondeleted_cdfs:
-            # TODO allow any feature type
-            id_list += list(result['id'].str.replace('w', ''))
-        if id_list:  # Skip this iteration if the list is empty
-            overpass_query = f"way(id:{','.join(id_list)})"
 
+        if dataframe_set.overpass_query:
             api = overpass.API(timeout=timeout)
             try:
                 self.overpass_counter.emit(timeout)
-                response = api.get(overpass_query, verbosity='meta geom',
+                response = api.get(dataframe_set.overpass_query, verbosity='meta geom',
                                    responseformat='geojson')
             except TimeoutError:
                 self.dialog(
@@ -450,9 +443,9 @@ class Worker(QObject):
             finally:
                 self.overpass_complete.emit()
             logger.info('Response recieved from Overpass.')
-            merged = pd.DataFrame()
-            for result in nondeleted_cdfs:
-                row_count = len(result['id'])
+            merged = ChameleonDataFrame()
+            for result in dataframe_set.nondeleted:
+                row_count = len(result)
                 columns_to_keep = ['id', 'url', 'user', 'timestamp', 'version']
                 if 'changeset' in result.columns and 'osmcha' in result.columns:
                     columns_to_keep += ['changeset', 'osmcha']
@@ -1219,6 +1212,12 @@ def plur(count: int) -> str:
         return ''
     else:
         return 's'
+
+
+def strip_nwr(id: str) -> str:
+    for i in ['n', 'w', 'r']:
+        id = id.replace(i, '')
+    return id
 
 
 if __name__ == '__main__':

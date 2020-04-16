@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 import requests
@@ -277,7 +277,7 @@ class ChameleonDataFrameSet(set):
         if feature_id in self.overpass_result_attribs:
             return self.overpass_result_attribs[feature_id]
         else:
-            feature_type, feature_id_num = split_feature_id(feature_id)
+            feature_type, feature_id_num = split_id(feature_id)
             try:
                 response = requests.get(
                     'https://www.openstreetmap.org/api/0.6/'
@@ -334,6 +334,40 @@ class ChameleonDataFrameSet(set):
                     })
                 return element_attribs
 
+    @property
+    def nondeleted(self) -> set:
+        return {i for i in self
+                if i.chameleon_mode != 'deleted'}
 
-def split_feature_id(feature_id) -> Tuple[str, str]:
+    @property
+    def overpass_query(self) -> str:
+        feature_ids = {'node': [],
+                       'way': [],
+                       }
+        for df in self.nondeleted:
+            for k, v in separate_ids_by_feature_type(df['id']).items():
+                feature_ids[k] += v
+        return r';'.join([
+            f"{k}(id:{','.join(v)})"
+            for k, v in feature_ids.items()
+            if v
+        ])
+
+
+def split_id(feature_id) -> Tuple[str, str]:
+    """
+    Separates an id like "n12345678" into the type and id number
+    """
     return TYPE_EXPANSION[feature_id[0]], feature_id[1:]
+
+
+def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
+    return {
+        'node': [i[1:] for i in mixed
+                 if i[0] == 'n'],
+        'way': [i[1:] for i in mixed
+                if i[0] == 'w']
+        # Overpass library currently doesn't allow querying for relations in geojson
+        # 'relation': [i[1:] for i in mixed
+        #         if i[0] == 'r']
+    }
