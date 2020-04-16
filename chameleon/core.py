@@ -3,17 +3,22 @@ UI-independent classes for processing data
 """
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
-from typing import Union
+from typing import Tuple, Union
 
 import pandas as pd
 import requests
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 SPECIAL_MODES = {'new', 'deleted'}
+TYPE_EXPANSION = {
+    'n': 'node',
+    'w': 'way',
+    'r': 'relation'
+}
 JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
 OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 
@@ -65,10 +70,6 @@ class ChameleonDataFrame(pd.DataFrame):
         # self = ChameleonDataFrame(
         #     mode=self.chameleon_mode, grouping=self.grouping)
 
-        self['id'] = (
-            intermediate_df['type_old'].fillna(intermediate_df['type_new']).str[0] +
-            intermediate_df.index.astype(str)
-        )
         self['url'] = (JOSM_URL + self['id'])
         self['user'] = intermediate_df['user_new'].fillna(
             intermediate_df['user_old'])
@@ -118,7 +119,7 @@ class ChameleonDataFrame(pd.DataFrame):
         self['action'] = intermediate_df['action']
         if self.grouping:
             self = self.group()
-        self.dropna(subset=['id'], inplace=True)
+        self.dropna(subset=['action'], inplace=True)
         self.fillna('', inplace=True)
         self.sort()
         return self
@@ -232,6 +233,11 @@ class ChameleonDataFrameSet(set):
         # Strip whitespace
         self.source_data.columns = self.source_data.columns.str.strip()
 
+        self.source_data['id'] = (
+            self.source_data['type_old'].fillna(self.source_data['type_new']).str[0] +
+            self.source_data.index.astype(str)
+        )
+
         try:
             self.source_data.loc[self.source_data.present_old &
                                  self.source_data.present_new, 'action'] = 'modified'
@@ -241,7 +247,7 @@ class ChameleonDataFrameSet(set):
                                  self.source_data.present_new, 'action'] = 'new'
         except ValueError:
             # No change for this mode, add a placeholder column
-            self.source_data['action'] = ''
+            self.source_data['action'] = np.nan
         return self
 
     def separate_special_dfs(self) -> ChameleonDataFrameSet:
@@ -261,7 +267,7 @@ class ChameleonDataFrameSet(set):
             self.add(i)
         return self
 
-    def check_feature_on_api(self, feature_id: Union[int, str], app_version: str = '') -> dict:
+    def check_feature_on_api(self, feature_id: str, app_version: str = '') -> dict:
         """
         Checks whether a way was deleted on the server
         """
@@ -271,10 +277,11 @@ class ChameleonDataFrameSet(set):
         if feature_id in self.overpass_result_attribs:
             return self.overpass_result_attribs[feature_id]
         else:
+            feature_type, feature_id_num = split_feature_id(feature_id)
             try:
                 response = requests.get(
-                    # TODO Allow any OSM feature type
-                    f'https://www.openstreetmap.org/api/0.6/way/{feature_id}/history.json',
+                    'https://www.openstreetmap.org/api/0.6/'
+                    f'{feature_type}/{feature_id_num}/history.json',
                     timeout=2,
                     headers={'user-agent': f'Kaart Chameleon{app_version}'})
                 # Raises exceptions for non-successful status codes
@@ -298,8 +305,7 @@ class ChameleonDataFrameSet(set):
                         'Server replied with a %s error', response.status_code)
                 return {}
             else:
-                loaded_response = json.loads(response.text)
-                # TODO Generalize for nodes and relations
+                loaded_response = response.json()
                 latest_version = loaded_response['elements'][-1]
                 element_attribs = {
                     'user_new': latest_version['user'],
@@ -319,10 +325,15 @@ class ChameleonDataFrameSet(set):
                     else:
                         # Save last members of the deleted way
                         # for later use in detecting splits/merges
-                        self.deleted_way_members[feature_id] = prior_version['nodes']
+                        if feature_type == 'way':
+                            self.deleted_way_members[feature_id] = prior_version['nodes']
                 else:
                     # The way was not deleted, just dropped from the latter dataset
                     element_attribs.update({
                         'action': 'dropped'
                     })
                 return element_attribs
+
+
+def split_feature_id(feature_id) -> Tuple[str, str]:
+    return TYPE_EXPANSION[feature_id[0]], feature_id[1:]

@@ -291,7 +291,8 @@ class Worker(QObject):
 
         df = cdfs.source_data
 
-        deleted_ids = list(df.loc[df['action'] == 'deleted'].index)
+        # TODO Iterate directly over dataframe rather than constructed list
+        deleted_ids = list(df.loc[df['action'] == 'deleted'].id)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
             # Ends the API check early if the user cancels it
@@ -304,7 +305,7 @@ class Worker(QObject):
 
             # for attribute, value in element_attribs.items():
             #     df.at[feature_id, attribute] = value
-            df.loc[feature_id].update(pd.Series(element_attribs))
+            df[df['id'] == feature_id].update(pd.Series(element_attribs))
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(REQUEST_INTERVAL)
