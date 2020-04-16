@@ -1,8 +1,23 @@
-notes:
-QCer:
-QC notes:
-resolution:
+editor notes:
+QC status:
     validate: list
     source:
-        - passed
-        - sendback
+        - Validated
+        - Invalidated
+        - On Hold
+QCer:
+QC notes:
+resolution status:
+    validate: list
+    source:
+        - Fixed
+        - Not an issue
+        - Unsure/Too hard - Leaving as is
+        - On Hold
+reworked:
+    validate: list
+    source:
+        - Addressed
+        - Disputed
+        - On Hold
+reworked notes:
