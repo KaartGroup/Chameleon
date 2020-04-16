@@ -7,6 +7,7 @@ design.py
 __pycache__/
 .cache/
 .DS_Store
+.Python
 .eggs/
 .idea/
 .pytest_cache/
@@ -18,5 +19,6 @@ dist/
 env/
 main.spec
 output_test.csv
+pip-selfcheck.json
 resources/version.txt
 test/output_name.csv
