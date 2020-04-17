@@ -5,7 +5,8 @@ block_cipher = None
 added_files = [
     ('resources/OSMtag.yaml', '.'),
     ('resources/chameleon.png', '.'),
-    ('resources/version.txt', '.')
+    ('resources/version.txt', '.'),
+    ('resources/extracolumns.yaml', '.'),
 ]
 
 
