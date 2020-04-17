@@ -263,7 +263,7 @@ class Worker(QObject):
                 return yaml.safe_load(f.read())
         except OSError:
             logger.info("No extra columns loaded.")
-            return {}
+            return {'notes': None}
 
     def history_writer(self):
         staged_history_dict = {k: str(v)
