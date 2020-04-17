@@ -160,6 +160,15 @@ class TestBuildQuery(unittest.TestCase):
     #         gold_file = file.read()
     #     self.assertMultiLineEqual(test_file, gold_file)
 
+    def test_csv_output(self):
+        pass
+
+    def test_excel_output(self):
+        pass
+
+    def test_geojson_output(self):
+        pass
+
 
 class TestGUI(unittest.TestCase):
     """

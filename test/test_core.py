@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
+from chameleon.core import (ChameleonDataFrame, ChameleonDataFrameSet,
+                            separate_ids_by_feature_type, split_id)
 
 
 class TestQuery(unittest.TestCase):
@@ -56,11 +57,16 @@ class TestQuery(unittest.TestCase):
     def test_add_cdf_to_set(self):
         self.df_set[self.mode] = self.df
 
-    def test_csv_output(self):
-        pass
+    def test_separate_ids_by_feature_type(self):
+        mixed = ['n1234567', 'n8901234', 'w5678901',
+                 'n23456789', 'r0123456', 'w7801234']
+        gold = {
+            'node': ['1234567', '8901234', '23456789'],
+            'way': ['5678901', '7801234']
+        }
+        self.assertEqual(separate_ids_by_feature_type(mixed), gold)
 
-    def test_excel_output(self):
-        pass
-
-    def test_geojson_output(self):
-        pass
+    def test_split_id(self):
+        fid = 'w1234567'
+        gold = ('way', '1234567')
+        self.assertEqual(gold, split_id(fid))
