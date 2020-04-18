@@ -362,12 +362,22 @@ def split_id(feature_id) -> Tuple[str, str]:
 
 
 def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
-    return {
-        'node': [i[1:] for i in mixed
-                 if i[0] == 'n'],
-        'way': [i[1:] for i in mixed
-                if i[0] == 'w']
-        # Overpass library currently doesn't allow querying for relations in geojson
-        # 'relation': [i[1:] for i in mixed
-        #         if i[0] == 'r']
-    }
+    """
+    Separates a list of mixed type feature ids
+    into a dict with types as keys and lists of ids as values
+
+    Parameters
+    ----------
+    mixed:List[str]: a list of feature ids, of mixed feature types
+
+    Returns
+    -------
+    Dict[str, List[str]]: a dict with keys 'nodes' and 'ways', and lists of ids as values
+    """
+    f_type_id: List[Tuple[str, str]] = [split_id(i) for i in mixed]
+
+    return {v: [fid for ftype, fid
+                in f_type_id
+                if ftype == v]
+            for v in TYPE_EXPANSION.values()
+            if v != 'relation'}
