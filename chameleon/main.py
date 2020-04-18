@@ -42,14 +42,7 @@ else:
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
-FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
-COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
-
-# Configuration file locations
-CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
-HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
-FAVORITE_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
 logger = logging.getLogger()
@@ -520,6 +513,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.setWindowIcon(QtGui.QIcon(logo_path))
         self.logo = logo_path
 
+        self.tag_count = {}
+
         self.text_fields = {
             "old": self.oldFileNameBox,
             "new": self.newFileNameBox,
@@ -549,20 +544,12 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         # Sets run button to not enabled
         self.run_checker()
-        # OSM tag resource file, construct list from file
-        autocomplete_source = RESOURCES_DIR / "OSMtag.yaml"
 
-        try:
-            with autocomplete_source.open() as read_file:
-                self.auto_completer(yaml.safe_load(read_file))
-        except OSError:
-            logger.exception("Couldn't read the autocomplete source file.")
-        except (TypeError, NameError):
-            logger.exception("Could not load any autocomplete tags.")
+        # OSM tag resource file, construct list from file
+        self.auto_completer()
 
         # YAML file loaders
         # Load file paths into boxes from previous session
-
         self.history_loader()
 
         # List all of our buttons to populate so we can iterate through them
@@ -634,11 +621,23 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             "and <a href=https://www.pyinstaller.org>PyInstaller</a>.</i>")
         about.show()
 
-    def auto_completer(self, tags: list):
+    def auto_completer(self):
         """
         Autocompletion of user searches in searchBox.
         Utilizes resource file for associated autocomplete options.
         """
+
+        # OSM tag resource file, construct list from file
+        autocomplete_source = RESOURCES_DIR / "OSMtag.yaml"
+
+        try:
+            with autocomplete_source.open() as read_file:
+                tags = yaml.safe_load(read_file)
+        except OSError:
+            logger.exception("Couldn't read the autocomplete source file.")
+        except (TypeError, NameError):
+            logger.exception("Could not load any autocomplete tags.")
+
         # Needs to have tags reference a resource file of OSM tags
         # Check current autocomplete list
         logger.debug(
@@ -672,26 +671,27 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         except AttributeError as e:
             logger.exception(e)
 
-    def fav_btn_populate(self, favorite_location: Path = FAVORITE_LOCATION):
+    def fav_btn_populate(self, counter_location: Path = COUNTER_LOCATION):
         """
         Populates the listed buttons with favorites from the given file
         """
         # Holds the button values until they are inserted
-        fav_list = []
-        # Check for favorite file and load if exists
+
+        # Parse counter.yaml for user tag preference
         try:
-            with favorite_location.open('r') as favorite_read:
-                # Load in popular tags from history file
-                # Default values are taken if history file does not exist
-                fav_list = yaml.safe_load(favorite_read)  # dict()
+            with counter_location.open('r') as counter_read:
+                self.tag_count = Counter(yaml.safe_load(counter_read))
+        # If file doesn't exist, fail silently
         except FileNotFoundError:
-            logger.warning("favorites.yaml could not be found. "
-                           "This is normal when running the program for the first time.")
-        except PermissionError:
-            logger.exception("favorites.yaml found but could not be opened.")
-        else:  # Don't bother doing anything with favorites if the file couldn't be read
-            logger.debug(
-                f"Fav history is: {fav_list} with type: {type(fav_list)}.")
+            logger.warning("Couldn't find the tag count file. "
+                           "This is normal if this is your first time runnning the application.")
+        except OSError:
+            logger.exception()
+        else:
+            logger.debug("counter.yaml history: %s.", (self.tag_count))
+
+        fav_list = list(self.tag_count)
+
         if len(fav_list) < len(self.fav_btn):
             # If we run out of favorites, start adding non-redundant default tags
             # We use these when there aren't enough favorites
@@ -777,52 +777,24 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.run_checker()
         self.listWidget.repaint()
 
-    @staticmethod
-    def document_tag(run_tags: set, counter_location: Path = COUNTER_LOCATION,
-                     favorite_location: Path = FAVORITE_LOCATION):
+    def document_tag(self, run_tags: set, counter_location: Path = COUNTER_LOCATION):
         """
         Python counter for tags that are frequently chosen by user.
         Document counter and favorites using yaml file storage.
         Function parses counter.yaml and dump into favorites.yaml.
         """
-        cur_counter = dict()
-        # Parse counter.yaml for user tag preference
-        try:
-            with counter_location.open('r') as counter_read:
-                cur_counter = dict(yaml.load(counter_read))
-                logger.debug("counter.yaml history: %s.", (cur_counter))
-        # If file doesn't exist, fail silently
-        except FileNotFoundError:
-            logger.warning("Couldn't read the tag count file. "
-                           "This is normal if this is your first time runnning the application.")
-        except OSError:
-            logger.exception()
 
-        # Casting set into dictionary with counts
-        # Counter() sorts in reverse order (highest first)
-        # Counter() generates a counter collections object
-        dict_counter = dict(Counter(run_tags))
         # Combining history counter with new counter
-        sum_counter = dict(Counter(dict_counter) + Counter(cur_counter))
-        # Sorting counter collections into ordered dictionary
-        sorted_counter = dict(sorted(sum_counter.items(),
-                                     key=lambda x: x[1], reverse=True))
-        rank_tags = list(sorted_counter.keys())
+        self.tag_count.update(run_tags)
+
         # Saving tag counts to config directory
         try:
             with counter_location.open('w') as counter_write:
-                yaml.dump(dict(sorted_counter), counter_write)
-                logger.info(f"counter.yaml dump with: {sorted_counter}.")
+                yaml.dump(dict(self.tag_count), counter_write)
         except OSError:
             logger.exception("Couldn't write counter file.")
-        # Saving favorite tags to config directory
-        try:
-            with favorite_location.open('w') as favorite_write:
-                yaml.dump(rank_tags, favorite_write)
-                logger.info(f"favorites.yaml dump with: {rank_tags}.")
-        # If file doesn't exist, fail silently
-        except OSError:
-            logger.exception("Couldn't write favorite file.")
+        else:
+            logger.info(f"counter.yaml dump with: {self.tag_count}.")
 
     def open_input_file(self):
         """
