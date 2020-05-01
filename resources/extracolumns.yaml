@@ -1,3 +1,10 @@
+resolution status:
+    validate: list
+    source:
+        - Fixed
+        - Not an issue
+        - Unsure/Too hard - Leaving as is
+        - On Hold
 editor notes:
 QC status:
     validate: list
@@ -7,13 +14,6 @@ QC status:
         - On Hold
 QCer:
 QC notes:
-resolution status:
-    validate: list
-    source:
-        - Fixed
-        - Not an issue
-        - Unsure/Too hard - Leaving as is
-        - On Hold
 reworked:
     validate: list
     source:
