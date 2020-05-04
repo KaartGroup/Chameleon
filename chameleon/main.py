@@ -128,7 +128,7 @@ class Worker(QObject):
     scale_with_api_items = Signal(int)
     increment_progbar_api = Signal()
     check_api_done = Signal()
-    overwrite_confirm = Signal(str)
+    user_confirm_signal = Signal(str)
     dialog = Signal(str, str, str)
     overpass_counter = Signal(int)
     overpass_complete = Signal()
@@ -275,6 +275,20 @@ class Worker(QObject):
             except NameError:
                 pass
 
+    def overwrite_confirm(self, file_name: str) -> bool:
+        return self.user_confirm(f"{file_name} exists. <p> Do you want to overwrite? </p>")
+
+    def user_confirm(self, message: str) -> bool:
+        try:  # This block ensures the mutex is unlocked even in the worst case
+            self.user_confirm_signal.emit(message)
+            self.parent.mutex.lock()
+            # Don't check for a response until after the user has a chance to give one
+            self.parent.waiting_for_input.wait(
+                self.parent.mutex)
+            return self.response
+        finally:
+            self.parent.mutex.unlock()
+
     def check_api_deletions(self, cdfs: ChameleonDataFrameSet):
         """
         Pings OSM server to see if ways were actually deleted or just dropped
@@ -318,21 +332,13 @@ class Worker(QObject):
                     result.to_csv(output_file, sep='\t', index=False)
             except FileExistsError:
                 # Prompt and wait for confirmation before overwriting
-                try:  # This block ensures the mutex is unlocked even in the worst case
-                    self.overwrite_confirm.emit(str(file_name))
-                    self.parent.mutex.lock()
-                    # Don't check for a response until after the user has a chance to give one
-                    self.parent.waiting_for_input.wait(
-                        self.parent.mutex)
-                    if not self.response:
-                        logger.info("Skipping %s.", result.chameleon_mode)
-                        continue
-                    else:
-                        with file_name.open('w') as output_file:
-                            result.to_csv(
-                                output_file, sep='\t', index=False)
-                finally:
-                    self.parent.mutex.unlock()
+                if not self.overwrite_confirm(file_name):
+                    logger.info("Skipping %s.", result.chameleon_mode)
+                    continue
+                else:
+                    with file_name.open('w') as output_file:
+                        result.to_csv(
+                            output_file, sep='\t', index=False)
             except OSError:
                 logger.exception("Write error.")
                 self.error_list += result.chameleon_mode
@@ -355,18 +361,9 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet as sheets in an Excel file
         """
         file_name = self.files['output'].with_suffix('.xlsx')
-        if file_name.is_file():
-            try:
-                self.overwrite_confirm.emit(str(file_name))
-                self.parent.mutex.lock()
-                # Don't check for a response until after the user has a chance to give one
-                self.parent.waiting_for_input.wait(
-                    self.parent.mutex)
-                if not self.response:
-                    logger.info("Not writing output")
-                    return
-            finally:
-                self.parent.mutex.unlock()
+        if file_name.is_file() and not self.overwrite_confirm(file_name):
+            logger.info("Not writing output")
+            return
         with pd.ExcelWriter(file_name,
                             engine='xlsxwriter') as writer:
             for result in dataframe_set:
@@ -407,19 +404,9 @@ class Worker(QObject):
         file_name = Path(
             f"{self.files['output']}.geojson")
         self.output_path = file_name
-        if file_name.is_file():
-            try:  # This block ensures the mutex is unlocked even in the worst case
-                self.overwrite_confirm.emit(str(file_name))
-                self.parent.mutex.lock()
-                # Don't check for a response until after the user has a chance to give one
-                self.parent.waiting_for_input.wait(
-                    self.parent.mutex)
-                if not self.response:
-                    logger.info("User chose not to overwrite")
-                    return
-            finally:
-                self.parent.mutex.unlock()
-
+        if file_name.is_file() and not self.overwrite_confirm(file_name):
+            logger.info("User chose not to overwrite")
+            return
         if dataframe_set.overpass_query:
             api = overpass.API(timeout=timeout)
             try:
@@ -953,7 +940,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Run finished() when all modes are done in Worker
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
-        self.worker.overwrite_confirm.connect(self.overwrite_message)
+        self.worker.user_confirm_signal.connect(self.confirmation_dialog)
         self.worker.dialog.connect(self.dialog)
 
         self.worker.moveToThread(self.work_thread)
@@ -1011,19 +998,19 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Re-enable run button when function complete
         self.run_checker()
 
-    def overwrite_message(self, file_name: str):
+    def confirmation_dialog(self, message: str):
         """
-        Display user notification box for overwrite file option.
+        Asks the user to confirm something.
 
         Parameters
         ----------
-        file_name : str
-            File (named by user) to be saved and written.
+        message : str
+            A question for the user to answer with yes or no.
         """
         overwrite_prompt = QMessageBox()
         overwrite_prompt.setIcon(QMessageBox.Question)
         overwrite_prompt_response = overwrite_prompt.question(
-            self, '', f"{file_name} exists. <p> Do you want to overwrite? </p>",
+            self, '', message,
             overwrite_prompt.No | overwrite_prompt.Yes)
         if overwrite_prompt_response == overwrite_prompt.Yes:
             self.worker.response = True
