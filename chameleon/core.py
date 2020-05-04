@@ -200,6 +200,9 @@ class ChameleonDataFrameSet(set):
 
         self.merge_files()
 
+    def __getitem__(self, key) -> ChameleonDataFrame:
+        return [i for i in self if i.chameleon_mode == key][0]
+
     def merge_files(self) -> ChameleonDataFrameSet:
         """
         Merge two csv inputs into a single combined dataframe
