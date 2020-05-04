@@ -182,6 +182,14 @@ class Worker(QObject):
             mode = None
             dataframe_set = ChameleonDataFrameSet(
                 self.files['old'], self.files['new'], use_api=self.use_api)
+
+            deletion_percentage = round(
+                (len(dataframe_set.source_data[dataframe_set.source_data['action'] == 'deleted']) / len(dataframe_set.source_data)) * 100, 2)
+            # The order matters here. user_confirm() waits for user input,
+            # so we only want to evaluate it if the deletion_percentage is high
+            if deletion_percentage > 20 and not self.high_deletions_confirm(deletion_percentage):
+                return
+
             if self.use_api:
                 try:
                     self.check_api_deletions(dataframe_set)
@@ -191,8 +199,10 @@ class Worker(QObject):
                 except RuntimeError:
                     # Rate-limited by server
                     return
+
             # Separate out the new and deleted dataframes
             dataframe_set.separate_special_dfs()
+
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", mode)
                 self.mode_start.emit(mode)
@@ -274,6 +284,12 @@ class Worker(QObject):
                 self.parent.history_dict = staged_history_dict
             except NameError:
                 pass
+
+    def high_deletions_confirm(self, deletion_percentage: float) -> bool:
+        return self.user_confirm(
+            f"There is an unusually high proportion of deletions ({deletion_percentage}%). "
+            "This often indicates that the two input files have different scope. "
+            "Would you like to continue?")
 
     def overwrite_confirm(self, file_name: str) -> bool:
         return self.user_confirm(f"{file_name} exists. <p> Do you want to overwrite? </p>")
