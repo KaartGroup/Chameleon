@@ -150,6 +150,11 @@ class Worker(QObject):
         self.successful_items = {}
 
         self.extra_columns = self.load_extra_columns()
+        self.write_output = {
+            'csv': self.write_csv,
+            'excel': self.write_excel,
+            'geojson': self.write_geojson,
+        }
 
     def run(self):
         """
@@ -201,12 +206,7 @@ class Worker(QObject):
                     self.error_list.append(mode)
                     continue
                 dataframe_set.add(result)
-            if self.format == 'csv':
-                self.write_csv(dataframe_set)
-            elif self.format == 'excel':
-                self.write_excel(dataframe_set)
-            elif self.format == 'geojson':
-                self.write_geojson(dataframe_set)
+            self.write_output[self.format](dataframe_set)
         finally:
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
