@@ -37,8 +37,13 @@ class QLineEditDragDrop(QLineEdit):
         else:
             # Error prompt for when dragged object is not valid type
             error_prompt = "Please provide a .csv file."
-            QToolTip.showText(self.mapToGlobal(self.rect().topRight()), error_prompt,
-                              self, self.rect(), 1000)
+            QToolTip.showText(
+                self.mapToGlobal(self.rect().topRight()),
+                error_prompt,
+                self,
+                self.rect(),
+                1000,
+            )
             event.ignore()
 
     # Overriding default dropEvent()
