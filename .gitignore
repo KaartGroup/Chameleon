@@ -7,11 +7,12 @@ design.py
 __pycache__/
 .cache/
 .DS_Store
-.Python
 .eggs/
 .idea/
 .pytest_cache/
+.Python
 .vscode/
+*.code-workspace
 *.pyc
 build/
 chameleon/scratch.py
