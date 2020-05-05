@@ -4,6 +4,7 @@ UI-independent classes for processing data
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
@@ -405,7 +406,15 @@ def split_id(feature_id) -> Tuple[str, str]:
     """
     Separates an id like "n12345678" into the type and id number
     """
-    return TYPE_EXPANSION[feature_id[0]], feature_id[1:]
+    typeregex = re.compile(r"\A[a-z-A-Z]")
+    idregex = re.compile(r"\d+\Z")
+    typematch = typeregex.search(feature_id)
+    if typematch:
+        ftype = TYPE_EXPANSION[typematch.group()]
+    else:
+        ftype = None
+    idmatch = idregex.search(feature_id).group()
+    return ftype, idmatch
 
 
 def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
