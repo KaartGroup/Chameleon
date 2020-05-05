@@ -398,7 +398,7 @@ class Worker(QObject):
                         result.to_csv(output_file, sep="\t", index=True)
             except OSError:
                 logger.exception("Write error.")
-                self.error_list += result.chameleon_mode
+                self.error_list.append(result.chameleon_mode)
                 continue
             if not row_count:
                 # Empty dataframe
