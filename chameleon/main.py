@@ -367,9 +367,7 @@ class Worker(QObject):
                 feature_id, app_version=APP_VERSION
             )
 
-            # for attribute, value in element_attribs.items():
-            #     df.at[feature_id, attribute] = value
-            df[df["id"] == feature_id].update(pd.Series(element_attribs))
+            df.update(pd.DataFrame(element_attribs, index=[feature_id]))
 
             # Wait between iterations to avoid ratelimit problems
             time.sleep(REQUEST_INTERVAL)
