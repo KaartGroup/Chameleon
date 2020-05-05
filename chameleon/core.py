@@ -341,7 +341,7 @@ class ChameleonDataFrameSet(set):
                 response = requests.get(
                     "https://www.openstreetmap.org/api/0.6/"
                     f"{feature_type}/{feature_id_num}/history.json",
-                    timeout=2,
+                    timeout=5,
                     headers={"user-agent": f"Kaart Chameleon{app_version}"},
                 )
                 # Raises exceptions for non-successful status codes

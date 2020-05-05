@@ -351,7 +351,7 @@ class Worker(QObject):
         Pings OSM server to see if ways were actually deleted or just dropped
         """
         # How long to wait between API calls
-        REQUEST_INTERVAL = 1
+        REQUEST_INTERVAL = 0.1
 
         df = cdfs.source_data
 
