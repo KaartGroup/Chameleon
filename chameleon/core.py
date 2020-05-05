@@ -76,7 +76,7 @@ class ChameleonDataFrame(pd.DataFrame):
         # self = ChameleonDataFrame(
         #     mode=self.chameleon_mode, grouping=self.grouping)
 
-        self["url"] = JOSM_URL + self["id"]
+        self["url"] = JOSM_URL + self.index
         self["user"] = intermediate_df["user_new"].fillna(
             intermediate_df["user_old"]
         )
@@ -90,7 +90,7 @@ class ChameleonDataFrame(pd.DataFrame):
         )
 
         # Drop all but these columns
-        self = self[["id", "url", "user", "timestamp", "version"]]
+        self = self[["url", "user", "timestamp", "version"]]
         try:
             # Succeeds if both csvs had changeset columns
             self["changeset"] = intermediate_df["changeset_new"]
@@ -144,9 +144,9 @@ class ChameleonDataFrame(pd.DataFrame):
         """
         Groups changes by type of change. (Each combination of old_value, new_value, and action)
         """
-        self["count"] = self["id"]
+        self["count"] = self["id"] = self.index
         agg_functions = {
-            "id": lambda i: JOSM_URL + ",".join(i),
+            "id": lambda i: ",".join(i),
             "count": "count",
             "user": lambda user: ",".join(user.unique()),
             "timestamp": "max",
@@ -174,18 +174,35 @@ class ChameleonDataFrame(pd.DataFrame):
             ],
             as_index=False,
         ).aggregate(agg_functions)
+
         # Get the grouped columns out of the index to be more visible
         grouped_df.reset_index(inplace=True)
+        grouped_df.set_index("id", inplace=True)
+
+        grouped_df["url"] = JOSM_URL + grouped_df.index
+
         # Send those columns to the end of the frame
-        new_column_order = list(agg_functions.keys()) + [
+        new_column_order = [
+            "url",
+            "count",
+            "user",
+            "timestamp",
+            "version",
+            "changeset",
+        ]
+        if self.chameleon_mode != "name":
+            new_column_order += ["name"]
+        if self.chameleon_mode != "highway":
+            new_column_order += ["highway"]
+        new_column_order += [
             f"old_{self.chameleon_mode}",
             f"new_{self.chameleon_mode}",
             "action",
         ]
         grouped_df = grouped_df[new_column_order]
+
         grouped_df.rename(
             columns={
-                "id": "url",
                 "user": "users",
                 "timestamp": "latest_timestamp",
                 "changeset": "changesets",
@@ -267,9 +284,10 @@ class ChameleonDataFrameSet(set):
         # Strip whitespace
         self.source_data.columns = self.source_data.columns.str.strip()
 
-        self.source_data["id"] = self.source_data["type_old"].fillna(
+        self.source_data.index = self.source_data["type_old"].fillna(
             self.source_data["type_new"]
         ).str[0] + self.source_data.index.astype(str)
+        self.source_data.index.rename("id", inplace=True)
 
         try:
             self.source_data.loc[
@@ -395,7 +413,7 @@ class ChameleonDataFrameSet(set):
             "way": [],
         }
         for df in self.nondeleted:
-            for k, v in separate_ids_by_feature_type(df["id"]).items():
+            for k, v in separate_ids_by_feature_type(df.index).items():
                 feature_ids[k] += v
         return r";".join(
             [f"{k}(id:{','.join(v)})" for k, v in feature_ids.items() if v]

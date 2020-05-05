@@ -355,7 +355,7 @@ class Worker(QObject):
         df = cdfs.source_data
 
         # TODO Iterate directly over dataframe rather than constructed list
-        deleted_ids = list(df.loc[df["action"] == "deleted"].id)
+        deleted_ids = list(df.loc[df["action"] == "deleted"].index)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
             # Ends the API check early if the user cancels it
@@ -387,7 +387,7 @@ class Worker(QObject):
             logger.info("Writing %s", file_name)
             try:
                 with file_name.open("x") as output_file:
-                    result.to_csv(output_file, sep="\t", index=False)
+                    result.to_csv(output_file, sep="\t", index=True)
             except FileExistsError:
                 # Prompt and wait for confirmation before overwriting
                 if not self.overwrite_confirm(file_name):
@@ -395,7 +395,7 @@ class Worker(QObject):
                     continue
                 else:
                     with file_name.open("w") as output_file:
-                        result.to_csv(output_file, sep="\t", index=False)
+                        result.to_csv(output_file, sep="\t", index=True)
             except OSError:
                 logger.exception("Write error.")
                 self.error_list += result.chameleon_mode
@@ -434,7 +434,7 @@ class Worker(QObject):
                 result.to_excel(
                     writer,
                     sheet_name=result.chameleon_mode,
-                    index=False,
+                    index=True,
                     freeze_panes=(1, 0),
                 )
 
