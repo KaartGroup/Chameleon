@@ -579,7 +579,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.setWindowIcon(QtGui.QIcon(logo_path))
         self.logo = logo_path
 
-        self.tag_count = {}
+        self.tag_count = Counter()
 
         self.text_fields = {
             "old": self.oldFileNameBox,
