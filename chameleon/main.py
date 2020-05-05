@@ -429,7 +429,7 @@ class Worker(QObject):
             for result in dataframe_set:
                 row_count = len(result)
                 # Points at first cell (blank) of last column written
-                column_pointer = len(result.columns)
+                column_pointer = len(result.columns) + 1
                 for k in self.extra_columns.keys():
                     result[k] = ""
                 result.to_excel(
