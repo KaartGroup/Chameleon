@@ -36,9 +36,10 @@ from PySide2.QtWidgets import (
 # Import generated UI file
 from chameleon import design
 from chameleon.core import (
-    SPECIAL_MODES,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
+    SPECIAL_MODES,
+    clean_for_presentation,
 )
 
 # Differentiate sys settings between pre and post-bundling
@@ -831,7 +832,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         splitter.whitespace_split = True
         label_list = sorted(list(splitter))
         for i, label in enumerate(label_list):
-            label = label.strip(" \"'")
+            label = clean_for_presentation(label)
             # Check if the label is in the list already
             existing_item = self.listWidget.findItems(
                 label, QtCore.Qt.MatchExactly
@@ -1330,12 +1331,6 @@ def plur(count: int) -> str:
         return ""
     else:
         return "s"
-
-
-def strip_nwr(id: str) -> str:
-    for i in ["n", "w", "r"]:
-        id = id.replace(i, "")
-    return id
 
 
 if __name__ == "__main__":

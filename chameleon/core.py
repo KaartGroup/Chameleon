@@ -453,3 +453,22 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
         for v in TYPE_EXPANSION.values()
         if v != "relation"
     }
+
+
+def clean_for_presentation(uinput) -> str:
+    """
+    Sanitizes user input so that they can still recognize what they entered
+    """
+    uinput = uinput.strip(" \"'")
+    uinput = uinput.partition("=")[0]
+    return uinput
+
+
+def clean_for_analysis(uinput: str) -> str:
+    """
+    Further sanitizes user input in a way that makes sense to pandas
+    """
+    uinput = clean_for_presentation(uinput)
+    uinput = uinput.replace("@", "")
+    uinput = uinput.replace(":", "_")
+    return uinput
