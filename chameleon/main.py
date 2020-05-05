@@ -14,9 +14,9 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-import pandas as pd
 import overpass
 import oyaml as yaml
+import pandas as pd
 
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
@@ -201,18 +201,18 @@ class Worker(QObject):
             self.history_writer()
         try:
             mode = None
-            dataframe_set = ChameleonDataFrameSet(
+            cdf_set = ChameleonDataFrameSet(
                 self.files["old"], self.files["new"], use_api=self.use_api
             )
 
             deletion_percentage = round(
                 (
                     len(
-                        dataframe_set.source_data[
-                            dataframe_set.source_data["action"] == "deleted"
+                        cdf_set.source_data[
+                            cdf_set.source_data["action"] == "deleted"
                         ]
                     )
-                    / len(dataframe_set.source_data)
+                    / len(cdf_set.source_data)
                 )
                 * 100,
                 2,
@@ -226,7 +226,7 @@ class Worker(QObject):
 
             if self.use_api:
                 try:
-                    self.check_api_deletions(dataframe_set)
+                    self.check_api_deletions(cdf_set)
                 except UserCancelledError:
                     # User cancelled the API check manually
                     return
@@ -235,14 +235,14 @@ class Worker(QObject):
                     return
 
             # Separate out the new and deleted dataframes
-            dataframe_set.separate_special_dfs()
+            cdf_set.separate_special_dfs()
 
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", mode)
                 self.mode_start.emit(mode)
                 try:
                     result = ChameleonDataFrame(
-                        dataframe_set.source_data,
+                        cdf_set.source_data,
                         mode=mode,
                         grouping=self.group_output,
                     ).query_cdf()
@@ -251,8 +251,8 @@ class Worker(QObject):
                     logger.exception(e)
                     self.error_list.append(mode)
                     continue
-                dataframe_set.add(result)
-            self.write_output[self.format](dataframe_set)
+                cdf_set.add(result)
+            self.write_output[self.format](cdf_set)
         finally:
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
@@ -402,7 +402,10 @@ class Worker(QObject):
                 # Empty dataframe
                 success_message = f"{result.chameleon_mode} has no change."
             else:
-                success_message = f"{result.chameleon_mode} output with {row_count} row{plur(row_count)}."
+                success_message = (
+                    f"{result.chameleon_mode} output "
+                    f"with {row_count} row{plur(row_count)}."
+                )
             self.successful_items.update(
                 {result.chameleon_mode: success_message}
             )
@@ -450,7 +453,10 @@ class Worker(QObject):
                     # Empty dataframe
                     success_message = f"{result.chameleon_mode} has no change."
                 else:
-                    success_message = f"{result.chameleon_mode} output with {row_count} row{plur(row_count)}."
+                    success_message = (
+                        f"{result.chameleon_mode} output "
+                        f"with {row_count} row{plur(row_count)}."
+                    )
                 self.successful_items.update(
                     {result.chameleon_mode: success_message}
                 )
@@ -512,7 +518,10 @@ class Worker(QObject):
                     # Empty dataframe
                     success_message = f"{result.chameleon_mode} has no change."
                 else:
-                    success_message = f"{result.chameleon_mode} output with {row_count} row{plur(row_count)}."
+                    success_message = (
+                        f"{result.chameleon_mode} output "
+                        f"with {row_count} row{plur(row_count)}."
+                    )
                 self.successful_items.update(
                     {result.chameleon_mode: success_message}
                 )

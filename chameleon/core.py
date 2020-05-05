@@ -8,9 +8,9 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
+import numpy as np
 import pandas as pd
 import requests
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -209,9 +209,7 @@ class ChameleonDataFrame(pd.DataFrame):
             },
             inplace=True,
         )
-        # Add a blank notes column
-        grouped_df["notes"] = ""
-        # TODO Once github.com/pandas-dev/pandas/issues/28330 is fixed, change to grouping in place
+        # TODO Once GH pandas-dev/pandas#28330 is fixed, change to grouping in place
         self = ChameleonDataFrame(
             df=grouped_df, mode=self.chameleon_mode, grouping=self.grouping
         )
@@ -415,7 +413,7 @@ class ChameleonDataFrameSet(set):
         for df in self.nondeleted:
             for k, v in separate_ids_by_feature_type(df.index).items():
                 feature_ids[k] += v
-        return r";".join(
+        return ";".join(
             [f"{k}(id:{','.join(v)})" for k, v in feature_ids.items() if v]
         )
 
