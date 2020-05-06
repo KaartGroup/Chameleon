@@ -16,7 +16,7 @@ import chameleon.main
 # from pathlib import Path
 # TEST_FOLDER = Path("test")
 
-app = QtWidgets.QApplication(['.'])
+app = QtWidgets.QApplication(["."])
 
 
 class TestBuildQuery(unittest.TestCase):
@@ -24,6 +24,7 @@ class TestBuildQuery(unittest.TestCase):
     Unittesting for Worker class comparing sample csv and code outputs.
     This test validates sql query and analysis outputs.
     """
+
     # def __init__(self):
     #     super().__init__()
 
@@ -35,33 +36,8 @@ class TestBuildQuery(unittest.TestCase):
         self.files = {
             "old": "test/old.csv",
             "new": "test/new.csv",
-            "output": "test/output"
+            "output": "test/output",
         }
-        self.gold_sql = (
-            "SELECT (substr(ifnull(new.\"@type\",old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS id, "
-            "('http://localhost:8111/load_object?new_layer=true&objects=' || substr(ifnull(new.\"@type\","
-            "old.\"@type\"),1,1) || ifnull(new.\"@id\",old.\"@id\")) AS url, "
-            "ifnull(new.\"@user\",old.\"@user\") AS user, substr(ifnull(new.\"@timestamp\","
-            "old.\"@timestamp\"),1,10) AS timestamp, "
-            "ifnull(new.\"@version\",old.\"@version\") AS version, "
-            "ifnull(new.highway,old.highway) AS highway, "
-            "ifnull(old.\"name\",'') AS old_name, ifnull(new.\"name\",'') AS new_name, "
-            "CASE WHEN new.\"@id\" LIKE old.\"@id\" THEN \"modified\" "
-            "ELSE \"deleted\" END \"action\" , "
-            "NULL AS \"notes\" "
-            f"FROM {self.files['old']} AS old "
-            f"LEFT OUTER JOIN {self.files['new']} AS new ON old.\"@id\" = new.\"@id\" "
-            "WHERE old_name NOT LIKE new_name "
-            "UNION ALL SELECT (substr(new.\"@type\",1,1) || new.\"@id\") AS id, "
-            "('http://localhost:8111/load_object?new_layer=true&objects=' || substr(new.\"@type\",1,1) || new.\"@id\") AS url, "
-            "new.\"@user\" AS user, substr(new.\"@timestamp\",1,10) AS timestamp, "
-            "new.\"@version\" AS version, new.highway AS highway, "
-            "ifnull(old.\"name\",'') AS old_name, ifnull(new.\"name\",'') AS new_name, "
-            "\"new\" AS \"action\" , NULL AS \"notes\" "
-            f"FROM {self.files['new']} AS new "
-            f"LEFT OUTER JOIN {self.files['old']} AS old ON new.\"@id\" = old.\"@id\" "
-            "WHERE old.\"@id\" IS NULL AND length(ifnull(new_name,'')) > 0"
-        )
         self.file_name = f"{self.files['output']}_name.csv"
         self.func = chameleon.main.Worker("name", self.files, False, None)
 
@@ -78,9 +54,10 @@ class TestBuildQuery(unittest.TestCase):
         """
         Tests that querying an output without grouping gives expected results
         """
-        test_output = (self.func.execute_query(
-            "name", self.files, False, True)).data
-        with open("test/test_ungrouped_q_output.yaml", 'r') as file:
+        test_output = (
+            self.func.execute_query("name", self.files, False, True)
+        ).data
+        with open("test/test_ungrouped_q_output.yaml", "r") as file:
             gold_ungrouped_output = yaml.load(file)
         self.assertEqual(test_output, gold_ungrouped_output)
 
@@ -88,9 +65,10 @@ class TestBuildQuery(unittest.TestCase):
         """
         Tests that querying an output with grouping gives expected results
         """
-        test_output = (self.func.execute_query(
-            "name", self.files, True, True)).data
-        with open("test/test_grouped_q_output.yaml", 'r') as file:
+        test_output = (
+            self.func.execute_query("name", self.files, True, True)
+        ).data
+        with open("test/test_grouped_q_output.yaml", "r") as file:
             gold_grouped_output = yaml.load(file)
         self.assertEqual(test_output, gold_grouped_output)
 
@@ -101,11 +79,12 @@ class TestBuildQuery(unittest.TestCase):
         files = {
             "old": "test/old_nohighway.csv",
             "new": "test/new_nohighway.csv",
-            "output": "test/output"
+            "output": "test/output",
         }
-        test_output = (self.func.execute_query(
-            "name", files, False, False)).data
-        with open("test/test_ungrouped_q_output_nohighway.yaml", 'r') as file:
+        test_output = (
+            self.func.execute_query("name", files, False, False)
+        ).data
+        with open("test/test_ungrouped_q_output_nohighway.yaml", "r") as file:
             gold_ungrouped_output = yaml.load(file)
         self.assertEqual(test_output, gold_ungrouped_output)
 
@@ -116,11 +95,10 @@ class TestBuildQuery(unittest.TestCase):
         files = {
             "old": "test/old_nohighway.csv",
             "new": "test/new_nohighway.csv",
-            "output": "test/output"
+            "output": "test/output",
         }
-        test_output = (self.func.execute_query(
-            "name", files, True, False)).data
-        with open("test/test_grouped_q_output_nohighway.yaml", 'r') as file:
+        test_output = (self.func.execute_query("name", files, True, False)).data
+        with open("test/test_grouped_q_output_nohighway.yaml", "r") as file:
             gold_grouped_output = yaml.load(file)
         self.assertEqual(test_output, gold_grouped_output)
 
@@ -131,10 +109,11 @@ class TestBuildQuery(unittest.TestCase):
         files = {
             "old": "test/old_noname.csv",
             "new": "test/new_noname.csv",
-            "output": "test/output"
+            "output": "test/output",
         }
-        test_output = (self.func.execute_query(
-            "name", files, False, False)).status
+        test_output = (
+            self.func.execute_query("name", files, False, False)
+        ).status
         self.assertEqual(test_output, "error")
 
     def test_missing_tag_grouped(self):
@@ -144,11 +123,13 @@ class TestBuildQuery(unittest.TestCase):
         files = {
             "old": "test/old_noname.csv",
             "new": "test/new_noname.csv",
-            "output": "test/output"
+            "output": "test/output",
         }
-        test_output = (self.func.execute_query(
-            "name", files, True, False)).status
+        test_output = (
+            self.func.execute_query("name", files, True, False)
+        ).status
         self.assertEqual(test_output, "error")
+
     # def test_write_file_ungrouped(self):
     #     """
     #     Comparison of sample and code csv outputs.
@@ -182,7 +163,7 @@ class TestGUI(unittest.TestCase):
         Definition of testing vars for TestGUI class.
         """
         self.mainapp = chameleon.main.MainApp()
-        self.favorite_location = Path('test/test_favorites.yaml')
+        self.favorite_location = Path("test/test_favorites.yaml")
         self.mainapp.fav_btn_populate(self.favorite_location)
 
     def test_add_to_list(self):
@@ -191,8 +172,10 @@ class TestGUI(unittest.TestCase):
         """
         self.mainapp.searchBox.insert("highway")
         QTest.mouseClick(self.mainapp.searchButton, Qt.LeftButton)
-        self.assertGreater(len(self.mainapp.listWidget.findItems(
-            "highway", Qt.MatchExactly)), 0)
+        self.assertGreater(
+            len(self.mainapp.listWidget.findItems("highway", Qt.MatchExactly)),
+            0,
+        )
         self.assertIsNot(self.mainapp.searchBox.text, True)
 
     def test_add_special_char_to_list(self):
@@ -202,8 +185,14 @@ class TestGUI(unittest.TestCase):
         """
         self.mainapp.searchBox.insert("addr:housenumber")
         QTest.mouseClick(self.mainapp.searchButton, Qt.LeftButton)
-        self.assertGreater(len(self.mainapp.listWidget.findItems(
-            "addr:housenumber", Qt.MatchExactly)), 0)
+        self.assertGreater(
+            len(
+                self.mainapp.listWidget.findItems(
+                    "addr:housenumber", Qt.MatchExactly
+                )
+            ),
+            0,
+        )
 
     def test_add_spaces_to_list(self):
         """
@@ -229,10 +218,13 @@ class TestGUI(unittest.TestCase):
             #     current_list.index("name")).setSelected(True)
             QTest.mouseClick(self.mainapp.deleteItemButton, Qt.LeftButton)
             # self.mainapp.delete_tag()
-        self.assertEqual(len(self.mainapp.listWidget.findItems(
-            "name", Qt.MatchExactly)), 0)
+        self.assertEqual(
+            len(self.mainapp.listWidget.findItems("name", Qt.MatchExactly)), 0
+        )
         self.assertGreater(
-            len(self.mainapp.listWidget.findItems("highway", Qt.MatchExactly)), 0)
+            len(self.mainapp.listWidget.findItems("highway", Qt.MatchExactly)),
+            0,
+        )
 
     def test_clear_list_widget(self):
         """
@@ -240,7 +232,15 @@ class TestGUI(unittest.TestCase):
         in QListWidget.
         """
         self.mainapp.listWidget.addItems(
-            ["name", "highway", "ref", "building", "addr:housenumber", "addr:street"])
+            [
+                "name",
+                "highway",
+                "ref",
+                "building",
+                "addr:housenumber",
+                "addr:street",
+            ]
+        )
         QTest.mouseClick(self.mainapp.clearListButton, Qt.LeftButton)
         self.assertEqual(self.mainapp.listWidget.count(), 0)
 
@@ -265,7 +265,25 @@ class TestGUI(unittest.TestCase):
         print("Clicking fav button 1")
         QTest.mouseClick(self.mainapp.popTag1, Qt.LeftButton)
         self.assertGreater(
-            len(self.mainapp.listWidget.findItems("name", Qt.MatchExactly)), 0)
+            len(self.mainapp.listWidget.findItems("name", Qt.MatchExactly)), 0
+        )
+
+    def test_autocompleter(self):
+        """
+        Checks that autocompleter tags get loaded without raising an exception.
+        """
+        self.mainapp.auto_completer()
+
+    # def test_expand_user(self):
+    #     self.mainapp.newFileNameBox.insert('~/Desktop/')
+    #     self.mainapp.newFileNameBox.clearFocus()
+    #     self.assertEqual(self.newFileNameBox)
+
+    def test_no_settings_files(self):
+        """
+        Test running chameleon without existing counter.yaml/settings.yaml
+        """
+        pass
 
 
 # class TestFavBtns(unittest.TestCase):
@@ -273,5 +291,5 @@ class TestGUI(unittest.TestCase):
 
 #     def test_fav_btns(self):
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
