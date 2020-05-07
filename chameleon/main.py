@@ -259,11 +259,11 @@ class Worker(QObject):
                 if self.successful_items:
                     headline = "<p>Some tags could not be queried</p>"
                     summary += "\nThe following tags completed successfully:\n"
-                    summary += "\n".join(list(self.successful_items.values()))
+                    summary += "\n".join(self.successful_items.values())
             elif self.successful_items:  # Nothing failed, everything suceeded
                 headline = "<p>Success!</p>"
                 summary = "All tags completed!\n"
-                summary += "\n".join(list(self.successful_items.values()))
+                summary += "\n".join(self.successful_items.values())
             # Nothing succeeded and nothing failed, probably because user declined to overwrite
             else:
                 headline = "<p>Nothing saved</p>"
@@ -291,10 +291,11 @@ class Worker(QObject):
     def load_extra_columns(self) -> dict:
         try:
             with (RESOURCES_DIR / "extracolumns.yaml").open("r") as f:
-                return yaml.safe_load(f.read())
+                extra_columns = yaml.safe_load(f.read())
         except OSError:
             logger.info("No extra columns loaded.")
-            return {"notes": None}
+            extra_columns = {"notes": None}
+        return extra_columns
 
     def history_writer(self):
         staged_history_dict = {k: str(v) for k, v in self.files.items()}
@@ -709,9 +710,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         # Needs to have tags reference a resource file of OSM tags
         # Check current autocomplete list
-        logger.debug(
-            "A total of %s tags was added to auto-complete.", len(tags)
-        )
+        logger.debug("A total of %s tags was added to auto-complete.", len(tags))
         completer = QCompleter(tags)
         self.searchBox.setCompleter(completer)
 
@@ -784,20 +783,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             ]
         # Loop through the buttons and apply our ordered tag values
         for index, btn in enumerate(self.fav_btn):
-            try:
-                # The fav_btn and set_lists should have a 1:1 correspondence
-                btn.setText(fav_list[index])
-            # Capture errors from the set_list not being created properly
-            except IndexError as e:
-                logger.exception(
-                    "Index %s of fav_btn doesn't exist! Attempted to insert from %s.",
-                    index,
-                    fav_list,
-                )
-                raise IndexError(
-                    f"Index {index} of fav_btn doesn't exist! "
-                    f"Attempted to insert from{fav_list}."
-                ) from e
+            # The fav_btn and set_lists should have a 1:1 correspondence
+            btn.setText(fav_list[index])
 
     def add_tag(self):
         """
@@ -905,12 +892,12 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             )
             if e
         ][0]
-        file_name, _filter = QFileDialog.getOpenFileName(
+        file_name = QFileDialog.getOpenFileName(
             self,
             f"Select CSV file with {sender.shortname} data",
             file_dir,
             "CSV (*.csv)",
-        )
+        )[0]
         if file_name:  # Clear the box before adding the new path
             destination.selectAll()
             destination.insert(file_name)
@@ -929,9 +916,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             )
             if e
         ][0]
-        output_file_name, _filter = QFileDialog.getSaveFileName(
+        output_file_name = QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir
-        )
+        )[0]
         if output_file_name:  # Clear the box before adding the new path
             # Since this is a prefix, the user shouldn't be adding their own extension
             output_file_name = output_file_name.replace(".csv", "")
@@ -1170,10 +1157,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Make a dict of text field values
         files = {name: field.text() for name, field in self.text_fields.items()}
         # Prompt if user has changed input values from what was loaded
-        file_keys = {"old", "new", "output"}
         try:
-            if {k: self.history_dict[k] for k in file_keys} != {
-                k: files[k] for k in file_keys
+            if {k: self.history_dict[k] for k in self.text_fields.keys()} != {
+                k: files[k] for k in self.text_fields.keys()
             }:
                 exit_prompt = QMessageBox()
                 exit_prompt.setIcon(QMessageBox.Question)
