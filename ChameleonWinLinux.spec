@@ -3,7 +3,7 @@
 block_cipher = None
 
 added_files = [
-    ("resources/OSMtag.yaml", "."),
+    ("resources/OSMtag.txt", "."),
     ("resources/chameleon.png", "."),
     ("resources/version.txt", "."),
 ]

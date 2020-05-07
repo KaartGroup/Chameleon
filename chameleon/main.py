@@ -709,15 +709,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
 
         # OSM tag resource file, construct list from file
-        autocomplete_source = RESOURCES_DIR / "OSMtag.yaml"
-
-        try:
-            with autocomplete_source.open() as read_file:
-                tags = yaml.safe_load(read_file)
-        except OSError:
-            logger.exception("Couldn't read the autocomplete source file.")
-        except (TypeError, NameError):
-            logger.exception("Could not load any autocomplete tags.")
+        autocomplete_source = RESOURCES_DIR / "OSMtag.txt"
+        with autocomplete_source.open() as read_file:
+            tags = read_file.read().splitlines()
 
         # Needs to have tags reference a resource file of OSM tags
         # Check current autocomplete list
