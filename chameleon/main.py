@@ -189,40 +189,24 @@ class Worker(QObject):
             logger.debug("Worker thread not exposed to VSCode")
         else:
             logger.debug("Worker thread successfully exposed to debugger.")
-        # Saving paths to config for future loading
-        # Make directory if it doesn't exist
-        if not CONFIG_DIR.is_dir():
-            try:
-                CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-            except FileExistsError:
-                logger.debug("Config directory already exists")
-            except OSError:
-                logger.debug("Config directory could not be created.")
-        if self.files:
-            self.history_writer()
-        try:
+        try:  # Global exception catcher
+            # Saving paths to config for future loading
+            # Make directory if it doesn't exist
+            if not CONFIG_DIR.is_dir():
+                try:
+                    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+                except FileExistsError:
+                    logger.debug("Config directory already exists")
+                except OSError:
+                    logger.debug("Config directory could not be created.")
+            if self.files:
+                self.history_writer()
             mode = None
             cdf_set = ChameleonDataFrameSet(
                 self.files["old"], self.files["new"], use_api=self.use_api
             )
 
-            deletion_percentage = round(
-                (
-                    len(
-                        cdf_set.source_data[
-                            cdf_set.source_data["action"] == "deleted"
-                        ]
-                    )
-                    / len(cdf_set.source_data)
-                )
-                * 100,
-                2,
-            )
-            # The order matters here. user_confirm() waits for user input,
-            # so we only want to evaluate it if the deletion_percentage is high
-            if deletion_percentage > 20 and not self.high_deletions_confirm(
-                deletion_percentage
-            ):
+            if not self.high_deletions_checker(cdf_set):
                 return
 
             if self.use_api:
@@ -254,7 +238,10 @@ class Worker(QObject):
                     continue
                 cdf_set.add(result)
             self.write_output[self.format](cdf_set)
-        finally:
+        except Exception as e:
+            self.dialog.emit("An unhandled exception occurred", e, "critical")
+            logger.exception(e)
+        else:
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
             cancelled_list = self.modes.difference(
@@ -295,6 +282,7 @@ class Worker(QObject):
                     f"<a href='{dir_uri(self.output_path)}'>{self.output_path}</a></p>"
                 )
             self.dialog.emit(headline, summary, dialog_icon)
+        finally:
             self.modes.clear()
             logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
@@ -324,9 +312,17 @@ class Worker(QObject):
             except NameError:
                 pass
 
-    def high_deletions_confirm(self, deletion_percentage: float) -> bool:
-        return self.user_confirm(
-            f"There is an unusually high proportion of deletions ({deletion_percentage}%). "
+    def high_deletions_checker(self, cdf_set: ChameleonDataFrameSet) -> bool:
+        deletion_percentage = (
+            len(cdf_set.source_data[cdf_set.source_data["action"] == "deleted"])
+            / len(cdf_set.source_data)
+        ) * 100
+
+        # The order matters here. user_confirm() waits for user input,
+        # so we only want to evaluate it if the deletion_percentage is high
+        return deletion_percentage > 20 and not self.user_confirm(
+            "There is an unusually high proportion of deletions "
+            f"({round(deletion_percentage,2)}%). "
             "This often indicates that the two input files have different scope. "
             "Would you like to continue?"
         )
