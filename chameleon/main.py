@@ -649,6 +649,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.searchBox.clear, QtCore.Qt.QueuedConnection
         )
 
+        self.oldFileNameBox.editingFinished.connect(self.on_editing_finished)
+        self.newFileNameBox.editingFinished.connect(self.on_editing_finished)
+        self.outputFileNameBox.editingFinished.connect(self.on_editing_finished)
+
         # Labelling strings for filename boxes
         self.oldFileSelectButton.shortname = "old"
         self.newFileSelectButton.shortname = "new"
@@ -941,6 +945,15 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         else:
             self.fileSuffix.setText(r"_{mode}.csv")
         self.repaint()
+
+    def on_editing_finished(self):
+        """
+        If user types a value into a file name box, expand user if applicable
+        """
+        sender = self.sender()
+        expanded = Path(sender.text()).expanduser()
+        self.sender().selectAll()
+        self.sender().insert(str(expanded))
 
     def dialog(self, text: str, info: str, icon: str):
         """
