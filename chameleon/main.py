@@ -526,9 +526,7 @@ class Worker(QObject):
                 self.successful_items.update(
                     {result.chameleon_mode: success_message}
                 )
-                logger.info(
-                    "Processing for %s complete.", result.chameleon_mode
-                )
+                logger.info("Processing for %s complete.", result.chameleon_mode)
                 self.mode_complete.emit()
             for i in response["features"]:
                 i["id"] = "w" + str(i["id"])
@@ -1032,7 +1030,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         }
         self.document_tag(modes)  # Execute favorite tracking
         logger.info("Modes to be processed: %s.", (modes))
+
         group_output = self.groupingCheckBox.isChecked()
+
         # The offline radio button is a dummy. The online button functions as a checkbox
         # rather than as true radio buttons
         use_api = self.onlineRadio.isChecked()
@@ -1100,8 +1100,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             if event.key() == QtCore.Qt.Key_Tab and self.listWidget.count() > 0:
                 self.listWidget.item(0).setSelected(True)
             elif (
-                event.key() == QtCore.Qt.Key_Tab
-                and self.listWidget.count() == 0
+                event.key() == QtCore.Qt.Key_Tab and self.listWidget.count() == 0
             ):
                 event.ignore()
 
@@ -1132,13 +1131,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         and notify user of run process completion.
         """
         # Quits work_thread and reset
-        # Needs worker logging
         self.work_thread.quit()
         self.work_thread.wait()
         # In theory this deletes the worker only when done
         self.worker.deleteLater()
         self.progress_bar.close()
-        # Logging processing completion
         logger.info("All Chameleon analysis processing completed.")
         # Re-enable run button when function complete
         self.run_checker()

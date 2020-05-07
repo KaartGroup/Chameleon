@@ -43,7 +43,8 @@ class ChameleonDataFrame(pd.DataFrame):
 
         self.chameleon_mode = mode
         self.grouping = grouping
-        # Initialize as an "empty" dataframe, with the source data in an attribute
+        # Initialize as an "empty" dataframe,
+        # with the source data in an attribute
         super().__init__(data=df, index=None, dtype=dtype, copy=False)
 
     @property
@@ -60,8 +61,8 @@ class ChameleonDataFrame(pd.DataFrame):
 
     def query_cdf(self) -> ChameleonDataFrame:
         """
-        Takes a dataframe that has already been merged from two input files and queries it
-        for changes in the given tag
+        Takes a dataframe that has already been merged from two input files
+        and queries it for changes in the given tag
         """
         if self.chameleon_mode not in SPECIAL_MODES:
             intermediate_df = self.loc[
@@ -142,7 +143,8 @@ class ChameleonDataFrame(pd.DataFrame):
 
     def group(self) -> ChameleonDataFrame:
         """
-        Groups changes by type of change. (Each combination of old_value, new_value, and action)
+        Groups changes by type of change.
+        (Each combination of old_value, new_value, and action)
         """
         self["count"] = self["id"] = self.index
         agg_functions = {
@@ -276,9 +278,7 @@ class ChameleonDataFrameSet(set):
 
         # Eliminate special chars that mess pandas up
         self.source_data.columns = self.source_data.columns.str.replace("@", "")
-        self.source_data.columns = self.source_data.columns.str.replace(
-            ":", "_"
-        )
+        self.source_data.columns = self.source_data.columns.str.replace(":", "_")
         # Strip whitespace
         self.source_data.columns = self.source_data.columns.str.strip()
 
@@ -311,9 +311,7 @@ class ChameleonDataFrameSet(set):
         """
         special_dataframes = {
             "new": self.source_data[self.source_data["action"] == "new"],
-            "deleted": self.source_data[
-                self.source_data["action"] == "deleted"
-            ],
+            "deleted": self.source_data[self.source_data["action"] == "deleted"],
         }
         # Remove the new/deleted ways from the source_data
         self.source_data = self.source_data[
@@ -392,9 +390,9 @@ class ChameleonDataFrameSet(set):
                         # Save last members of the deleted way
                         # for later use in detecting splits/merges
                         if feature_type == "way":
-                            self.deleted_way_members[
-                                feature_id
-                            ] = prior_version["nodes"]
+                            self.deleted_way_members[feature_id] = prior_version[
+                                "nodes"
+                            ]
                 else:
                     # The way was not deleted, just dropped from the latter dataset
                     element_attribs.update({"action": "dropped"})
@@ -422,8 +420,10 @@ def split_id(feature_id) -> Tuple[str, str]:
     """
     Separates an id like "n12345678" into the type and id number
     """
+    feature_id = str(feature_id)
     typeregex = re.compile(r"\A[a-z-A-Z]")
     idregex = re.compile(r"\d+\Z")
+
     typematch = typeregex.search(feature_id)
     if typematch:
         ftype = TYPE_EXPANSION[typematch.group()]
