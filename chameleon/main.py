@@ -279,7 +279,7 @@ class Worker(QObject):
                 # We want to always show in the file explorer, so we'll always link to a directory
                 headline += (
                     f"<p>Output file{s} written to "
-                    f"<a href='{dir_uri(self.output_path)}'>{self.output_path}</a></p>"
+                    f"<a href='{dirname(self.output_path).as_uri()}'>{self.output_path}</a></p>"
                 )
             self.dialog.emit(headline, summary, dialog_icon)
         finally:
@@ -1296,16 +1296,16 @@ class ChameleonProgressDialog(QProgressDialog):
         self.is_overpass_complete = True
 
 
-def dir_uri(the_path: Path) -> str:
+def dirname(the_path: Path) -> str:
     """
     Return the URI of the nearest directory,
     which can be self if it is a directory
     or else the parent
     """
     if not the_path.is_dir():
-        return the_path.parent.as_uri()
+        return the_path.parent
     else:
-        return the_path.as_uri()
+        return the_path
 
 
 def plur(count: int) -> str:
