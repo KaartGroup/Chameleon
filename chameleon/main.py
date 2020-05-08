@@ -1062,7 +1062,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.worker.scale_with_api_items.connect(
             self.progress_bar.scale_with_api_items
         )
-        self.progress_bar.canceled.connect(self.stop_thread)
+        self.progress_bar.canceled.connect(self.work_thread.requestInterruption)
         self.worker.check_api_done.connect(self.progress_bar.check_api_done)
 
         self.worker.overpass_counter.connect(self.progress_bar.overpass_counter)
@@ -1114,12 +1114,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 event.ignore()
 
         return super(MainApp, self).eventFilter(obj, event)
-
-    def stop_thread(self):
-        """
-        End the work thread early
-        """
-        self.work_thread.requestInterruption()
 
     def finished(self):
         """
