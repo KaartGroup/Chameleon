@@ -3,11 +3,12 @@ Unit tests for the main.py file
 """
 from pathlib import Path
 
-import pandas as pd
+import oyaml as yaml
 import pytest
 from PySide2 import QtWidgets
 from PySide2.QtCore import Qt
 from PySide2.QtTest import QTest
+from PySide2.QtWidgets import QMessageBox
 
 from chameleon import main, core
 
@@ -19,15 +20,15 @@ app = QtWidgets.QApplication(["."])
 @pytest.fixture
 def worker_files():
     return {
-        "old": "test/old.csv",
-        "new": "test/new.csv",
-        "output": "test/output",
+        "old": Path("test/old.csv"),
+        "new": Path("test/new.csv"),
+        "output": Path("test/output"),
     }
 
 
 @pytest.fixture
 def worker(mainapp, worker_files):
-    return main.Worker(mainapp, {"name"}, worker_files)
+    return main.Worker(mainapp)
 
 
 # Worker tests
@@ -61,8 +62,31 @@ def test_load_extra_columns(worker):
     assert gold_columns == loaded_columns
 
 
-def test_history_writer():
-    pass
+@pytest.mark.parametrize("use_api", [True, False])
+@pytest.mark.parametrize("file_format", ["csv", "geojson", "excel"])
+def test_history_writer(
+    worker, worker_files, use_api, file_format, monkeypatch, tmp_path
+):
+    worker.files = worker_files
+    worker.use_api = use_api
+    worker.format = file_format
+
+    history_path = tmp_path / "history/history.yaml"
+    # history_path = main.HISTORY_LOCATION
+    tmp_path.mkdir(exist_ok=True, parents=True)
+    monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
+    gold_dict = {
+        "use_api": use_api,
+        "file_format": file_format,
+        "old": worker_files["old"],
+        "new": worker_files["new"],
+        "output": worker_files["output"],
+    }
+
+    worker.history_writer()
+
+    with history_path.open("r") as f:
+        assert gold_dict == yaml.safe_load(f)
 
 
 @pytest.mark.parametrize(
@@ -75,15 +99,42 @@ def test_high_deletions_checker(worker, newfile, outcome):
     assert worker.high_deletions_checker(cdf_set) is outcome
 
 
-def test_overwrite_confirm():
-    # TODO Need to simulate click on confirmation dialog
-    pass
+# @pytest.mark.parametrize(
+#     "role,returned", [(QMessageBox.YesRole, True), (QMessageBox.NoRole, False)]
+# )
+# def test_overwrite_confirm(mainapp, worker, worker_files, role, returned):
+#     # TODO Need to simulate click on confirmation dialog
+#     worker.overwrite_confirm(worker_files["output"])
+#     messagebox = mainapp.activeModalWidget()
+#     the_button = [
+#         button
+#         for button in messagebox.buttons()
+#         if messagebox.buttonRole(button) == role
+#     ][0]
+#     QTest.mouseClick(the_button)
+#     assert worker.response is returned
 
 
-def test_check_api_deletions(worker, cdf_set):
-    worker.check_api_deletions(cdf_set)
-    cdf_set.separate_special_dfs()
-    assert len(cdf_set["deleted"]["changeset_new"].isna) == 0
+@pytest.mark.parametrize(
+    "role,returned", [(QMessageBox.YesRole, True), (QMessageBox.NoRole, False)]
+)
+def test_overwrite_confirm(qtbot, mainapp, worker_files, role, returned):
+    mainapp.show()
+    qtbot.addWidget(mainapp)
+    messagebox = mainapp.activeModalWidget()
+    the_button = [
+        button
+        for button in messagebox.buttons()
+        if messagebox.buttonRole(button) == role
+    ][0]
+    QTest.mouseClick(the_button)
+    assert worker.response is returned
+
+
+# def test_check_api_deletions(worker, cdf_set):
+#     worker.check_api_deletions(cdf_set)
+#     cdf_set.separate_special_dfs()
+#     assert len(cdf_set["deleted"]["changeset_new"].isna) == 0
 
 
 def test_csv_output(self):
@@ -103,47 +154,32 @@ def test_geojson_output(self):
 
 @pytest.fixture
 def favorite_location():
-    return Path("test/test_favorites.yaml")
+    return Path("test/test_counter.yaml")
 
 
-@pytest.fixture
-def mainapp(favorite_location):
+@pytest.fixture(params=[None, favorite_location])
+def mainapp(monkeypatch, favorite_location, worker_files, tmp_path, request):
+    if request.param is None:
+        # Empty file
+        monkeypatch.setattr(main, "COUNTER_LOCATION", tmp_path / "counter.yaml")
+    else:
+        monkeypatch.setattr(main, "COUNTER_LOCATION", favorite_location)
     app = main.MainApp()
+    app.text_fields = worker_files
     return app
 
 
-def test_add_to_list(mainapp):
+@pytest.mark.parametrize(
+    "tag,count", [("highway", 1), ("addr:housenumber", 1), ("   ", 0)]
+)
+def test_add_to_list(tag, count, mainapp):
     """
     Verifies 'Add' button function for search bar.
     """
-    mainapp.searchBox.insert("highway")
+    mainapp.searchBox.insert(tag)
     QTest.mouseClick(mainapp.searchButton, Qt.LeftButton)
-    assert len(mainapp.listWidget.findItems("highway", Qt.MatchExactly)) > 0
+    assert len(mainapp.listWidget.findItems(tag, Qt.MatchExactly)) == count
     assert mainapp.searchBox.text is not True
-
-
-def test_add_special_char_to_list(mainapp):
-    """
-    Verifies 'Add' button function for user input with
-    special characters.
-    """
-    mainapp.searchBox.insert("addr:housenumber")
-    QTest.mouseClick(mainapp.searchButton, Qt.LeftButton)
-    assert (
-        len(mainapp.listWidget.findItems("addr:housenumber", Qt.MatchExactly))
-        > 0
-    )
-
-
-def test_add_spaces_to_list(mainapp):
-    """
-    Verifies space and empty values are ignored by
-    the 'Add' function.
-    """
-    mainapp.listWidget.clear()
-    mainapp.searchBox.insert("   ")
-    QTest.mouseClick(mainapp.searchButton, Qt.LeftButton)
-    assert mainapp.listWidget.count() == 0
 
 
 def test_remove_from_list(mainapp):
@@ -210,13 +246,36 @@ def test_autocompleter(mainapp):
 
 
 def test_expand_user(mainapp):
-    mainapp.newFileNameBox.insert("~/Desktop/")
-    mainapp.newFileNameBox.clearFocus()
+    mainapp.newFileNameBox.selectAll()
+    QTest.keyClicks(mainapp.newFileNameBox, "~/Desktop/")
+    # mainapp.newFileNameBox.insert("~/Desktop/")
+    QTest.mouseClick(mainapp.oldFileNameBox, Qt.LeftButton)
     assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
 
 
-def test_no_settings_files(mainapp):
+def test_no_settings_files(monkeypatch, tmp_path, worker_files):
     """
     Test running chameleon without existing counter.yaml/settings.yaml
     """
-    pass
+    history_path = tmp_path / "history.yaml"
+    counter_path = tmp_path / "counter.yaml"
+    monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
+    monkeypatch.setattr(main, "COUNTER_LOCATION", counter_path)
+    mainapp = main.MainApp()
+
+    mainapp.text_fields = worker_files
+
+    mainapp.run_query()
+
+    # TODO Check if the query actually ran
+
+
+@pytest.mark.parametrize(
+    "path,returned",
+    [
+        (Path.home() / "Documents", Path.home() / "Documents"),
+        (Path.home() / "Documents/test.txt", Path.home() / "Documents"),
+    ],
+)
+def test_dirname(path, returned):
+    assert main.dirname(path) == returned
