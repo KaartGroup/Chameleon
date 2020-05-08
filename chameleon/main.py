@@ -151,21 +151,21 @@ class Worker(QObject):
     def __init__(
         self,
         parent,
-        modes: set,
-        files: dict,
+        modes: set = None,
+        files: dict = None,
         group_output=False,
         use_api=False,
         file_format="csv",
     ):
         super().__init__()
         # Define set of selected modes
-        self.modes = modes
-        self.files = files
-        self.group_output = group_output
-        self.use_api = use_api
         self.parent = parent
+        self.modes = parent.modes
+        self.files = parent.file_fields
+        self.group_output = parent.group_output
+        self.use_api = parent.use_api
+        self.format = parent.file_format
         self.response = None
-        self.format = file_format
         self.output_path = None
 
         self.error_list = []
@@ -978,85 +978,96 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         dialog.setTextFormat(QtCore.Qt.RichText)
         dialog.exec()
 
-    def run_query(self):
-        """
-        Allows run button to execute based on selected tag parameters.
-        Also Enables/disables run button while executing function and allows
-        progress bar functionality. Checks for file/directory validity and spacing.
-        """
-        # Check for blank values
-        for name, field in self.text_fields.items():
-            if not field.text().strip():
-                self.dialog(
-                    f"{name.title()} file field is blank.",
-                    "Please enter a value",
-                    "critical",
-                )
-                return
+    @property
+    def file_fields(self) -> dict:
         # Wrap the file references in Path object to prepare "file not found" warning
-        file_paths = {
-            name: Path(field.text()) for name, field in self.text_fields.items()
+        return {
+            name: Path(field.text().strip())
+            for name, field in self.text_fields.items()
+            if field.text().strip()
         }
 
-        # Check if either old or new file/directory exists. If not, notify user.
-        if not file_paths["old"].is_file() or not file_paths["new"].is_file():
-            if (
-                not file_paths["old"].is_file()
-                and not file_paths["new"].is_file()
-            ):
-                self.dialog("Neither file could be found!", "", "critical")
-            elif not file_paths["old"].is_file():
-                self.dialog("Old file not found!", "", "critical")
-            elif not file_paths["new"].is_file():
-                self.dialog("New file not found!", "", "critical")
-            return
-        # Check if output directory is writable
-        try:
-            if not os.access(file_paths["output"].parent, os.W_OK):
-                self.dialog("Output directory not writeable!", "", "critical")
-                return
-        except IndexError:
-            # This shouldn't be reachable normally, but belt-and-suspenders…
-            self.dialog(
-                "Output file field is blank.",
-                "Please enter a value.",
-                "critical",
-            )
-            return
-
-        modes: set = {
-            i.text().replace(":", "_")
-            for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
-        }
-        self.document_tag(modes)  # Execute favorite tracking
-        logger.info("Modes to be processed: %s.", (modes))
-
-        group_output = self.groupingCheckBox.isChecked()
-
+    @property
+    def use_api(self) -> bool:
         # The offline radio button is a dummy. The online button functions as a checkbox
         # rather than as true radio buttons
-        use_api = self.onlineRadio.isChecked()
+        return self.onlineRadio.isChecked()
 
+    @property
+    def file_format(self) -> str:
         if self.excelRadio.isChecked():
             file_format = "excel"
         elif self.geojsonRadio.isChecked():
             file_format = "geojson"
         else:
             file_format = "csv"
+        return file_format
 
-        self.progress_bar = ChameleonProgressDialog(len(modes), use_api)
+    @property
+    def modes(self) -> set:
+        return {
+            i.text().replace(":", "_")
+            for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+        }
+
+    @property
+    def group_output(self) -> bool:
+        return self.groupingCheckBox.isChecked()
+
+    def validate_files(self) -> dict:
+        errors = {}
+        # Check for blank values
+        try:
+            # TODO Fix this
+            for k in {"old", "new", "output"}:
+                self.file_fields[k]
+        except KeyError as e:
+            errors["blank"] = f"{e.args[0].title()} file field is blank."
+        badfiles = []
+        for key, path in [(k, self.file_fields.get(k)) for k in {"old", "new"}]:
+            try:
+                with path.open("r"):
+                    pass
+            except FileNotFoundError:
+                badfiles.append(key)
+        if badfiles:
+            errors[
+                "notfound"
+            ] = f"{' and '.join(badfiles)} file{plur(len(badfiles))} not found.".capitalize()
+        # Check if output directory is writable
+        if not os.access(self.file_fields["output"].parent, os.W_OK):
+            errors["notwritable"] = (
+                f"{self.file_fields['output'].parent} "
+                "is not a writable directory"
+            )
+        return errors
+
+    def run_query(self):
+        """
+        Allows run button to execute based on selected tag parameters.
+        Also Enables/disables run button while executing function and allows
+        progress bar functionality. Checks for file/directory validity and spacing.
+        """
+
+        if self.validate_files():
+            errormessage = "\n".join(self.validate_files().values())
+            self.dialog(
+                "There are problems with your input!", errormessage, "critical"
+            )
+            return
+
+        self.document_tag(self.modes)  # Execute favorite tracking
+
+        logger.info("Modes to be processed: %s.", (self.modes))
+
+        self.progress_bar = ChameleonProgressDialog(
+            len(self.modes), self.use_api
+        )
         self.progress_bar.show()
 
         # Handles Worker class and QThreads for Worker
         self.work_thread = QThread(parent=self)
-        self.worker = Worker(
-            self,
-            modes,
-            file_paths,
-            group_output=group_output,
-            use_api=use_api,
-            file_format=file_format,
-        )
+        self.worker = Worker(self)
         # Connect to count_mode() when 1 mode begins in Worker
         self.worker.mode_start.connect(self.progress_bar.count_mode)
         self.worker.mode_complete.connect(self.progress_bar.mode_complete)
