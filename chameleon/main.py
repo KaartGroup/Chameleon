@@ -206,7 +206,7 @@ class Worker(QObject):
                 self.files["old"], self.files["new"], use_api=self.use_api
             )
 
-            if not self.high_deletions_checker(cdf_set):
+            if self.high_deletions_checker(cdf_set):
                 return
 
             if self.use_api:
