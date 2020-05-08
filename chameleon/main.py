@@ -951,9 +951,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         If user types a value into a file name box, expand user if applicable
         """
         sender = self.sender()
-        expanded = Path(sender.text()).expanduser()
-        self.sender().selectAll()
-        self.sender().insert(str(expanded))
+        text = sender.text().strip()
+        if text:
+            expanded = str(Path(text).expanduser())
+        else:
+            expanded = ""
+        sender.selectAll()
+        sender.insert(expanded)
 
     def dialog(self, text: str, info: str, icon: str):
         """
