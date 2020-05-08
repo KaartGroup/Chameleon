@@ -314,6 +314,16 @@ class Worker(QObject):
                 pass
 
     def high_deletions_checker(self, cdf_set: ChameleonDataFrameSet) -> bool:
+        """
+        If more than 20% of features have been deleted,
+        alerts the user and asks if they want to continue
+
+        :return: True if more than 20% of features were deleted *and* user
+                 chose to cancel
+                 False if less than 20% of features were deleted *or*
+                 more than 20% of features were deleted but
+                 user chose to continue
+        """
         deletion_percentage = (
             len(cdf_set.source_data[cdf_set.source_data["action"] == "deleted"])
             / len(cdf_set.source_data)
@@ -886,16 +896,18 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender = self.sender()
         destination = sender.box_control
         # Gets first non-empty value in order
-        file_dir = [
-            e
-            for e in (
-                destination.text().strip(),
-                self.oldFileNameBox.text().strip(),
-                self.newFileNameBox.text().strip(),
-                os.path.expanduser("~/Downloads"),
-            )
-            if e
-        ][0]
+        file_dir = str(
+            [
+                e
+                for e in (
+                    destination.text().strip(),
+                    self.oldFileNameBox.text().strip(),
+                    self.newFileNameBox.text().strip(),
+                    Path.home() / "Downloads",
+                )
+                if e
+            ][0]
+        )
         file_name = QFileDialog.getOpenFileName(
             self,
             f"Select CSV file with {sender.shortname} data",
@@ -912,14 +924,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         '/downloads' system path for user to name an output file.
         """
         # If no previous location, default to Documents folder
-        output_file_dir = [
-            e
-            for e in (
-                os.path.dirname(self.outputFileNameBox.text().strip()),
-                os.path.expanduser("~/Documents"),
-            )
-            if e
-        ][0]
+        output_file_dir = str(
+            [
+                e
+                for e in (
+                    os.path.dirname(self.outputFileNameBox.text().strip()),
+                    Path.home() / "Documents",
+                )
+                if e
+            ][0]
+        )
         output_file_name = QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir
         )[0]
@@ -933,8 +947,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Function that disable/enables run button based on list items.
         """
+        file_fields_not_empty = all(
+            self.file_fields.get(k) for k in self.text_fields.keys()
+        )
         list_not_empty = self.listWidget.count() > 0
-        self.runButton.setEnabled(list_not_empty)
+        self.runButton.setEnabled(list_not_empty and file_fields_not_empty)
         self.repaint()
 
     def suffix_updater(self):
@@ -958,6 +975,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             expanded = ""
         sender.selectAll()
         sender.insert(expanded)
+        self.run_checker()
 
     def dialog(self, text: str, info: str, icon: str):
         """
