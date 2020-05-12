@@ -21,7 +21,7 @@ import pandas as pd
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject, QThread, Signal
+from PySide2.QtCore import QObject, QThread, Signal, QMutex, QWaitCondition
 from PySide2.QtWidgets import (
     QAction,
     QApplication,
@@ -54,7 +54,6 @@ else:
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
-
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
 logger = logging.getLogger()
@@ -563,6 +562,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     clear_search_box = Signal()
 
+    QMB_MAP = {QMessageBox.Yes: True, QMessageBox.No: False}
+
     def __init__(self, parent=None):
         """
         Loads history file path, establish event handling with signal/slot
@@ -575,8 +576,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
         self.listWidget.installEventFilter(self)
-        self.mutex = QtCore.QMutex()
-        self.waiting_for_input = QtCore.QWaitCondition()
+        self.mutex = QMutex()
+        self.waiting_for_input = QWaitCondition()
         self.progress_bar = None
         self.work_thread = None
         self.worker = None
@@ -1172,15 +1173,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         message : str
             A question for the user to answer with yes or no.
         """
-        overwrite_prompt = QMessageBox()
-        overwrite_prompt.setIcon(QMessageBox.Question)
-        overwrite_prompt_response = overwrite_prompt.question(
-            self, "", message, overwrite_prompt.No | overwrite_prompt.Yes
-        )
-        if overwrite_prompt_response == overwrite_prompt.Yes:
-            self.worker.response = True
-        else:
-            self.worker.response = False
+        confirm_response = QMessageBox.question(self, "", message)
+
+        self.worker.response = self.QMB_MAP[confirm_response]
         self.waiting_for_input.wakeAll()
 
     def closeEvent(self, event):
