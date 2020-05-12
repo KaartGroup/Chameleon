@@ -21,7 +21,7 @@ import pandas as pd
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject, QThread, Signal, QMutex, QWaitCondition
+from PySide2.QtCore import QObject, QThread, Signal
 from PySide2.QtWidgets import (
     QAction,
     QApplication,
@@ -343,14 +343,12 @@ class Worker(QObject):
         )
 
     def user_confirm(self, message: str) -> bool:
-        try:  # This block ensures the mutex is unlocked even in the worst case
-            self.user_confirm_signal.emit(message)
-            self.parent.mutex.lock()
-            # Don't check for a response until after the user has a chance to give one
-            self.parent.waiting_for_input.wait(self.parent.mutex)
-            return self.response
-        finally:
-            self.parent.mutex.unlock()
+        self.user_confirm_signal.emit(message)
+        while self.response is None:  # Wait for user input
+            time.sleep(0.1)
+        response = self.response
+        self.response = None
+        return response
 
     def check_api_deletions(self, cdfs: ChameleonDataFrameSet):
         """
@@ -576,8 +574,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
         self.listWidget.installEventFilter(self)
-        self.mutex = QMutex()
-        self.waiting_for_input = QWaitCondition()
         self.progress_bar = None
         self.work_thread = None
         self.worker = None
@@ -1176,7 +1172,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         confirm_response = QMessageBox.question(self, "", message)
 
         self.worker.response = self.QMB_MAP[confirm_response]
-        self.waiting_for_input.wakeAll()
 
     def closeEvent(self, event):
         """
