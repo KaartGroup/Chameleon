@@ -1,5 +1,5 @@
 """
-Unit tests for the main.py file
+Unit tests for the qt.py file
 """
 from pathlib import Path
 
@@ -10,7 +10,7 @@ from PySide2.QtCore import Qt
 from PySide2.QtTest import QTest
 from PySide2.QtWidgets import QMessageBox
 
-from chameleon import main, core
+from chameleon import qt, core
 
 # TEST_FOLDER = Path("test")
 
@@ -28,7 +28,7 @@ def worker_files():
 
 @pytest.fixture
 def worker(mainapp, worker_files):
-    return main.Worker(mainapp)
+    return qt.Worker(mainapp)
 
 
 # Worker tests
@@ -72,7 +72,7 @@ def test_history_writer(
     worker.format = file_format
 
     history_path = tmp_path / "history/history.yaml"
-    # history_path = main.HISTORY_LOCATION
+    # history_path = qt.HISTORY_LOCATION
     tmp_path.mkdir(exist_ok=True, parents=True)
     monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
     gold_dict = {
@@ -270,7 +270,7 @@ def test_no_settings_files(monkeypatch, tmp_path, worker_files):
     counter_path = tmp_path / "counter.yaml"
     monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
     monkeypatch.setattr(main, "COUNTER_LOCATION", counter_path)
-    mainapp = main.MainApp()
+    mainapp = qt.MainApp()
 
     mainapp.text_fields = worker_files
 
@@ -287,4 +287,4 @@ def test_no_settings_files(monkeypatch, tmp_path, worker_files):
     ],
 )
 def test_dirname(path, returned):
-    assert main.dirname(path) == returned
+    assert qt.dirname(path) == returned
