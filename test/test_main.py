@@ -90,13 +90,22 @@ def test_history_writer(
 
 
 @pytest.mark.parametrize(
-    "newfile,outcome",
-    [("test/new_highdeletions.csv", False), ("test/new.csv", True)],
+    "newfile,highdeletions",
+    [("test/new_highdeletions.csv", True), ("test/new.csv", False)],
 )
-def test_high_deletions_checker(worker, newfile, outcome):
-    # TODO Need to simulate click on confirmation dialog
+@pytest.mark.parametrize("user_response", [True, False])
+def test_high_deletions_checker(
+    worker, newfile, highdeletions, user_response, monkeypatch
+):
+    def mock_confirm(message):
+        return user_response
+
+    monkeypatch.setattr(worker, "user_confirm", mock_confirm)
+
     cdf_set = core.ChameleonDataFrameSet("test/old.csv", newfile)
-    assert worker.high_deletions_checker(cdf_set) is outcome
+    assert worker.high_deletions_checker(cdf_set) == (
+        highdeletions and not user_response
+    )
 
 
 # @pytest.mark.parametrize(
@@ -164,8 +173,8 @@ def mainapp(monkeypatch, favorite_location, worker_files, tmp_path, request):
         monkeypatch.setattr(main, "COUNTER_LOCATION", tmp_path / "counter.yaml")
     else:
         monkeypatch.setattr(main, "COUNTER_LOCATION", favorite_location)
+    monkeypatch.setattr(main.MainApp, "file_fields", worker_files)
     app = main.MainApp()
-    app.text_fields = worker_files
     return app
 
 
