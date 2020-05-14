@@ -34,13 +34,13 @@ from PySide2.QtWidgets import (
 )
 
 # Import generated UI file
-from chameleon import design
 from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     SPECIAL_MODES,
     clean_for_presentation,
 )
+from chameleon.qt import design
 
 # Differentiate sys settings between pre and post-bundling
 if getattr(sys, "frozen", False):
