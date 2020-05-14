@@ -14,14 +14,15 @@
 
 <body>
     <h1>Chameleon for Web</h1>
-    <form>
-        <input type="text" id="country">
-        <input type="date" id="startdate">
-        <input type="date" id="enddate">
-        <input type="text" id="tagentry">
-        <select id="taglist"></select>
-        <input type="checkbox" id="grouping">
-        <input type="button" </form>
+    <form enctype="multipart/form-data">
+        <input type="file" name="old" required>
+        <input type="file" name="new" required>
+        <input type="text" names="output">
+        <input type="text" name="tagentry">
+        <select name="taglist"></select>
+        <input type="checkbox" name="grouping">
+        <button name="run" type="submit">Run</button>
+    </form>
 
 </body>
 
