@@ -14,7 +14,7 @@ from chameleon import core
 app = Flask(__name__)
 
 RESOURCES_DIR = Path()
-BASE_DIR = Path("/files") / uuid()
+BASE_DIR = Path("/files") / str(uuid())
 
 error_list = []
 extra_columns = Path("resources/extracolumns.yaml")

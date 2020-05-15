@@ -7,6 +7,7 @@
 
     <title>Chameleon for Web</title>
     <meta name="author" content="Kaart">
+    <script src="main.js"></script>
 
     <link rel="stylesheet" href="main.css">
 
@@ -15,12 +16,27 @@
 <body>
     <h1>Chameleon for Web</h1>
     <form enctype="multipart/form-data">
-        <input type="file" name="old" required>
-        <input type="file" name="new" required>
-        <input type="text" names="output">
-        <input type="text" name="tagentry">
-        <select name="taglist"></select>
-        <input type="checkbox" name="grouping">
+        <label>Old file
+        <input type="file" name="old" required></label>
+        <br>
+        <label>New file
+        <input type="file" name="new" required></label>
+        <br>
+        <label>Output file name
+        <input type="text" names="output"></label>
+        <br>
+        <label>Enter tag:
+        <input type="text" name="tagentry" id="tagentry_id"></label><button type="button" onclick="addToList();">Add</button>
+        <br>
+        <select name="modes" size="10" id="taglist">
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+        </select>
+        <br>
+        <label>Group rows by type of change
+        <input type="checkbox" name="grouping"></label>
+        <br>
         <button name="run" type="submit">Run</button>
     </form>
 
