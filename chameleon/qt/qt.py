@@ -170,7 +170,6 @@ class Worker(QObject):
         self.error_list = []
         self.successful_items = {}
 
-        self.extra_columns = self.load_extra_columns()
         self.write_output = {
             "csv": self.write_csv,
             "excel": self.write_excel,
@@ -202,7 +201,10 @@ class Worker(QObject):
                 self.history_writer()
             mode = None
             cdf_set = ChameleonDataFrameSet(
-                self.files["old"], self.files["new"], use_api=self.use_api
+                self.files["old"],
+                self.files["new"],
+                use_api=self.use_api,
+                extra_columns=self.load_extra_columns(),
             )
 
             if self.high_deletions_checker(cdf_set):
@@ -426,47 +428,27 @@ class Worker(QObject):
         """
         Writes all members of a ChameleonDataFrameSet as sheets in an Excel file
         """
-        file_name = self.files["output"].with_suffix(".xlsx")
+        self.output_path = file_name = self.files["output"].with_suffix(".xlsx")
         if file_name.is_file() and not self.overwrite_confirm(file_name):
             logger.info("Not writing output")
             return
-        with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
-            for result in dataframe_set:
-                row_count = len(result)
-                # Points at first cell (blank) of last column written
-                column_pointer = len(result.columns) + 1
-                for k in self.extra_columns.keys():
-                    result[k] = ""
-                result.to_excel(
-                    writer,
-                    sheet_name=result.chameleon_mode,
-                    index=True,
-                    freeze_panes=(1, 0),
+
+        dataframe_set.write_excel(file_name)
+
+        for result in dataframe_set:
+            row_count = len(result)
+            if not row_count:
+                # Empty dataframe
+                success_message = f"{result.chameleon_mode} has no change."
+            else:
+                success_message = (
+                    f"{result.chameleon_mode} output "
+                    f"with {row_count} row{plur(row_count)}."
                 )
-
-                if self.extra_columns:
-                    sheet = writer.sheets[result.chameleon_mode]
-
-                    for k, v in self.extra_columns.items():
-                        if v is not None and v.get("validate", None):
-                            sheet.data_validation(
-                                1, column_pointer, row_count, column_pointer, v
-                            )
-                        column_pointer += 1
-
-                if not row_count:
-                    # Empty dataframe
-                    success_message = f"{result.chameleon_mode} has no change."
-                else:
-                    success_message = (
-                        f"{result.chameleon_mode} output "
-                        f"with {row_count} row{plur(row_count)}."
-                    )
-                self.successful_items.update(
-                    {result.chameleon_mode: success_message}
-                )
-                self.mode_complete.emit()
-        self.output_path = file_name
+            self.successful_items.update(
+                {result.chameleon_mode: success_message}
+            )
+            self.mode_complete.emit()
 
     def write_geojson(self, dataframe_set: ChameleonDataFrameSet):
         """
@@ -474,73 +456,27 @@ class Worker(QObject):
         using the overpass API
         """
         timeout = 120
-        file_name = Path(f"{self.files['output']}.geojson")
-        self.output_path = file_name
+        self.output_path = file_name = self.files["output"].with_suffix(
+            ".geojson"
+        )
+
         if file_name.is_file() and not self.overwrite_confirm(file_name):
             logger.info("User chose not to overwrite")
             return
-        if dataframe_set.overpass_query:
-            api = overpass.API(timeout=timeout)
-            try:
-                self.overpass_counter.emit(timeout)
-                response = api.get(
-                    dataframe_set.overpass_query,
-                    verbosity="meta geom",
-                    responseformat="geojson",
-                )
-            except TimeoutError:
-                self.dialog(
-                    "Overpass timeout",
-                    "The Overpass server did not respond in time.",
-                    "critical",
-                )
-                return
-            finally:
-                self.overpass_complete.emit()
-            logger.info("Response recieved from Overpass.")
-            merged = ChameleonDataFrame()
-            for result in dataframe_set.nondeleted:
-                row_count = len(result)
-                columns_to_keep = ["id", "url", "user", "timestamp", "version"]
-                if "changeset" in result.columns and "osmcha" in result.columns:
-                    columns_to_keep += ["changeset", "osmcha"]
-                if result.chameleon_mode != "name":
-                    columns_to_keep += ["name"]
-                if result.chameleon_mode != "highway":
-                    columns_to_keep += ["highway"]
-                if result.chameleon_mode not in SPECIAL_MODES:
-                    columns_to_keep += [
-                        f"old_{result.chameleon_mode}",
-                        f"new_{result.chameleon_mode}",
-                    ]
-                # else:
-                #     result[result.chameleon_mode] = result.chameleon_mode
-                #     columns_to_keep += [result.chameleon_mode]
-                columns_to_keep += ["action"]
-                result = result[columns_to_keep]
-                merged = merged.append(result)
-                if not row_count:
-                    # Empty dataframe
-                    success_message = f"{result.chameleon_mode} has no change."
-                else:
-                    success_message = (
-                        f"{result.chameleon_mode} output "
-                        f"with {row_count} row{plur(row_count)}."
-                    )
-                self.successful_items.update(
-                    {result.chameleon_mode: success_message}
-                )
-                logger.info("Processing for %s complete.", result.chameleon_mode)
-                self.mode_complete.emit()
-            for i in response["features"]:
-                i["id"] = "w" + str(i["id"])
-                i["properties"] = {
-                    column: value
-                    for column, value in merged[merged["id"] == i["id"]]
-                    .iloc[0]
-                    .items()
-                    if pd.notna(value)
-                }
+
+        try:
+            self.overpass_counter.emit(timeout)
+            response = dataframe_set.to_geojson(timeout=timeout)
+        except TimeoutError:
+            self.dialog(
+                "Overpass timeout",
+                "The Overpass server did not respond in time.",
+                "critical",
+            )
+            return
+        finally:
+            self.overpass_complete.emit()
+        logger.info("Response recieved from Overpass.")
 
         logger.info("Writing geojson…")
         try:

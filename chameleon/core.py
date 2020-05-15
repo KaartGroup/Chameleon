@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
+import overpass
 import pandas as pd
 import requests
 
@@ -236,14 +237,17 @@ class ChameleonDataFrameSet(set):
 
     def __init__(
         self,
-        oldfile: Union[str, Path],
-        newfile: Union[str, Path],
+        old: Union[str, Path],
+        new: Union[str, Path],
         use_api=False,
+        extra_columns: dict = {},
     ):
         super().__init__(self)
         self.source_data = None
-        self.oldfile = Path(oldfile)
-        self.newfile = Path(newfile)
+        self.oldfile = Path(old)
+        self.newfile = Path(new)
+        self.extra_columns = extra_columns
+
         self.deleted_way_members = {}
         self.overpass_result_attribs = {}
 
@@ -398,6 +402,72 @@ class ChameleonDataFrameSet(set):
                     element_attribs.update({"action": "dropped"})
                 return element_attribs
 
+    def write_excel(self, file_name: Union[Path, str]):
+        with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
+            for result in self:
+                # Points at first cell (blank) of last column written
+                column_pointer = len(result.columns) + 1
+                for k in self.extra_columns.keys():
+                    result[k] = ""
+                result.to_excel(
+                    writer,
+                    sheet_name=result.chameleon_mode,
+                    index=True,
+                    freeze_panes=(1, 0),
+                )
+
+                if self.extra_columns:
+                    sheet = writer.sheets[result.chameleon_mode]
+
+                    for k, v in self.extra_columns.items():
+                        if v is not None and v.get("validate", None):
+                            sheet.data_validation(
+                                1, column_pointer, len(result), column_pointer, v
+                            )
+                        column_pointer += 1
+
+    def to_geojson(self, timeout: int = 120) -> dict:
+        if not self.overpass_query:
+            return
+
+        api = overpass.API(timeout=timeout)
+
+        response = api.get(
+            self.overpass_query, verbosity="meta geom", responseformat="geojson",
+        )
+
+        merged = ChameleonDataFrame()
+        for result in self.nondeleted:
+            columns_to_keep = ["id", "url", "user", "timestamp", "version"]
+            if "changeset" in result.columns and "osmcha" in result.columns:
+                columns_to_keep += ["changeset", "osmcha"]
+            if result.chameleon_mode != "name":
+                columns_to_keep += ["name"]
+            if result.chameleon_mode != "highway":
+                columns_to_keep += ["highway"]
+            if result.chameleon_mode not in SPECIAL_MODES:
+                columns_to_keep += [
+                    f"old_{result.chameleon_mode}",
+                    f"new_{result.chameleon_mode}",
+                ]
+            # else:
+            #     result[result.chameleon_mode] = result.chameleon_mode
+            #     columns_to_keep += [result.chameleon_mode]
+            columns_to_keep += ["action"]
+            result = result[columns_to_keep]
+            merged = merged.append(result)
+
+        for i in response["features"]:
+            i["id"] = "w" + str(i["id"])
+            i["properties"] = {
+                column: value
+                for column, value in merged[merged["id"] == i["id"]]
+                .iloc[0]
+                .items()
+                if pd.notna(value)
+            }
+        return response
+
     @property
     def nondeleted(self) -> set:
         return {i for i in self if i.chameleon_mode != "deleted"}
@@ -412,7 +482,11 @@ class ChameleonDataFrameSet(set):
             for k, v in separate_ids_by_feature_type(df.index).items():
                 feature_ids[k] += v
         return ";".join(
-            [f"{k}(id:{','.join(v)})" for k, v in feature_ids.items() if v]
+            [
+                f"{k}(id:{','.join(v)})"
+                for k, v in feature_ids.items()
+                if k != "relation" and v
+            ]
         )
 
 
@@ -451,7 +525,6 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
     return {
         v: [fid for ftype, fid in f_type_id if ftype == v]
         for v in TYPE_EXPANSION.values()
-        if v != "relation"
     }
 
 
