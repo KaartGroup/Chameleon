@@ -7,15 +7,15 @@
 
     <title>Chameleon for Web</title>
     <meta name="author" content="Kaart">
-    <script src="main.js"></script>
+    <script src="{{url_for('static', filename='main.js')}}"></script>
 
-    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="{{url_for('static', filename='main.css')}}">
 
 </head>
 
-<body>
+<body onload="main()">
     <h1>Chameleon for Web</h1>
-    <form enctype="multipart/form-data">
+    <form enctype="multipart/form-data" onsubmit="selectAllOptions()" method="POST" action="/result/">
         <label>Old file
         <input type="file" name="old" required></label>
         <br>
@@ -28,11 +28,15 @@
         <label>Enter tag:
         <input type="text" name="tagentry" id="tagentry_id"></label><button type="button" onclick="addToList();">Add</button>
         <br>
-        <select name="modes" size="10" id="taglist">
-            <option>1</option>
-            <option>2</option>
-            <option>3</option>
+        <select name="modes" size="10" id="taglist" multiple>
         </select>
+        <br>
+        <p>File format:</p>
+        <label>Excel<input value="excel" type="radio" name="file_format" checked></label>
+        <br>
+        <label>GeoJSON<input value="geojson" type="radio" name="file_format"></label>
+        <br>
+        <label>CSV<input value="csv" type="radio" name="file_format"></label>
         <br>
         <label>Group rows by type of change
         <input type="checkbox" name="grouping"></label>

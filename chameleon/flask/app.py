@@ -1,20 +1,28 @@
 import json
-from zipfile import ZipFile
 from datetime import datetime
 from pathlib import Path
-from tempfile import TemporaryDirectory, NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from uuid import uuid4 as uuid
+from zipfile import ZipFile
 
 import oyaml as yaml
 import pandas as pd
-from flask import Flask, request, safe_join, send_file, render_template
+from flask import (
+    Flask,
+    render_template,
+    request,
+    safe_join,
+    send_file,
+    send_from_directory,
+)
 
 from chameleon import core
 
 app = Flask(__name__)
 
 RESOURCES_DIR = Path()
-BASE_DIR = Path("/files") / str(uuid())
+BASE_DIR = Path("chameleon/flask/files") / str(uuid())
+BASE_DIR.mkdir(exist_ok=True)
 
 error_list = []
 extra_columns = Path("resources/extracolumns.yaml")
@@ -37,15 +45,14 @@ def result():
     # enddate: datetime = request.form["enddate"]
     oldfile = request.files["old"]
     newfile = request.files["new"]
-    output: str = request.form["output"]
-    grouping: bool = request.form["grouping"]
-    modes = set(request.form["modes"])
+    output: str = request.form.get("output", "chameleon")
+    grouping: bool = request.form.get("grouping", False)
+    modes = set(request.form.getlist("modes"))
     file_format: str = request.form["file_format"]
 
     output = Path(output).name
 
-    cdf_set = core.ChameleonDataFrameSet(oldfile, newfile)
-
+    cdf_set = core.ChameleonDataFrameSet(oldfile.stream, newfile.stream)
     cdf_set.separate_special_dfs()
 
     for mode in modes:
@@ -56,10 +63,10 @@ def result():
         except KeyError:
             error_list.append(mode)
             continue
-
         cdf_set.add(result)
 
-    write_output[file_format](cdf_set, output)
+    filename = write_output[file_format](cdf_set, output)
+    return send_from_directory(BASE_DIR, filename, as_attachment=True)
 
 
 def high_deletions_checker(cdf_set) -> bool:
@@ -98,15 +105,15 @@ def write_csv(dataframe_set, output):
                 result.to_csv(output_file, sep="\t", index=True)
                 myzip.write(output_file)
 
-    return send_file(zipname, mimetype=mimetype["csv"], as_attachment=True)
+    return zipname
 
 
 def write_excel(dataframe_set, output):
-    file_name = Path(safe_join(BASE_DIR, f"{output}.xlsx"))
+    file_name = Path(safe_join(BASE_DIR, f"{output}.xlsx")).resolve()
 
     dataframe_set.write_excel(file_name)
 
-    return send_file(file_name, mimetype=mimetype["excel"], as_attachment=True)
+    return file_name
 
 
 def write_geojson(dataframe_set, output):
@@ -121,7 +128,7 @@ def write_geojson(dataframe_set, output):
     with file_name.open("w") as output_file:
         json.dump(response, output_file)
 
-    return send_file(file_name, mimetype=mimetype["geojson"], as_attachment=True)
+    return file_name
 
 
 write_output = {

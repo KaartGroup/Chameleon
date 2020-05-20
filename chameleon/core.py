@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, TextIO, Tuple, Union
 
 import numpy as np
 import overpass
@@ -237,17 +237,22 @@ class ChameleonDataFrameSet(set):
 
     def __init__(
         self,
-        old: Union[str, Path],
-        new: Union[str, Path],
+        old: Union[str, Path, TextIO],
+        new: Union[str, Path, TextIO],
         use_api=False,
         extra_columns: dict = {},
     ):
         super().__init__(self)
-        self.source_data = None
-        self.oldfile = Path(old)
-        self.newfile = Path(new)
+        self.oldfile = old
+        self.newfile = new
+        if isinstance(self.oldfile, str):
+            self.oldfile = Path(old)
+        if isinstance(self.newfile, str):
+            self.newfile = Path(new)
+
         self.extra_columns = extra_columns
 
+        self.source_data = None
         self.deleted_way_members = {}
         self.overpass_result_attribs = {}
 
