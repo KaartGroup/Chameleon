@@ -17,9 +17,12 @@ function addToList() {
     taglist_field.add(option);
 }
 
-function selectAllOptions() {
-    for (x in taglist_field.options) {
-        x.selected = true;
+function onSubmit() {
+    if (!taglist_field.options.length) {
+        return false
+    }
+    for (var x = 0; x < taglist_field.options.length; i++) {
+        taglist_field.options[x].selected = true;
     }
     return true;
 }
