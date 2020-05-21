@@ -112,13 +112,14 @@ def user_confirm(message: str) -> bool:
 def write_csv(dataframe_set, output):
     zip_name = f"{output}.zip"
     zip_path = Path(safe_join(BASE_DIR, zip_name)).resolve()
+
     with ZipFile(zip_path, "w") as myzip, TemporaryDirectory() as tempdir:
         for result in dataframe_set:
             file_name = f"{output}_{result.chameleon_mode}.csv"
             temp_path = Path(tempdir) / file_name
             with temp_path.open("w") as output_file:
                 result.to_csv(output_file, sep="\t", index=True)
-            myzip.write(temp_path)
+            myzip.write(temp_path, arcname=file_name)
 
     return zip_name
 
@@ -142,6 +143,7 @@ def write_geojson(dataframe_set, output):
 
     file_name = f"{output}.geojson"
     file_path = Path(safe_join(BASE_DIR, file_name)).resolve()
+
     with file_path.open("w") as output_file:
         json.dump(response, output_file)
 
