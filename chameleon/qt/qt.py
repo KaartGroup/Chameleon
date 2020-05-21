@@ -14,7 +14,6 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-import overpass
 import oyaml as yaml
 import pandas as pd
 
@@ -37,7 +36,6 @@ from PySide2.QtWidgets import (
 from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
-    SPECIAL_MODES,
     clean_for_presentation,
 )
 from chameleon.qt import design
@@ -49,7 +47,7 @@ if getattr(sys, "frozen", False):
 else:
     # Script is not in a frozen package
     # __file__.parent is chameleon, .parents[1] is chameleon-2
-    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
+    RESOURCES_DIR = Path(__file__).parents[2] / "resources"
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -385,7 +383,6 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
         for result in dataframe_set:
-            row_count = len(result)
             file_name = Path(
                 f"{self.files['output']}_{result.chameleon_mode}.csv"
             )
@@ -405,16 +402,9 @@ class Worker(QObject):
                 logger.exception("Write error.")
                 self.error_list.append(result.chameleon_mode)
                 continue
-            if not row_count:
-                # Empty dataframe
-                success_message = f"{result.chameleon_mode} has no change."
-            else:
-                success_message = (
-                    f"{result.chameleon_mode} output "
-                    f"with {row_count} row{plur(row_count)}."
-                )
+
             self.successful_items.update(
-                {result.chameleon_mode: success_message}
+                {result.chameleon_mode: success_message(result)}
             )
             logger.info(
                 "Processing for %s complete. %s written.",
@@ -436,17 +426,8 @@ class Worker(QObject):
         dataframe_set.write_excel(file_name)
 
         for result in dataframe_set:
-            row_count = len(result)
-            if not row_count:
-                # Empty dataframe
-                success_message = f"{result.chameleon_mode} has no change."
-            else:
-                success_message = (
-                    f"{result.chameleon_mode} output "
-                    f"with {row_count} row{plur(row_count)}."
-                )
             self.successful_items.update(
-                {result.chameleon_mode: success_message}
+                {result.chameleon_mode: success_message(result)}
             )
             self.mode_complete.emit()
 
@@ -485,6 +466,15 @@ class Worker(QObject):
         except OSError:
             logger.exception("Write error.")
             self.error_list = [i.chameleon_mode for i in dataframe_set]
+        else:
+            self.successful_items.update(
+                {
+                    frame.chameleon_mode: success_message(frame)
+                    for frame in dataframe_set.nondeleted
+                }
+            )
+        for mode in self.modes:
+            self.mode_complete.emit()
 
 
 class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
@@ -1270,6 +1260,19 @@ def plur(count: int) -> str:
         return ""
     else:
         return "s"
+
+
+def success_message(frame) -> str:
+    row_count = len(frame)
+    if not row_count:
+        # Empty dataframe
+        success_message = f"{frame.chameleon_mode} has no change."
+    else:
+        success_message = (
+            f"{frame.chameleon_mode} output "
+            f"with {row_count} row{plur(row_count)}."
+        )
+    return success_message
 
 
 if __name__ == "__main__":
