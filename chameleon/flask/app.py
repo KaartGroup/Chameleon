@@ -45,9 +45,13 @@ def result():
     # enddate: datetime = request.form["enddate"]
     oldfile = request.files["old"]
     newfile = request.files["new"]
-    output: str = request.form.get("output", "chameleon")
-    grouping: bool = request.form.get("grouping", False)
+    output: str = "chameleon"
+    if request.form.get("output"):
+        output = request.form["output"]
+    grouping = bool(request.form.get("grouping", False))
     modes = set(request.form.getlist("modes"))
+    if not modes:  # Should only happen if client-side validation slips up
+        return
     file_format: str = request.form["file_format"]
 
     output = Path(output).name
@@ -65,8 +69,17 @@ def result():
             continue
         cdf_set.add(result)
 
-    filename = write_output[file_format](cdf_set, output)
-    return send_from_directory(BASE_DIR, filename, as_attachment=True)
+    file_name = write_output[file_format](cdf_set, output)
+    # return send_from_directory(
+    #     str(BASE_DIR),
+    #     file_name,
+    #     as_attachment=True,
+    #     mimetype=mimetype[file_format],
+    # )
+    the_path = (BASE_DIR / file_name).resolve()
+    return send_file(
+        the_path, as_attachment=True, mimetype=mimetype[file_format],
+    )
 
 
 def high_deletions_checker(cdf_set) -> bool:
@@ -97,21 +110,24 @@ def user_confirm(message: str) -> bool:
 
 
 def write_csv(dataframe_set, output):
-    zipname = Path(safe_join(BASE_DIR, f"{output}.zip"))
-    with ZipFile(zipname, "w") as myzip, TemporaryDirectory() as tempdir:
+    zip_name = f"{output}.zip"
+    zip_path = Path(safe_join(BASE_DIR, zip_name)).resolve()
+    with ZipFile(zip_path, "w") as myzip, TemporaryDirectory() as tempdir:
         for result in dataframe_set:
             file_name = f"{output}_{result.chameleon_mode}.csv"
-            with (tempdir / file_name).open("w") as output_file:
+            temp_path = Path(tempdir) / file_name
+            with temp_path.open("w") as output_file:
                 result.to_csv(output_file, sep="\t", index=True)
-                myzip.write(output_file)
+            myzip.write(temp_path)
 
-    return zipname
+    return zip_name
 
 
 def write_excel(dataframe_set, output):
-    file_name = Path(safe_join(BASE_DIR, f"{output}.xlsx")).resolve()
+    file_name = f"{output}.xlsx"
+    file_path = Path(safe_join(BASE_DIR, file_name)).resolve()
 
-    dataframe_set.write_excel(file_name)
+    dataframe_set.write_excel(file_path)
 
     return file_name
 
@@ -124,8 +140,9 @@ def write_geojson(dataframe_set, output):
         # TODO Inform user about error
         return
 
-    file_name = Path(safe_join(BASE_DIR, f"{output}.geojson"))
-    with file_name.open("w") as output_file:
+    file_name = f"{output}.geojson"
+    file_path = Path(safe_join(BASE_DIR, file_name)).resolve()
+    with file_path.open("w") as output_file:
         json.dump(response, output_file)
 
     return file_name
@@ -138,7 +155,8 @@ write_output = {
 }
 
 mimetype = {
-    "csv": "text/csv",
+    # "csv": "text/csv",
+    "csv": "application/zip",
     "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "geojson": "application/vnd.geo+json",
 }
