@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 SPECIAL_MODES = {"new", "deleted"}
 TYPE_EXPANSION = {"n": "node", "w": "way", "r": "relation"}
+GEOJSON_OSM = {"Point": "node", "LineString": "way", "Polygon": "way"}
 JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
 OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 
@@ -443,7 +444,7 @@ class ChameleonDataFrameSet(set):
 
         merged = ChameleonDataFrame()
         for result in self.nondeleted:
-            columns_to_keep = ["id", "url", "user", "timestamp", "version"]
+            columns_to_keep = ["url", "user", "timestamp", "version"]
             if "changeset" in result.columns and "osmcha" in result.columns:
                 columns_to_keep += ["changeset", "osmcha"]
             if result.chameleon_mode != "name":
@@ -462,13 +463,14 @@ class ChameleonDataFrameSet(set):
             result = result[columns_to_keep]
             merged = merged.append(result)
 
+        merged = merged.loc[~merged.index.duplicated()]
+
         for i in response["features"]:
-            i["id"] = "w" + str(i["id"])
+            newid = GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"])
+            i["id"] = newid
             i["properties"] = {
                 column: value
-                for column, value in merged[merged["id"] == i["id"]]
-                .iloc[0]
-                .items()
+                for column, value in merged.loc[newid].items()
                 if pd.notna(value)
             }
         return response
@@ -479,19 +481,14 @@ class ChameleonDataFrameSet(set):
 
     @property
     def overpass_query(self) -> str:
-        feature_ids = {
-            "node": [],
-            "way": [],
-        }
+        feature_ids = {"node": set(), "way": set(), "relation": set()}
         for df in self.nondeleted:
             for k, v in separate_ids_by_feature_type(df.index).items():
-                feature_ids[k] += v
+                feature_ids[k] |= set(v)
         return ";".join(
-            [
-                f"{k}(id:{','.join(v)})"
-                for k, v in feature_ids.items()
-                if k != "relation" and v
-            ]
+            f"{k}(id:{','.join(sorted(v))})"
+            for k, v in feature_ids.items()
+            if k != "relation" and v
         )
 
 
