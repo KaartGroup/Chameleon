@@ -26,11 +26,14 @@
         <input type="text" name="output" placeholder="chameleon"></label>
         <br>
         <label>Enter tag:
-        <input type="text" id="tagentry_id"></label><button type="button" onclick="addToList();">Add</button>
+        <input type="text" id="tagentry_id"></label>
+        <button type="button" onclick="addToList();">Add</button>
         <br>
         <select name="modes" size="10" id="taglist" multiple>
         </select>
         <br>
+        <button type="button" onclick="removeFromList();">Remove</button>
+        <button type="button" onclick="clearList();">Clear</button>
         <p>File format:</p>
         <p>
             <label>Excel<input value="excel" type="radio" name="file_format" checked></label>

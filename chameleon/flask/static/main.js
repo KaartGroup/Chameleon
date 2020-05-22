@@ -24,6 +24,20 @@ function addToList() {
     onTaglistChange();
 }
 
+function removeFromList() {
+    if (taglist_field.selectedIndex == -1) {
+        taglist_field.setCustomValidity("Please select a tag to remove");
+        taglist_field.reportValidity();
+        tagentry_field.setCustomValidity('');
+        return;
+    }
+    taglist_field.remove(taglist_field.selectedIndex);
+}
+
+function clearList() {
+    taglist_field.options.length = 0;
+}
+
 function onSubmit() {
     for (var x = 0; x < taglist_field.options.length; x++) {
         taglist_field.options[x].selected = true;
