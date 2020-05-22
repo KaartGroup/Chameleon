@@ -157,13 +157,17 @@ class ChameleonDataFrame(pd.DataFrame):
         }
         if self.chameleon_mode != "name":
             agg_functions.update(
-                {"name": lambda name: ",".join(str(i) for i in name.unique())}
+                {
+                    "name": lambda name: ",".join(
+                        str(i) for i in name.unique() if pd.notna(i)
+                    )
+                }
             )
         if self.chameleon_mode != "highway":
             agg_functions.update(
                 {
                     "highway": lambda highway: ",".join(
-                        str(i) for i in highway.unique()
+                        str(i) for i in highway.unique() if pd.notna(i)
                     )
                 }
             )
