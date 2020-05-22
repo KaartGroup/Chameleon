@@ -1,9 +1,15 @@
 var tagentry_field;
 var taglist_field;
+var mainform;
 
-function main() {
+window.onload = function() {
     tagentry_field = document.getElementById("tagentry_id");
     taglist_field = document.getElementById("taglist");
+    mainform = document.getElementById("mainform")
+
+    onTaglistChange();
+    taglist_field.onchange = onTaglistChange;
+    mainform.onsubmit = onSubmit;
 }
 
 function addToList() {
@@ -15,14 +21,19 @@ function addToList() {
     }
     option.text = tag;
     taglist_field.add(option);
+    onTaglistChange();
 }
 
 function onSubmit() {
-    if (!taglist_field.options.length) {
-        return false
-    }
-    for (var x = 0; x < taglist_field.options.length; i++) {
+    for (var x = 0; x < taglist_field.options.length; x++) {
         taglist_field.options[x].selected = true;
     }
-    return true;
+}
+
+function onTaglistChange() {
+    if (!taglist_field.options.length) {
+        taglist_field.setCustomValidity('Please add at least one tag!');
+    } else {
+        taglist_field.setCustomValidity('');
+    }
 }
