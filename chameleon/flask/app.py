@@ -1,7 +1,9 @@
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from typing import Generator
 from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
@@ -9,11 +11,13 @@ import oyaml as yaml
 import pandas as pd
 from flask import (
     Flask,
+    Response,
     render_template,
     request,
     safe_join,
     send_file,
     send_from_directory,
+    stream_with_context,
 )
 
 from chameleon import core
@@ -41,44 +45,70 @@ def home():
 @app.route("/result/", methods=["POST"])
 def result():
     # country: str = request.form["country"]
-    # startdate: datetime = request.form["startdate"]
-    # enddate: datetime = request.form["enddate"]
+    # startdate = request.form.get("startdate", type=datetime)
+    # enddate = request.form.get("enddate", type=datetime)
     oldfile = request.files["old"]
     newfile = request.files["new"]
-    output: str = "chameleon"
+
+    output = "chameleon"
     if request.form.get("output"):
         output = request.form["output"]
-    grouping = bool(request.form.get("grouping", False))
-    modes = set(request.form.getlist("modes"))
-    if not modes:  # Should only happen if client-side validation slips up
-        return
-    file_format: str = request.form["file_format"]
-
     output = Path(output).name
 
+    grouping = request.form.get("grouping", False, bool)
+    modes = set(request.form.getlist("modes"))
+    if not modes:  # Should only happen if client-side validation slips up
+        raise KeyError
+    file_format = request.form["file_format"]
+
     cdf_set = core.ChameleonDataFrameSet(oldfile.stream, newfile.stream)
-    cdf_set.separate_special_dfs()
 
-    for mode in modes:
-        try:
-            result = core.ChameleonDataFrame(
-                cdf_set.source_data, mode=mode, grouping=grouping
-            ).query_cdf()
-        except KeyError:
-            error_list.append(mode)
-            continue
-        cdf_set.add(result)
+    def check_api_deletions(cdfs: core.ChameleonDataFrameSet) -> Generator:
+        REQUEST_INTERVAL = 0.1
 
-    file_name = write_output[file_format](cdf_set, output)
-    # return send_from_directory(
-    #     str(BASE_DIR),
-    #     file_name,
-    #     as_attachment=True,
-    #     mimetype=mimetype[file_format],
-    # )
-    the_path = (BASE_DIR / file_name).resolve()
-    return send_file(
-        the_path, as_attachment=True, mimetype=mimetype[file_format],
+        df = cdfs.source_data
+
+        deleted_ids = list(df.loc[df["action"] == "deleted"].index)
+        yield str(Message("max", len(deleted_ids)))
+        for num, feature_id in enumerate(deleted_ids):
+            yield str(Message("value", num))
+
+            element_attribs = cdfs.check_feature_on_api(
+                feature_id, app_version=APP_VERSION
+            )
+
+            df.update(pd.DataFrame(element_attribs, index=[feature_id]))
+            time.sleep(REQUEST_INTERVAL)
+
+        cdf_set.separate_special_dfs()
+
+        for mode in modes:
+            try:
+                result = core.ChameleonDataFrame(
+                    cdf_set.source_data, mode=mode, grouping=grouping
+                ).query_cdf()
+            except KeyError:
+                error_list.append(mode)
+                continue
+            cdf_set.add(result)
+
+        file_name = write_output[file_format](cdf_set, output)
+        # return send_from_directory(
+        #     str(BASE_DIR),
+        #     file_name,
+        #     as_attachment=True,
+        #     mimetype=mimetype[file_format],
+        # )
+        the_path = (BASE_DIR / file_name).resolve()
+
+        yield str(Message("file", the_path))
+        # return send_file(
+        #     the_path, as_attachment=True, mimetype=mimetype[file_format],
+        # )
+
+    return Response(
+        stream_with_context(check_api_deletions(cdf_set)),
+        mimetype="text/event-stream",
     )
 
 
@@ -95,6 +125,11 @@ def high_deletions_checker(cdf_set) -> bool:
     )
 
 
+def user_confirm(message):
+    # TODO Make a real confirmation prompt
+    return True
+
+
 def load_extra_columns() -> dict:
     try:
         with (RESOURCES_DIR / "extracolumns.yaml").open("r") as f:
@@ -102,11 +137,6 @@ def load_extra_columns() -> dict:
     except OSError:
         extra_columns = {"notes": None}
     return extra_columns
-
-
-def user_confirm(message: str) -> bool:
-    # TODO Prompt the user to continue in case of abnormally high deletion rate
-    return True
 
 
 def write_csv(dataframe_set, output):
@@ -162,3 +192,12 @@ mimetype = {
     "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "geojson": "application/vnd.geo+json",
 }
+
+
+class Message:
+    def __init__(self, message_type: str, value: int):
+        self.type = message_type
+        self.value = value
+
+    def __str__(self):
+        return f"event: {self.type}\ndata: {self.value}\n\n"

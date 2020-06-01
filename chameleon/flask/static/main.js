@@ -1,16 +1,80 @@
 var tagentry_field;
 var taglist_field;
 var mainform;
+var progressbar; // placeholder container for WebSocket messages
+var progressbarlabel; // placeholder container for WebSocket messages
+
+var evsource;
+
+// EventSource = SSE;
+
+function sendData() {
+    const FD = new FormData(mainform);
+    evsource = new SSE("/result/", {
+        payload: FD,
+    });
+    evsource.addEventListener("error", function(m) {
+        console.log("error");
+    });
+    evsource.addEventListener("open", function(m) {
+        console.log("SSE connection open");
+    });
+    evsource.addEventListener("message", function(m) {
+        console.log("message " + m.data);
+    });
+    evsource.addEventListener("max", function(m) {
+        console.log("max " + m.data);
+    });
+    evsource.addEventListener("value", function(m) {
+        console.log("value " + m.data);
+    });
+    evsource.addEventListener("file", function(m) {
+        console.log("file " + m.data);
+    });
+    evsource.stream();
+}
+// function sendData() {
+//     const XHR = new XMLHttpRequest(),
+//         FD = new FormData(mainform);
+//     XHR.addEventListener('load', function(event) {
+//         alert('Yeah! Data sent and response loaded.');
+//         evsource = new EventSource("/result/");
+// evsource.addEventListener("error", function(m) { console.log("error"); });
+// evsource.addEventListener("open", function(m) { console.log("SSE connection open"); });
+// evsource.addEventListener("message", function(m) { console.log("message" + m); });
+// evsource.addEventListener("max", function(m) { console.log("max" + m); });
+// evsource.addEventListener("value", function(m) { console.log("value" + m); });
+// evsource.addEventListener("file", function(m) { console.log("file" + m); });
+//     });
+//     XHR.addEventListener('error', function(event) {
+//         console.log("error!");
+//     });
+
+//     XHR.open("POST", "/result/");
+//     XHR.send(FD);
+
+// }
+
+var messageTable = {
+    max: setProgbarMax,
+    value: setProgbarValue,
+};
 
 window.onload = function() {
     tagentry_field = document.getElementById("tagentry_id");
     taglist_field = document.getElementById("taglist");
-    mainform = document.getElementById("mainform")
+    mainform = document.getElementById("mainform");
+    progressbar = document.getElementById("progressbar");
+    progressbar = document.getElementById("progressbarlabel");
 
     onTaglistChange();
     taglist_field.onchange = onTaglistChange;
-    mainform.onsubmit = onSubmit;
-}
+    mainform.addEventListener("submit", function(event) {
+        event.preventDefault();
+        onSubmit();
+        sendData();
+    });
+};
 
 function addToList() {
     var option = document.createElement("option");
@@ -28,7 +92,7 @@ function removeFromList() {
     if (taglist_field.selectedIndex == -1) {
         taglist_field.setCustomValidity("Please select a tag to remove");
         taglist_field.reportValidity();
-        tagentry_field.setCustomValidity('');
+        tagentry_field.setCustomValidity("");
         return;
     }
     taglist_field.remove(taglist_field.selectedIndex);
@@ -46,8 +110,34 @@ function onSubmit() {
 
 function onTaglistChange() {
     if (!taglist_field.options.length) {
-        taglist_field.setCustomValidity('Please add at least one tag!');
+        taglist_field.setCustomValidity("Please add at least one tag!");
     } else {
+        taglist_field.setCustomValidity("");
+    }
+}
+
+/*
+Schema:
+{
+    type: "max"|"value"|"confirm",
+    value: int
+}
+*/
+function messageHandler(message) {
+    var parsed = JSON.parse(message);
+    messageTable[parsed.type](parsed.value);
+}
+
+function setProgbarMax(max) {
+    progressbar.max = max;
+    progressbarlabel.style.display = "block";
+}
+
+function setProgbarValue(value) {
+    progressbar.value = value;
+    progressbar.innerText =
+        "(" + progressbar.value + "/" + progressbar.max + ")";
+}
         taglist_field.setCustomValidity('');
     }
 }

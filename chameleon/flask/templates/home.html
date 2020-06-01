@@ -15,7 +15,7 @@
 
 <body>
     <h1>Chameleon for Web</h1>
-    <form enctype="multipart/form-data" method="POST" action="/result/" id="mainform">
+    <form enctype="multipart/form-data" method="POST" id="mainform">
         <label>Old file
         <input type="file" name="old" required></label>
         <br>
@@ -47,6 +47,8 @@
         <br>
         <button name="run" type="submit">Run</button>
     </form>
+    <label id="progressbarlabel">OSM API:
+    <progress id="progressbar"></progress></label>
 
 </body>
 
