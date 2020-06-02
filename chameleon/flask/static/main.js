@@ -22,38 +22,11 @@ function sendData() {
     evsource.addEventListener("message", function(m) {
         console.log("message " + m.data);
     });
-    evsource.addEventListener("max", function(m) {
-        console.log("max " + m.data);
-    });
-    evsource.addEventListener("value", function(m) {
-        console.log("value " + m.data);
-    });
-    evsource.addEventListener("file", function(m) {
-        console.log("file " + m.data);
-    });
+    evsource.addEventListener("max", setProgbarMax);
+    evsource.addEventListener("value", setProgbarValue);
+    evsource.addEventListener("file", getFile);
     evsource.stream();
 }
-// function sendData() {
-//     const XHR = new XMLHttpRequest(),
-//         FD = new FormData(mainform);
-//     XHR.addEventListener('load', function(event) {
-//         alert('Yeah! Data sent and response loaded.');
-//         evsource = new EventSource("/result/");
-// evsource.addEventListener("error", function(m) { console.log("error"); });
-// evsource.addEventListener("open", function(m) { console.log("SSE connection open"); });
-// evsource.addEventListener("message", function(m) { console.log("message" + m); });
-// evsource.addEventListener("max", function(m) { console.log("max" + m); });
-// evsource.addEventListener("value", function(m) { console.log("value" + m); });
-// evsource.addEventListener("file", function(m) { console.log("file" + m); });
-//     });
-//     XHR.addEventListener('error', function(event) {
-//         console.log("error!");
-//     });
-
-//     XHR.open("POST", "/result/");
-//     XHR.send(FD);
-
-// }
 
 var messageTable = {
     max: setProgbarMax,
@@ -65,7 +38,7 @@ window.onload = function() {
     taglist_field = document.getElementById("taglist");
     mainform = document.getElementById("mainform");
     progressbar = document.getElementById("progressbar");
-    progressbar = document.getElementById("progressbarlabel");
+    progressbarlabel = document.getElementById("progressbarlabel");
 
     onTaglistChange();
     taglist_field.onchange = onTaglistChange;
@@ -128,16 +101,26 @@ function messageHandler(message) {
     messageTable[parsed.type](parsed.value);
 }
 
-function setProgbarMax(max) {
+function setProgbarMax(event) {
+    var max = parseInt(event.data);
     progressbar.max = max;
     progressbarlabel.style.display = "block";
 }
 
-function setProgbarValue(value) {
+function setProgbarValue(event) {
+    var value = parseInt(event.data);
     progressbar.value = value;
     progressbar.innerText =
         "(" + progressbar.value + "/" + progressbar.max + ")";
 }
-        taglist_field.setCustomValidity('');
-    }
+
+function getFile(event) {
+    var path = event.data;
+    // TODO Finish
+}
+
+function askUserForConfirmation(message) {
+    // TODO Finish this function
+}
+
 }

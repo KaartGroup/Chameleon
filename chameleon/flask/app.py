@@ -7,6 +7,8 @@ from typing import Generator
 from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
+import gevent
+
 import oyaml as yaml
 import pandas as pd
 from flask import (
@@ -24,9 +26,13 @@ from chameleon import core
 
 app = Flask(__name__)
 
-RESOURCES_DIR = Path()
-BASE_DIR = Path("chameleon/flask/files") / str(uuid())
-BASE_DIR.mkdir(exist_ok=True)
+RESOURCES_DIR = Path("resources")
+
+try:
+    with (RESOURCES_DIR / "version.txt").open("r") as version_file:
+        APP_VERSION = version_file.read()
+except OSError:
+    APP_VERSION = ""
 
 error_list = []
 extra_columns = Path("resources/extracolumns.yaml")
@@ -44,6 +50,9 @@ def home():
 
 @app.route("/result/", methods=["POST"])
 def result():
+    BASE_DIR = Path("chameleon/flask/files") / str(uuid())
+    BASE_DIR.mkdir(exist_ok=True)
+
     # country: str = request.form["country"]
     # startdate = request.form.get("startdate", type=datetime)
     # enddate = request.form.get("enddate", type=datetime)
@@ -78,7 +87,9 @@ def result():
             )
 
             df.update(pd.DataFrame(element_attribs, index=[feature_id]))
-            time.sleep(REQUEST_INTERVAL)
+            gevent.sleep(REQUEST_INTERVAL)
+
+        yield str(Message("value", len(deleted_ids) + 1))
 
         cdf_set.separate_special_dfs()
 
