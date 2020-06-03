@@ -1,55 +1,66 @@
-<!doctype html>
+<!DOCTYPE html>
 
 <html lang="en">
 
 <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
 
     <title>Chameleon for Web</title>
-    <meta name="author" content="Kaart">
+    <meta name="author" content="Kaart" />
     <script src="{{url_for('static', filename='main.js')}}" type="module"></script>
 
-    <link rel="stylesheet" href="{{url_for('static', filename='main.css')}}">
-
+    <link rel="stylesheet" href="{{url_for('static', filename='main.css')}}" />
 </head>
 
 <body>
     <h1>Chameleon for Web</h1>
     <form enctype="multipart/form-data" method="POST" id="mainform">
-        <label>Old file
-        <input type="file" name="old" required></label>
-        <br>
-        <label>New file
-        <input type="file" name="new" required></label>
-        <br>
+        <label>Old file <input type="file" name="old" required /></label>
+
+        <br />
+        <label>New file <input type="file" name="new" required /></label>
+
+        <br />
         <label>Output file name
-        <input type="text" name="output" placeholder="chameleon"></label>
-        <br>
-        <label>Enter tag:
-        <input type="text" id="tagentry_id"></label>
-        <button type="button" id="add_button" >Add</button>
-        <br>
-        <select name="modes" size="10" id="taglist" multiple>
-        </select>
-        <br>
+                <input type="text" name="output" placeholder="chameleon"
+            /></label>
+
+        <br />
+        <label>Enter tag: <input type="text" id="tagentry_id" /></label>
+
+        <button type="button" id="add_button">Add</button>
+        <br />
+        <select name="modes" size="10" id="taglist" multiple> </select>
+        <br />
         <button type="button" id="remove_button">Remove</button>
         <button type="button" id="clear_button">Clear</button>
         <p>File format:</p>
         <p>
-            <label>Excel<input value="excel" type="radio" name="file_format" checked></label>
-            <br>
-            <label>GeoJSON<input value="geojson" type="radio" name="file_format"></label>
-            <br>
-            <label>CSV<input value="csv" type="radio" name="file_format"></label>
+            <label>Excel<input
+                        value="excel"
+                        type="radio"
+                        name="file_format"
+                        checked
+                /></label>
+            <br />
+            <label>GeoJSON<input
+                        value="geojson"
+                        type="radio"
+                        name="file_format"
+                /></label>
+            <br />
+            <label>CSV<input value="csv" type="radio" name="file_format"
+                /></label>
         </p>
         <label>Group rows by type of change
-        <input type="checkbox" name="grouping"></label>
-        <br>
+                <input type="checkbox" name="grouping"
+            /></label>
+
+        <br />
         <button name="run" type="submit">Run</button>
     </form>
-    <label id="progressbarlabel">OSM API:
-    <progress id="progressbar"></progress></label>
-
+    <label id="progressbarlabel">OSM API: <progress id="progressbar"></progress
+        ></label>
 </body>
 
 </html>
