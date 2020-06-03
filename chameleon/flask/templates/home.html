@@ -7,7 +7,7 @@
 
     <title>Chameleon for Web</title>
     <meta name="author" content="Kaart">
-    <script src="{{url_for('static', filename='main.js')}}"></script>
+    <script src="{{url_for('static', filename='main.js')}}" type="module"></script>
 
     <link rel="stylesheet" href="{{url_for('static', filename='main.css')}}">
 
@@ -27,13 +27,13 @@
         <br>
         <label>Enter tag:
         <input type="text" id="tagentry_id"></label>
-        <button type="button" onclick="addToList();">Add</button>
+        <button type="button" id="add_button" >Add</button>
         <br>
         <select name="modes" size="10" id="taglist" multiple>
         </select>
         <br>
-        <button type="button" onclick="removeFromList();">Remove</button>
-        <button type="button" onclick="clearList();">Clear</button>
+        <button type="button" id="remove_button">Remove</button>
+        <button type="button" id="clear_button">Clear</button>
         <p>File format:</p>
         <p>
             <label>Excel<input value="excel" type="radio" name="file_format" checked></label>

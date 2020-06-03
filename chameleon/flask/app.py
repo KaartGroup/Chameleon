@@ -1,5 +1,4 @@
 import json
-import time
 from datetime import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -7,6 +6,7 @@ from typing import Generator
 from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
+import time
 import gevent
 
 import oyaml as yaml
@@ -26,6 +26,7 @@ from chameleon import core
 
 app = Flask(__name__)
 
+BASE_DIR = Path("chameleon/flask/files")
 RESOURCES_DIR = Path("resources")
 
 try:
@@ -38,7 +39,7 @@ error_list = []
 extra_columns = Path("resources/extracolumns.yaml")
 
 
-@app.route("/about/")
+@app.route("/about")
 def about():
     return render_template("about.html")
 
@@ -48,10 +49,10 @@ def home():
     return render_template("home.html")
 
 
-@app.route("/result/", methods=["POST"])
+@app.route("/result", methods=["POST"])
 def result():
-    BASE_DIR = Path("chameleon/flask/files") / str(uuid())
-    BASE_DIR.mkdir(exist_ok=True)
+    USER_DIR = BASE_DIR / str(uuid())
+    USER_DIR.mkdir(exist_ok=True)
 
     # country: str = request.form["country"]
     # startdate = request.form.get("startdate", type=datetime)
@@ -103,14 +104,14 @@ def result():
                 continue
             cdf_set.add(result)
 
-        file_name = write_output[file_format](cdf_set, output)
+        file_name = write_output[file_format](cdf_set, USER_DIR, output)
         # return send_from_directory(
         #     str(BASE_DIR),
         #     file_name,
         #     as_attachment=True,
         #     mimetype=mimetype[file_format],
         # )
-        the_path = (BASE_DIR / file_name).resolve()
+        the_path = Path(*(USER_DIR / file_name).parts[-2:])
 
         yield str(Message("file", the_path))
         # return send_file(
@@ -121,6 +122,14 @@ def result():
         stream_with_context(check_api_deletions(cdf_set)),
         mimetype="text/event-stream",
     )
+
+
+@app.route("/download/<path:unique_id>")
+def download_file(unique_id):
+    # the_path = BASE_DIR / unique_id
+    unique_id = Path(unique_id)
+
+    return send_from_directory("files", unique_id)
 
 
 def high_deletions_checker(cdf_set) -> bool:
@@ -150,9 +159,9 @@ def load_extra_columns() -> dict:
     return extra_columns
 
 
-def write_csv(dataframe_set, output):
+def write_csv(dataframe_set, base_dir, output):
     zip_name = f"{output}.zip"
-    zip_path = Path(safe_join(BASE_DIR, zip_name)).resolve()
+    zip_path = Path(safe_join(base_dir, zip_name)).resolve()
 
     with ZipFile(zip_path, "w") as myzip, TemporaryDirectory() as tempdir:
         for result in dataframe_set:
@@ -165,16 +174,16 @@ def write_csv(dataframe_set, output):
     return zip_name
 
 
-def write_excel(dataframe_set, output):
+def write_excel(dataframe_set, base_dir, output):
     file_name = f"{output}.xlsx"
-    file_path = Path(safe_join(BASE_DIR, file_name)).resolve()
+    file_path = Path(safe_join(base_dir, file_name)).resolve()
 
     dataframe_set.write_excel(file_path)
 
     return file_name
 
 
-def write_geojson(dataframe_set, output):
+def write_geojson(dataframe_set, base_dir, output):
     timeout = 120
     try:
         response = dataframe_set.to_geojson(timeout=timeout)
@@ -183,7 +192,7 @@ def write_geojson(dataframe_set, output):
         return
 
     file_name = f"{output}.geojson"
-    file_path = Path(safe_join(BASE_DIR, file_name)).resolve()
+    file_path = Path(safe_join(base_dir, file_name)).resolve()
 
     with file_path.open("w") as output_file:
         json.dump(response, output_file)
