@@ -1,5 +1,6 @@
 var tagentry_field;
 var taglist_field;
+var tagautocomplete;
 var mainform;
 var progressbar; // placeholder container for WebSocket messages
 var progressbarlabel; // placeholder container for WebSocket messages
@@ -39,6 +40,7 @@ var messageTable = {
 window.onload = function() {
     tagentry_field = document.getElementById("tagentry_id");
     taglist_field = document.getElementById("taglist");
+    tagautocomplete = this.document.getElementById("tag_autocomplete");
     mainform = document.getElementById("mainform");
     progressbar = document.getElementById("progressbar");
     progressbarlabel = document.getElementById("progressbarlabel");
@@ -47,6 +49,7 @@ window.onload = function() {
     clearbutton = document.getElementById("clear_button");
 
     onTaglistChange();
+    loadTagAutocomplete();
     taglist_field.onchange = onTaglistChange;
     addbutton.onclick = addToList;
     removebutton.onclick = removeFromList;
@@ -96,6 +99,26 @@ function onTaglistChange() {
     } else {
         taglist_field.setCustomValidity("");
     }
+}
+
+function loadTagAutocomplete() {
+    var rawFile = new XMLHttpRequest();
+    rawFile.open("GET", "/static/OSMtag.txt", true);
+    rawFile.onreadystatechange = function() {
+        var arrayOfLines;
+        if (rawFile.readyState === 4) {
+            if (rawFile.status === 200 || rawFile.status == 0) {
+                var alltext = rawFile.responseText;
+                arrayOfLines = alltext.split("\n");
+                for (var i of arrayOfLines) {
+                    var option = document.createElement("option");
+                    option.value = i;
+                    tagautocomplete.append(option);
+                }
+            }
+        }
+    };
+    rawFile.send();
 }
 
 /*

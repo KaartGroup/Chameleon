@@ -26,7 +26,10 @@
             /></label>
 
         <br />
-        <label>Enter tag: <input type="text" id="tagentry_id" /></label>
+        <label>Enter tag:
+                <input list="tag_autocomplete" type="text" id="tagentry_id"
+            /></label>
+        <datalist id="tag_autocomplete"></datalist>
 
         <button type="button" id="add_button">Add</button>
         <br />

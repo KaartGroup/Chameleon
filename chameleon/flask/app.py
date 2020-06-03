@@ -27,7 +27,7 @@ from chameleon import core
 app = Flask(__name__)
 
 BASE_DIR = Path("chameleon/flask/files")
-RESOURCES_DIR = Path("resources")
+RESOURCES_DIR = Path("chameleon/resources")
 
 try:
     with (RESOURCES_DIR / "version.txt").open("r") as version_file:
@@ -130,6 +130,11 @@ def download_file(unique_id):
     unique_id = Path(unique_id)
 
     return send_from_directory("files", unique_id)
+
+
+@app.route("/static/OSMtag.txt")
+def return_osm_tag():
+    return send_file(RESOURCES_DIR / "OSMtag.txt")
 
 
 def high_deletions_checker(cdf_set) -> bool:
