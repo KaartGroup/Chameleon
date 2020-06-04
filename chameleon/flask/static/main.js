@@ -7,6 +7,11 @@ var progressbarlabel; // placeholder container for WebSocket messages
 var addbutton;
 var removebutton;
 var clearbutton;
+var oldfileinput;
+var newfileinput;
+var startdateinput;
+var enddateinput;
+var locationinput;
 
 var evsource;
 
@@ -47,9 +52,16 @@ window.onload = function() {
     addbutton = document.getElementById("add_button");
     removebutton = document.getElementById("remove_button");
     clearbutton = document.getElementById("clear_button");
+    oldfileinput = document.getElementsByName("old")[0];
+    newfileinput = document.getElementsByName("new")[0];
+    startdateinput = document.getElementsByName("startdate")[0];
+    enddateinput = document.getElementsByName("enddate")[0];
+    locationinput = document.getElementsByName("location")[0];
 
     onTaglistChange();
     loadTagAutocomplete();
+    onTabChange();
+    window.onhashchange = onTabChange;
     taglist_field.onchange = onTaglistChange;
     addbutton.onclick = addToList;
     removebutton.onclick = removeFromList;
@@ -60,6 +72,16 @@ window.onload = function() {
         sendData();
     });
 };
+
+function onTabChange() {
+    if (window.location.hash == "#manualtab") {
+        oldfileinput.required = newfileinput.required = true;
+        startdateinput.required = enddateinput.required = locationinput.required = false;
+    } else {
+        startdateinput.required = enddateinput.required = locationinput.required = true;
+        oldfileinput.required = newfileinput.required = false;
+    }
+}
 
 function addToList() {
     var option = document.createElement("option");
