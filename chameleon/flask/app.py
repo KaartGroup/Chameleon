@@ -134,7 +134,7 @@ def download_file(unique_id):
 
 @app.route("/static/OSMtag.txt")
 def return_osm_tag():
-    return send_file(RESOURCES_DIR / "OSMtag.txt")
+    return send_file(RESOURCES_DIR.resolve() / "OSMtag.txt")
 
 
 def high_deletions_checker(cdf_set) -> bool:
