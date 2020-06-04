@@ -5,3 +5,13 @@ select {
 label#progressbarlabel {
     display: none;
 }
+
+.tabcontainer>.tabbedpage:target~.tabbedpage:last-child,
+.tabcontainer>.tabbedpage {
+    display: none;
+}
+
+.tabcontainer> :last-child,
+.tabcontainer>.tabbedpage:target {
+    display: block;
+}

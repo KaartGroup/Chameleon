@@ -15,11 +15,25 @@
 <body>
     <h1>Chameleon for Web</h1>
     <form enctype="multipart/form-data" method="POST" id="mainform">
-        <label>Old file <input type="file" name="old" required /></label>
+        <ul id="tabmenu">
+            <li><a href="#easytab" id="easytablink">Easy</a></li>
+            <li><a href="#manualtab" id="manualtablink">Advanced</a></li>
+        </ul>
+        <div class="tabcontainer">
+            <div class="tabbedpage" id="manualtab">
+                <label>Old file <input type="file" name="old" /></label>
 
-        <br />
-        <label>New file <input type="file" name="new" required /></label>
-
+                <br />
+                <label>New file <input type="file" name="new" /></label>
+            </div>
+            <div class="tabbedpage" id="easytab">
+                <label>Start date <input type="date" name="startdate"
+                    /></label>
+                <label>End date <input type="date" name="enddate" /></label>
+                <label>Location <input type="text" name="location"
+                    /></label>
+            </div>
+        </div>
         <br />
         <label>Output file name
                 <input type="text" name="output" placeholder="chameleon"
