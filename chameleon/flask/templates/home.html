@@ -4,11 +4,9 @@
 
 <head>
     <meta charset="utf-8" />
-
     <title>Chameleon for Web</title>
     <meta name="author" content="Kaart" />
     <script src="{{url_for('static', filename='main.js')}}" type="module"></script>
-
     <link rel="stylesheet" href="{{url_for('static', filename='main.css')}}" />
 </head>
 
@@ -16,30 +14,31 @@
     <h1>Chameleon for Web</h1>
     <form enctype="multipart/form-data" method="POST" id="mainform">
         <ul id="tabmenu">
-            <li><a href="#easytab" id="easytablink">Easy</a></li>
+            <li><a href="#" id="easytablink">Easy</a></li>
             <li><a href="#manualtab" id="manualtablink">Advanced</a></li>
         </ul>
         <div class="tabcontainer">
-            <div class="tabbedpage" id="manualtab">
+            <fieldset class="tabbedpage" id="manualtab">
                 <label>Old file <input type="file" name="old" /></label>
-
-                <br />
                 <label>New file <input type="file" name="new" /></label>
-            </div>
+            </fieldset>
             <div class="tabbedpage" id="easytab">
-                <label>Start date <input type="date" name="startdate"
-                    /></label>
-                <label>End date <input type="date" name="enddate" /></label>
-                <label>Location <input type="text" name="location"
+                <label>Start date
+                        <input type="date" name="startdate" min="2012-09-12" />
+                    </label>
+                <label>End date
+                        <input type="date" name="enddate" min="2012-09-12" />
+                    </label>
+                <label>2 Letter ISO Country Code
+                        <input
+                            type="text"
+                            name="location"
+                            maxlength="2"
+                            pattern="[A-z]{2}"
                     /></label>
             </div>
         </div>
-        <br />
-        <label>Output file name
-                <input type="text" name="output" placeholder="chameleon"
-            /></label>
 
-        <br />
         <label>Enter tag:
                 <input list="tag_autocomplete" type="text" id="tagentry_id"
             /></label>
@@ -51,21 +50,21 @@
         <br />
         <button type="button" id="remove_button">Remove</button>
         <button type="button" id="clear_button">Clear</button>
-        <p>File format:</p>
         <p>
+            <label>Output file name
+                    <input type="text" name="output" placeholder="chameleon"
+                /></label> File format:
             <label>Excel<input
                         value="excel"
                         type="radio"
                         name="file_format"
                         checked
                 /></label>
-            <br />
             <label>GeoJSON<input
                         value="geojson"
                         type="radio"
                         name="file_format"
                 /></label>
-            <br />
             <label>CSV<input value="csv" type="radio" name="file_format"
                 /></label>
         </p>
@@ -73,7 +72,6 @@
                 <input type="checkbox" name="grouping"
             /></label>
 
-        <br />
         <button name="run" type="submit">Run</button>
     </form>
     <label id="progressbarlabel">OSM API: <progress id="progressbar"></progress

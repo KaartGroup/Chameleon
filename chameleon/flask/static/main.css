@@ -3,6 +3,7 @@ select {
 }
 
 label#progressbarlabel {
+    /* Initial state before data starts getting returned */
     display: none;
 }
 
@@ -14,4 +15,11 @@ label#progressbarlabel {
 .tabcontainer> :last-child,
 .tabcontainer>.tabbedpage:target {
     display: block;
+}
+
+label {
+    display: block;
+}
+ul#tabmenu li {
+    display: inline;
 }

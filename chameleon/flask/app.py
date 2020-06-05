@@ -1,14 +1,14 @@
+import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from tempfile import TemporaryDirectory, TemporaryFile
 from typing import Generator
 from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
-import time
 import gevent
-
+import overpass
 import oyaml as yaml
 import pandas as pd
 from flask import (
@@ -21,13 +21,15 @@ from flask import (
     send_from_directory,
     stream_with_context,
 )
+from werkzeug.exceptions import UnprocessableEntity
 
-from chameleon import core
+from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
 
 app = Flask(__name__)
 
 BASE_DIR = Path("chameleon/flask/files")
 RESOURCES_DIR = Path("chameleon/resources")
+OVERPASS_TIMEOUT = 120
 
 try:
     with (RESOURCES_DIR / "version.txt").open("r") as version_file:
@@ -54,26 +56,47 @@ def result():
     USER_DIR = BASE_DIR / str(uuid())
     USER_DIR.mkdir(exist_ok=True)
 
-    # country: str = request.form["country"]
-    # startdate = request.form.get("startdate", type=datetime)
-    # enddate = request.form.get("enddate", type=datetime)
-    oldfile = request.files["old"]
-    newfile = request.files["new"]
+    country: str = request.form.get("location", "", str.upper)
 
-    output = "chameleon"
-    if request.form.get("output"):
-        output = request.form["output"]
-    output = Path(output).name
+    startdate = request.form.get("startdate", type=datetime.fromisoformat)
+    enddate = request.form.get("enddate")
+    if enddate:
+        enddate = datetime.fromisoformat(enddate)
+    # 2012-09-12 is the earliest Overpass can query
+    for date in (d for d in (startdate, enddate) if d):
+        if date < datetime(2012, 9, 12, 6, 55, 00):
+            raise UnprocessableEntity
+
+    oldfile = request.files.get("old")
+    newfile = request.files.get("new")
+
+    output = request.form.get("output") or "chameleon"
+    # Strips leading part of Path from the file name to avoid accidental issues
+    # We later use Flask's send_from_directory() to block intentional attacks
+    # Also gets rid of any suffixes the user may have added
+    while output != Path(output).with_suffix("").name:
+        output = Path(output).with_suffix("").name
 
     grouping = request.form.get("grouping", False, bool)
     modes = set(request.form.getlist("modes"))
     if not modes:  # Should only happen if client-side validation slips up
-        raise KeyError
+        raise UnprocessableEntity
     file_format = request.form["file_format"]
 
-    cdf_set = core.ChameleonDataFrameSet(oldfile.stream, newfile.stream)
+    if all((country, startdate)):
+        # Running in easy mode, need to make files for the user
+        oldfile, newfile = overpass_getter(country, modes, startdate, enddate)
+    elif all((oldfile, newfile)):
+        # Manual mode
+        oldfile = oldfile.stream
+        newfile = newfile.stream
+    else:
+        # Client-side validation slipped up
+        raise UnprocessableEntity
+    with oldfile as old, newfile as new:
+        cdf_set = ChameleonDataFrameSet(old, new)
 
-    def check_api_deletions(cdfs: core.ChameleonDataFrameSet) -> Generator:
+    def check_api_deletions(cdfs: ChameleonDataFrameSet) -> Generator:
         REQUEST_INTERVAL = 0.1
 
         df = cdfs.source_data
@@ -96,7 +119,7 @@ def result():
 
         for mode in modes:
             try:
-                result = core.ChameleonDataFrame(
+                result = ChameleonDataFrame(
                     cdf_set.source_data, mode=mode, grouping=grouping
                 ).query_cdf()
             except KeyError:
@@ -217,6 +240,41 @@ mimetype = {
     "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "geojson": "application/vnd.geo+json",
 }
+
+
+def overpass_getter(
+    location: str, tags: set, startdate: datetime, enddate: datetime,
+) -> Generator:
+    api = overpass.API(OVERPASS_TIMEOUT)
+    modes = tags | {"name"}
+    csv_columns = [
+        "::type",
+        "::id",
+        "::user",
+        "::timestamp",
+        "::version",
+        "::changeset",
+    ] + list(modes)
+    response_format = f'csv({",".join(csv_columns)})'
+    formatted_tags = [f'nwr["{tag}"](area.searchArea);' for tag in tags]
+
+    overpass_query = (
+        f'area["ISO3166-1"="{location}"]->.searchArea;{"".join(formatted_tags)}'
+    )
+
+    for date in (startdate, enddate):
+        date = date or ""
+        response = api.get(
+            overpass_query,
+            responseformat=response_format,
+            verbosity="meta",
+            date=date,
+        )
+        fp = TemporaryFile("w+")
+        cwriter = csv.writer(fp, delimiter="\t")
+        cwriter.writerows(response)
+        fp.seek(0)
+        yield fp
 
 
 class Message:

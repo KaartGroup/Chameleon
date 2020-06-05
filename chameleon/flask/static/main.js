@@ -7,11 +7,12 @@ var progressbarlabel; // placeholder container for WebSocket messages
 var addbutton;
 var removebutton;
 var clearbutton;
-var oldfileinput;
-var newfileinput;
-var startdateinput;
-var enddateinput;
-var locationinput;
+var easyTabDiv;
+var easyinputs;
+var locationInput;
+var startDateInput;
+var manualTabDiv;
+var manualInputs;
 
 var evsource;
 
@@ -52,11 +53,12 @@ window.onload = function() {
     addbutton = document.getElementById("add_button");
     removebutton = document.getElementById("remove_button");
     clearbutton = document.getElementById("clear_button");
-    oldfileinput = document.getElementsByName("old")[0];
-    newfileinput = document.getElementsByName("new")[0];
-    startdateinput = document.getElementsByName("startdate")[0];
-    enddateinput = document.getElementsByName("enddate")[0];
-    locationinput = document.getElementsByName("location")[0];
+    easyTabDiv = document.getElementById("easytab");
+    manualTabDiv = document.getElementById("manualtab");
+    // easyinputs = easytabdiv.getElementsByTagName("input");
+    locationInput = document.getElementsByName("location")[0];
+    startDateInput = document.getElementsByName("startdate")[0];
+    manualInputs = manualTabDiv.getElementsByTagName("input");
 
     onTaglistChange();
     loadTagAutocomplete();
@@ -74,12 +76,19 @@ window.onload = function() {
 };
 
 function onTabChange() {
-    if (window.location.hash == "#manualtab") {
-        oldfileinput.required = newfileinput.required = true;
-        startdateinput.required = enddateinput.required = locationinput.required = false;
-    } else {
-        startdateinput.required = enddateinput.required = locationinput.required = true;
-        oldfileinput.required = newfileinput.required = false;
+    var isManualTab = window.location.hash == "#manualtab";
+    for (var i of manualInputs) {
+        i.required = isManualTab;
+    }
+    // for (var i of easyinputs) {
+    //     i.required = !isManualTab;
+    // }
+    // We won't mark end date as required
+    locationInput.required = !isManualTab;
+    startDateInput.required = !isManualTab;
+    // Cleans the URL of unnecessary hash
+    if (window.location.hash == "") {
+        history.replaceState(null, "", window.location.href.split("#")[0]);
     }
 }
 
@@ -128,31 +137,20 @@ function loadTagAutocomplete() {
     rawFile.open("GET", "/static/OSMtag.txt", true);
     rawFile.onreadystatechange = function() {
         var arrayOfLines;
-        if (rawFile.readyState === 4) {
-            if (rawFile.status === 200 || rawFile.status == 0) {
-                var alltext = rawFile.responseText;
-                arrayOfLines = alltext.split("\n");
-                for (var i of arrayOfLines) {
-                    var option = document.createElement("option");
-                    option.value = i;
-                    tagautocomplete.append(option);
-                }
+        if (
+            rawFile.readyState === 4 &&
+            (rawFile.status === 200 || rawFile.status == 0)
+        ) {
+            var alltext = rawFile.responseText;
+            arrayOfLines = alltext.split("\n");
+            for (var i of arrayOfLines) {
+                var option = document.createElement("option");
+                option.value = i;
+                tagautocomplete.append(option);
             }
         }
     };
     rawFile.send();
-}
-
-/*
-Schema:
-{
-    type: "max"|"value"|"confirm",
-    value: int
-}
-*/
-function messageHandler(message) {
-    var parsed = JSON.parse(message);
-    messageTable[parsed.type](parsed.value);
 }
 
 function setProgbarMax(event) {
