@@ -251,9 +251,9 @@ class ChameleonDataFrameSet(set):
         self.oldfile = old
         self.newfile = new
         if isinstance(self.oldfile, str):
-            self.oldfile = Path(old)
+            self.oldfile = Path(self.oldfile)
         if isinstance(self.newfile, str):
-            self.newfile = Path(new)
+            self.newfile = Path(self.newfile)
 
         self.extra_columns = extra_columns
 
@@ -264,7 +264,7 @@ class ChameleonDataFrameSet(set):
         self.merge_files()
 
     def __getitem__(self, key) -> ChameleonDataFrame:
-        return [i for i in self if i.chameleon_mode == key][0]
+        return next(i for i in self if i.chameleon_mode == key)
 
     def merge_files(self) -> ChameleonDataFrameSet:
         """
@@ -501,7 +501,7 @@ def split_id(feature_id) -> Tuple[str, str]:
     Separates an id like "n12345678" into the type and id number
     """
     feature_id = str(feature_id)
-    typeregex = re.compile(r"\A[a-z-A-Z]")
+    typeregex = re.compile(r"\A[A-z]")
     idregex = re.compile(r"\d+\Z")
 
     typematch = typeregex.search(feature_id)

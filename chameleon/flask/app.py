@@ -27,7 +27,7 @@ from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
 
 app = Flask(__name__)
 
-BASE_DIR = Path("chameleon/flask/files")
+USER_FILES_BASE = Path("chameleon/flask/files")
 RESOURCES_DIR = Path("chameleon/resources")
 OVERPASS_TIMEOUT = 120
 
@@ -38,7 +38,6 @@ except OSError:
     APP_VERSION = ""
 
 error_list = []
-extra_columns = Path("resources/extracolumns.yaml")
 
 
 @app.route("/about")
@@ -53,7 +52,7 @@ def home():
 
 @app.route("/result", methods=["POST"])
 def result():
-    USER_DIR = BASE_DIR / str(uuid())
+    USER_DIR = USER_FILES_BASE / str(uuid())
     USER_DIR.mkdir(exist_ok=True)
 
     country: str = request.form.get("location", "", str.upper)
@@ -63,9 +62,8 @@ def result():
     if enddate:
         enddate = datetime.fromisoformat(enddate)
     # 2012-09-12 is the earliest Overpass can query
-    for date in (d for d in (startdate, enddate) if d):
-        if date < datetime(2012, 9, 12, 6, 55, 00):
-            raise UnprocessableEntity
+    if any(d and d < datetime(2012, 9, 12, 6, 55) for d in (startdate, enddate)):
+        raise UnprocessableEntity
 
     oldfile = request.files.get("old")
     newfile = request.files.get("new")
@@ -149,9 +147,6 @@ def result():
 
 @app.route("/download/<path:unique_id>")
 def download_file(unique_id):
-    # the_path = BASE_DIR / unique_id
-    unique_id = Path(unique_id)
-
     return send_from_directory("files", unique_id)
 
 
