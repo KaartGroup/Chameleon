@@ -1,18 +1,25 @@
-var tagentry_field;
-var taglist_field;
-var tagautocomplete;
+var tagEntryField;
+var tagListField;
+var tagAutocomplete;
 var mainform;
-var progressbar; // placeholder container for WebSocket messages
-var progressbarlabel; // placeholder container for WebSocket messages
-var addbutton;
-var removebutton;
-var clearbutton;
+var progressbar;
+var progressbarLabel;
+var addButton;
+var removeButton;
+var clearButton;
 var easyTabDiv;
-var easyinputs;
+var easyInputs;
 var locationInput;
 var startDateInput;
 var manualTabDiv;
 var manualInputs;
+var valueSpan;
+var maxSpan;
+var filterEntryField;
+var filterListField;
+var filterAddButton;
+var filterRemoveButton;
+var filterClearButton;
 
 var evsource;
 
@@ -44,30 +51,44 @@ var messageTable = {
 };
 
 window.onload = function() {
-    tagentry_field = document.getElementById("tagentry_id");
-    taglist_field = document.getElementById("taglist");
-    tagautocomplete = this.document.getElementById("tag_autocomplete");
+    tagEntryField = document.getElementById("tagentry_id");
+    tagListField = document.getElementById("tagList");
+    tagAutocomplete = this.document.getElementById("tag_autocomplete");
     mainform = document.getElementById("mainform");
+
     progressbar = document.getElementById("progressbar");
-    progressbarlabel = document.getElementById("progressbarlabel");
-    addbutton = document.getElementById("add_button");
-    removebutton = document.getElementById("remove_button");
-    clearbutton = document.getElementById("clear_button");
+    progressbarLabel = document.getElementById("progressbarlabel");
+
+    addButton = document.getElementById("add_button");
+    removeButton = document.getElementById("remove_button");
+    clearButton = document.getElementById("clear_button");
+
     easyTabDiv = document.getElementById("easytab");
-    manualTabDiv = document.getElementById("manualtab");
     // easyinputs = easytabdiv.getElementsByTagName("input");
-    locationInput = document.getElementsByName("location")[0];
-    startDateInput = document.getElementsByName("startdate")[0];
+
+    manualTabDiv = document.getElementById("manualtab");
     manualInputs = manualTabDiv.getElementsByTagName("input");
 
-    onTaglistChange();
+    locationInput = document.getElementsByName("location")[0];
+    startDateInput = document.getElementsByName("startdate")[0];
+    filterEntryField = document.getElementById("filterAddField");
+    filterListField = document.getElementById("filterList");
+    filterAddButton = document.getElementById("filterAddButton");
+    filterRemoveButton = document.getElementById("filterRemoveButton");
+    filterClearButton = document.getElementById("filterClearButton");
+
+    valueSpan = document.getElementById("curitem");
+    maxSpan = document.getElementById("maxitem");
+
+    onTagListChange();
     loadTagAutocomplete();
     onTabChange();
     window.onhashchange = onTabChange;
-    taglist_field.onchange = onTaglistChange;
-    addbutton.onclick = addToList;
-    removebutton.onclick = removeFromList;
-    clearbutton.onclick = clearList;
+    tagListField.onchange = onTagListChange;
+    addButton.onclick = addToList;
+    removeButton.onclick = removeFromList;
+    clearButton.onclick = clearList;
+    filterAddButton.onclick = addFilter;
     mainform.addEventListener("submit", function(event) {
         event.preventDefault();
         onSubmit();
@@ -77,15 +98,9 @@ window.onload = function() {
 
 function onTabChange() {
     var isManualTab = window.location.hash == "#manualtab";
-    for (var i of manualInputs) {
-        i.required = isManualTab;
-    }
-    // for (var i of easyinputs) {
-    //     i.required = !isManualTab;
-    // }
-    // We won't mark end date as required
-    locationInput.required = !isManualTab;
-    startDateInput.required = !isManualTab;
+    easyTabDiv.disabled = isManualTab;
+    manualTabDiv.disabled = !isManualTab;
+
     // Cleans the URL of unnecessary hash
     if (window.location.hash == "") {
         history.replaceState(null, "", window.location.href.split("#")[0]);
@@ -94,8 +109,8 @@ function onTabChange() {
 
 function addToList() {
     var option = document.createElement("option");
-    var tag = tagentry_field.value.trim();
-    tagentry_field.value = "";
+    var tag = tagEntryField.value.trim();
+    tagEntryField.value = "";
     if (!tag) {
         return;
     }
@@ -105,30 +120,30 @@ function addToList() {
 }
 
 function removeFromList() {
-    if (taglist_field.selectedIndex == -1) {
-        taglist_field.setCustomValidity("Please select a tag to remove");
-        taglist_field.reportValidity();
-        tagentry_field.setCustomValidity("");
+    if (tagListField.selectedIndex == -1) {
+        tagListField.setCustomValidity("Please select a tag to remove");
+        tagListField.reportValidity();
+        tagEntryField.setCustomValidity("");
         return;
     }
-    taglist_field.remove(taglist_field.selectedIndex);
+    tagListField.remove(tagListField.selectedIndex);
 }
 
 function clearList() {
-    taglist_field.options.length = 0;
+    tagListField.options.length = 0;
 }
 
 function onSubmit() {
-    for (var x = 0; x < taglist_field.options.length; x++) {
-        taglist_field.options[x].selected = true;
+    for (var x = 0; x < tagListField.options.length; x++) {
+        tagListField.options[x].selected = true;
     }
 }
 
-function onTaglistChange() {
-    if (!taglist_field.options.length) {
-        taglist_field.setCustomValidity("Please add at least one tag!");
+function onTagListChange() {
+    if (!tagListField.options.length) {
+        tagListField.setCustomValidity("Please add at least one tag!");
     } else {
-        taglist_field.setCustomValidity("");
+        tagListField.setCustomValidity("");
     }
 }
 
@@ -146,7 +161,7 @@ function loadTagAutocomplete() {
             for (var i of arrayOfLines) {
                 var option = document.createElement("option");
                 option.value = i;
-                tagautocomplete.append(option);
+                tagAutocomplete.append(option);
             }
         }
     };
@@ -155,12 +170,14 @@ function loadTagAutocomplete() {
 
 function setProgbarMax(event) {
     var max = parseInt(event.data);
+    maxSpan.innerText = max;
     progressbar.max = max;
-    progressbarlabel.style.display = "block";
+    progressbarLabel.style.display = "block";
 }
 
 function setProgbarValue(event) {
     var value = parseInt(event.data);
+    valueSpan.innerText = value;
     progressbar.value = value;
     progressbar.innerText =
         "(" + progressbar.value + "/" + progressbar.max + ")";

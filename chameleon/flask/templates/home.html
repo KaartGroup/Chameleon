@@ -19,12 +19,19 @@
         </ul>
         <div class="tabcontainer">
             <fieldset class="tabbedpage" id="manualtab">
-                <label>Old file <input type="file" name="old" /></label>
-                <label>New file <input type="file" name="new" /></label>
+                <label>Old file <input type="file" name="old" required
+                    /></label>
+                <label>New file <input type="file" name="new" required
+                    /></label>
             </fieldset>
             <fieldset class="tabbedpage" id="easytab">
                 <label>Start date
-                        <input type="date" name="startdate" min="2012-09-12" />
+                        <input
+                            type="date"
+                            name="startdate"
+                            min="2012-09-12"
+                            required
+                        />
                     </label>
                 <label>End date
                         <input type="date" name="enddate" min="2012-09-12" />
@@ -35,6 +42,7 @@
                             name="location"
                             maxlength="2"
                             pattern="[A-z]{2}"
+                            required
                     /></label>
             </fieldset>
         </div>
@@ -46,7 +54,7 @@
 
         <button type="button" id="add_button">Add</button>
         <br />
-        <select name="modes" size="10" id="taglist" multiple> </select>
+        <select name="modes" size="10" id="tagList" multiple> </select>
         <br />
         <button type="button" id="remove_button">Remove</button>
         <button type="button" id="clear_button">Clear</button>
@@ -74,8 +82,10 @@
 
         <button name="run" type="submit">Run</button>
     </form>
-    <label id="progressbarlabel">OSM API: <progress id="progressbar"></progress
-        ></label>
+    <label id="progressbarlabel">
+            OSM API: <span id="curitem"></span>/<span id="maxitem"></span>
+            <progress id="progressbar"></progress>
+        </label>
 </body>
 
 </html>
