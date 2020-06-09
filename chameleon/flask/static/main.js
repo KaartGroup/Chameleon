@@ -1,149 +1,74 @@
-var tagEntryField;
 var tagListField;
 var tagAutocomplete;
 var mainform;
-var progressbar;
-var progressbarLabel;
-var addButton;
-var removeButton;
-var clearButton;
-var easyTabDiv;
-var easyInputs;
 var locationInput;
 var startDateInput;
+
+var easyTabDiv;
+var easyInputs;
+
 var manualTabDiv;
 var manualInputs;
-var valueSpan;
-var maxSpan;
-var filterEntryField;
-var filterListField;
-var filterAddButton;
-var filterRemoveButton;
-var filterClearButton;
+
+var filterListGroup;
+var tagListGroup;
+var progress;
 
 var evsource;
 
-// EventSource = SSE;
+class ItemList {
+    constructor(name, required = false) {
+        this.addField = document.getElementById(name + "AddField");
+        this.addButton = document.getElementById(name + "AddButton");
+        this.removeButton = document.getElementById(name + "RemoveButton");
+        this.clearButton = document.getElementById(name + "ClearButton");
+        this.theList = document.getElementById(name + "List");
+        this.required = required;
 
-function sendData() {
-    const FD = new FormData(mainform);
-    evsource = new SSE("/result", {
-        payload: FD,
-    });
-    evsource.addEventListener("error", function(m) {
-        console.log("error");
-    });
-    evsource.addEventListener("open", function(m) {
-        console.log("SSE connection open");
-    });
-    evsource.addEventListener("message", function(m) {
-        console.log("message " + m.data);
-    });
-    evsource.addEventListener("max", setProgbarMax);
-    evsource.addEventListener("value", setProgbarValue);
-    evsource.addEventListener("file", getFile);
-    evsource.stream();
-}
-
-var messageTable = {
-    max: setProgbarMax,
-    value: setProgbarValue,
-};
-
-window.onload = function() {
-    tagEntryField = document.getElementById("tagentry_id");
-    tagListField = document.getElementById("tagList");
-    tagAutocomplete = this.document.getElementById("tag_autocomplete");
-    mainform = document.getElementById("mainform");
-
-    progressbar = document.getElementById("progressbar");
-    progressbarLabel = document.getElementById("progressbarlabel");
-
-    addButton = document.getElementById("add_button");
-    removeButton = document.getElementById("remove_button");
-    clearButton = document.getElementById("clear_button");
-
-    easyTabDiv = document.getElementById("easytab");
-    // easyinputs = easytabdiv.getElementsByTagName("input");
-
-    manualTabDiv = document.getElementById("manualtab");
-    manualInputs = manualTabDiv.getElementsByTagName("input");
-
-    locationInput = document.getElementsByName("location")[0];
-    startDateInput = document.getElementsByName("startdate")[0];
-    filterEntryField = document.getElementById("filterAddField");
-    filterListField = document.getElementById("filterList");
-    filterAddButton = document.getElementById("filterAddButton");
-    filterRemoveButton = document.getElementById("filterRemoveButton");
-    filterClearButton = document.getElementById("filterClearButton");
-
-    valueSpan = document.getElementById("curitem");
-    maxSpan = document.getElementById("maxitem");
-
-    onTagListChange();
-    loadTagAutocomplete();
-    onTabChange();
-    window.onhashchange = onTabChange;
-    tagListField.onchange = onTagListChange;
-    addButton.onclick = addToList;
-    removeButton.onclick = removeFromList;
-    clearButton.onclick = clearList;
-    filterAddButton.onclick = addFilter;
-    mainform.addEventListener("submit", function(event) {
-        event.preventDefault();
-        onSubmit();
-        sendData();
-    });
-};
-
-function onTabChange() {
-    var isManualTab = window.location.hash == "#manualtab";
-    easyTabDiv.disabled = isManualTab;
-    manualTabDiv.disabled = !isManualTab;
-
-    // Cleans the URL of unnecessary hash
-    if (window.location.hash == "") {
-        history.replaceState(null, "", window.location.href.split("#")[0]);
+        this.addButton.addEventListener("click", (e) => {
+            this.addToList();
+        });
+        this.removeButton.addEventListener("click", (e) => {
+            this.removeFromList();
+        });
+        this.clearButton.addEventListener("click", (e) => {
+            this.clearList();
+        });
     }
-}
-
-function addToList() {
-    var option = document.createElement("option");
-    var tag = tagEntryField.value.trim();
-    tagEntryField.value = "";
-    if (!tag) {
-        return;
+    addToList() {
+        var option = document.createElement("option");
+        var item = this.addField.value.trim();
+        this.addField.value = "";
+        if (!item) {
+            return;
+        }
+        option.text = item;
+        this.theList.add(option);
+        this.onTagListChange();
     }
-    option.text = tag;
-    taglist_field.add(option);
-    onTaglistChange();
-}
-
-function removeFromList() {
-    if (tagListField.selectedIndex == -1) {
-        tagListField.setCustomValidity("Please select a tag to remove");
-        tagListField.reportValidity();
-        tagEntryField.setCustomValidity("");
-        return;
+    removeFromList() {
+        if (this.theList.selectedIndex == -1) {
+            this.theList.setCustomValidity("Please select a tag to remove");
+            this.theList.reportValidity();
+            this.theList.setCustomValidity("");
+            return;
+        }
+        this.theList.remove(this.theList.selectedIndex);
+        this.onTagListChange();
     }
-    tagListField.remove(tagListField.selectedIndex);
-}
 
-function clearList() {
-    tagListField.options.length = 0;
-}
-
-function onSubmit() {
-    for (var x = 0; x < tagListField.options.length; x++) {
-        tagListField.options[x].selected = true;
+    clearList() {
+        this.theList.options.length = 0;
+        this.onTagListChange();
     }
-}
-
-function onTagListChange() {
-    if (!tagListField.options.length) {
-        tagListField.setCustomValidity("Please add at least one tag!");
-    } else {
-        tagListField.setCustomValidity("");
+    onTagListChange() {
+        if (this.required) {
+            if (!this.theList.options.length) {
+                this.theList.setCustomValidity("Please add at least one tag!");
+            } else {
+                this.theList.setCustomValidity("");
+            }
+        }
     }
 }
 
@@ -168,19 +93,97 @@ function loadTagAutocomplete() {
     rawFile.send();
 }
 
-function setProgbarMax(event) {
-    var max = parseInt(event.data);
-    maxSpan.innerText = max;
-    progressbar.max = max;
-    progressbarLabel.style.display = "block";
+class Progbar {
+    constructor() {
+        this.progressbar = document.getElementById("progressbar");
+        this.progressbarLabel = document.getElementById("progressbarLabel");
+        this.valueSpan = document.getElementById("curItem");
+        this.maxSpan = document.getElementById("maxItem");
+    }
+    setMax(event) {
+        var max = event.data;
+        this.maxSpan.innerText = max;
+        this.progressbar.max = parseInt(max);
+        this.progressbarLabel.style.display = "block";
+    }
+    setValue(event) {
+        var value = event.data;
+        this.valueSpan.innerText = value;
+        this.progressbar.value = parseInt(value);
+        this.progressbar.innerText =
+            "(" + value + "/" + this.progressbar.max + ")";
+    }
 }
 
-function setProgbarValue(event) {
-    var value = parseInt(event.data);
-    valueSpan.innerText = value;
-    progressbar.value = value;
-    progressbar.innerText =
-        "(" + progressbar.value + "/" + progressbar.max + ")";
+// EventSource = SSE;
+
+function sendData() {
+    const FD = new FormData(mainform);
+    evsource = new SSE("/result", {
+        payload: FD,
+    });
+    evsource.addEventListener("error", function(m) {
+        console.log("error");
+    });
+    evsource.addEventListener("open", function(m) {
+        console.log("SSE connection open");
+    });
+    evsource.addEventListener("message", function(m) {
+        console.log("message " + m.data);
+    });
+    evsource.addEventListener("max", (e) => {
+        progress.setMax(e);
+    });
+    evsource.addEventListener("value", (e) => {
+        progress.setValue(e);
+    });
+    evsource.addEventListener("file", getFile);
+    evsource.stream();
+}
+
+window.onload = function() {
+    tagAutocomplete = document.getElementById("tagAutocomplete");
+    mainform = document.getElementById("mainform");
+
+    easyTabDiv = document.getElementById("easytab");
+
+    manualTabDiv = document.getElementById("manualtab");
+    manualInputs = manualTabDiv.getElementsByTagName("input");
+
+    locationInput = document.getElementsByName("location")[0];
+    startDateInput = document.getElementsByName("startdate")[0];
+
+    filterListGroup = new ItemList("filter");
+    tagListGroup = new ItemList("tag", true);
+    progress = new Progbar();
+
+    tagListGroup.onTagListChange();
+
+    loadTagAutocomplete();
+    onTabChange();
+    window.addEventListener("hashchange", onTabChange);
+    mainform.addEventListener("submit", function(event) {
+        event.preventDefault();
+        onSubmit();
+        sendData();
+    });
+};
+
+function onTabChange() {
+    var isManualTab = window.location.hash == "#manualtab";
+    easyTabDiv.disabled = isManualTab;
+    manualTabDiv.disabled = !isManualTab;
+
+    // Cleans the URL of unnecessary hash
+    if (window.location.hash == "") {
+        history.replaceState(null, "", window.location.href.split("#")[0]);
+    }
+}
+
+function onSubmit() {
+    for (var x = 0; x < tagListGroup.theList.options.length; x++) {
+        tagListGroup.theList.options[x].selected = true;
+    }
 }
 
 function getFile(event) {

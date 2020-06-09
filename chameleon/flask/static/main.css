@@ -2,7 +2,7 @@ select {
     min-width: 20em;
 }
 
-label#progressbarlabel {
+label#progressbarLabel {
     /* Initial state before data starts getting returned */
     display: none;
 }
@@ -20,6 +20,7 @@ label#progressbarlabel {
 label {
     display: block;
 }
+
 ul#tabmenu li {
     display: inline;
 }

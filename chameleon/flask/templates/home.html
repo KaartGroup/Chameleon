@@ -14,8 +14,8 @@
     <h1>Chameleon for Web</h1>
     <form enctype="multipart/form-data" method="POST" id="mainform">
         <ul id="tabmenu">
-            <li><a href="#" id="easytablink">Easy</a></li>
-            <li><a href="#manualtab" id="manualtablink">Advanced</a></li>
+            <li><a href="#">Easy</a></li>
+            <li><a href="#manualtab">Advanced</a></li>
         </ul>
         <div class="tabcontainer">
             <fieldset class="tabbedpage" id="manualtab">
@@ -44,20 +44,34 @@
                             pattern="[A-z]{2}"
                             required
                     /></label>
+                <div>
+                    <label>Add filter:
+                            <input type="text" id="filterAddField" />
+                        </label>
+                    <button type="button" id="filterAddButton">Add</button>
+                    <br />
+                    <select name="filters" size="5" id="filterList"></select>
+                    <button type="button" id="filterRemoveButton">
+                            Remove
+                        </button>
+                    <button type="button" id="filterClearButton">
+                            Clear
+                        </button>
+                </div>
             </fieldset>
         </div>
 
         <label>Enter tag:
-                <input list="tag_autocomplete" type="text" id="tagentry_id"
+                <input list="tagAutocomplete" type="text" id="tagAddField"
             /></label>
-        <datalist id="tag_autocomplete"></datalist>
+        <datalist id="tagAutocomplete"></datalist>
 
-        <button type="button" id="add_button">Add</button>
+        <button type="button" id="tagAddButton">Add</button>
         <br />
         <select name="modes" size="10" id="tagList" multiple> </select>
         <br />
-        <button type="button" id="remove_button">Remove</button>
-        <button type="button" id="clear_button">Clear</button>
+        <button type="button" id="tagRemoveButton">Remove</button>
+        <button type="button" id="tagClearButton">Clear</button>
         <p>
             <label>Output file name
                     <input type="text" name="output" placeholder="chameleon"
@@ -82,8 +96,8 @@
 
         <button name="run" type="submit">Run</button>
     </form>
-    <label id="progressbarlabel">
-            OSM API: <span id="curitem"></span>/<span id="maxitem"></span>
+    <label id="progressbarLabel">
+            OSM API: <span id="curItem"></span>/<span id="maxItem"></span>
             <progress id="progressbar"></progress>
         </label>
 </body>

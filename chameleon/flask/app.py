@@ -100,18 +100,19 @@ def result():
         df = cdfs.source_data
 
         deleted_ids = list(df.loc[df["action"] == "deleted"].index)
-        yield str(Message("max", len(deleted_ids)))
-        for num, feature_id in enumerate(deleted_ids):
-            yield str(Message("value", num))
+        if deleted_ids:
+            yield str(Message("max", len(deleted_ids)))
+            for num, feature_id in enumerate(deleted_ids):
+                yield str(Message("value", num))
 
-            element_attribs = cdfs.check_feature_on_api(
-                feature_id, app_version=APP_VERSION
-            )
+                element_attribs = cdfs.check_feature_on_api(
+                    feature_id, app_version=APP_VERSION
+                )
 
-            df.update(pd.DataFrame(element_attribs, index=[feature_id]))
-            gevent.sleep(REQUEST_INTERVAL)
+                df.update(pd.DataFrame(element_attribs, index=[feature_id]))
+                gevent.sleep(REQUEST_INTERVAL)
 
-        yield str(Message("value", len(deleted_ids) + 1))
+            yield str(Message("value", len(deleted_ids) + 1))
 
         cdf_set.separate_special_dfs()
 
