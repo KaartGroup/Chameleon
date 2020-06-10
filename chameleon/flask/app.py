@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Generator
+from typing import Generator, List, TextIO, Tuple
 from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
@@ -64,6 +64,8 @@ def result():
     # 2012-09-12 is the earliest Overpass can query
     if any(d and d < datetime(2012, 9, 12, 6, 55) for d in (startdate, enddate)):
         raise UnprocessableEntity
+
+    filters = list(filter_processing(request.form.getlist("filters")))
 
     oldfile = request.files.get("old")
     newfile = request.files.get("new")
@@ -238,9 +240,20 @@ mimetype = {
 }
 
 
+def filter_processing(
+    filters: List[str],
+) -> Generator[Tuple[str, str, str], str, str]:
+    for filter in filters:
+        for separator in ("=", "~"):  # Probably add more separators
+            partitioned = filter.partition(separator)
+            if all(partitioned[1:]):
+                break
+        yield partitioned
+
+
 def overpass_getter(
     location: str, tags: set, startdate: datetime, enddate: datetime,
-) -> Generator:
+) -> Generator[Tuple[TextIO, TextIO], str, str]:
     api = overpass.API(OVERPASS_TIMEOUT)
     modes = tags | {"name"}
     csv_columns = [
