@@ -64,11 +64,40 @@ class ItemList {
     onTagListChange() {
         if (this.required) {
             if (!this.theList.options.length) {
-                this.theList.setCustomValidity("Please add at least one tag!");
+                this.theList.setCustomValidity("Please add at least one item!");
             } else {
                 this.theList.setCustomValidity("");
             }
         }
+    }
+}
+
+class FilterList extends ItemList {
+    constructor(name, required = false) {
+        super(name, required);
+        this.valueField = document.getElementById(name + "ValueField");
+        this.typeArray = document.getElementsByName(name + "TypeBox");
+    }
+    addToList() {
+        var option = document.createElement("option");
+        var item = [
+            this.addField.value.trim(),
+            this.valueField.value.trim().split(/[\s,|]+/),
+            Array.from(this.typeArray)
+            .filter((a) => a.checked)
+            .map((a) => a.value),
+        ];
+        item = item.filter((x) => x);
+        this.addField.value = "";
+        this.valueField.value = "";
+        if (!item[0]) {
+            // if (!item.some((x) => x)) {
+            return;
+        }
+        // option.text = item.join("=");
+        var keyvalue = [item[0], item[1].join(",")].filter((x) => x).join("=");
+        option.text = keyvalue + " (" + item[2].join("") + ")";
+        this.theList.add(option);
     }
 }
 
@@ -153,7 +182,7 @@ window.onload = function() {
     locationInput = document.getElementsByName("location")[0];
     startDateInput = document.getElementsByName("startdate")[0];
 
-    filterListGroup = new ItemList("filter");
+    filterListGroup = new FilterList("filter");
     tagListGroup = new ItemList("tag", true);
     progress = new Progbar();
 
@@ -164,7 +193,8 @@ window.onload = function() {
     window.addEventListener("hashchange", onTabChange);
     mainform.addEventListener("submit", function(event) {
         event.preventDefault();
-        onSubmit();
+        onSubmit(filterListGroup);
+        onSubmit(tagListGroup);
         sendData();
     });
 };
@@ -180,9 +210,9 @@ function onTabChange() {
     }
 }
 
-function onSubmit() {
-    for (var x = 0; x < tagListGroup.theList.options.length; x++) {
-        tagListGroup.theList.options[x].selected = true;
+function onSubmit(object) {
+    for (var x = 0; x < object.theList.options.length; x++) {
+        object.theList.options[x].selected = true;
     }
 }
 

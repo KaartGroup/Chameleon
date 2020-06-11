@@ -45,9 +45,36 @@
                             required
                     /></label>
                 <div>
-                    <label>Add filter:
+                    Add filter:
+                    <label>Key:
                             <input type="text" id="filterAddField" />
                         </label>
+                    <label>Value(s):<input
+                                type="text"
+                                id="filterValueField"
+                                pattern="[A-z:,| ]"
+                                title="Separate multiple values with commas (,), spaces, or pipes (|). Use asterisk (*) for all values"
+                            />
+                        </label>
+                    <label>Node:<input
+                                type="checkbox"
+                                value="n"
+                                name="filterTypeBox"
+                                checked
+                        /></label>
+                    <label>Way:<input
+                                type="checkbox"
+                                value="w"
+                                name="filterTypeBox"
+                                checked
+                        /></label>
+                    <label>Relation:<input
+                                type="checkbox"
+                                value="r"
+                                name="filterTypeBox"
+                                checked
+                        /></label>
+
                     <button type="button" id="filterAddButton">Add</button>
                     <br />
                     <select name="filters" size="5" id="filterList" multiple></select>

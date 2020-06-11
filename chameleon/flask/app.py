@@ -1,9 +1,10 @@
 import csv
 import json
+import shlex
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Generator, List, TextIO, Tuple
+from typing import Generator, List, Set, TextIO, Tuple
 from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
@@ -65,7 +66,7 @@ def result():
     if any(d and d < datetime(2012, 9, 12, 6, 55) for d in (startdate, enddate)):
         raise UnprocessableEntity
 
-    filters = list(filter_processing(request.form.getlist("filters")))
+    filter_list = filter_processing(request.form.getlist("filters"))
 
     oldfile = request.files.get("old")
     newfile = request.files.get("new")
@@ -85,7 +86,9 @@ def result():
 
     if all((country, startdate)):
         # Running in easy mode, need to make files for the user
-        oldfile, newfile = overpass_getter(country, modes, startdate, enddate)
+        oldfile, newfile = overpass_getter(
+            country, filter_list, modes, startdate, enddate
+        )
     elif all((oldfile, newfile)):
         # Manual mode
         oldfile = oldfile.stream
@@ -240,21 +243,49 @@ mimetype = {
 }
 
 
-def filter_processing(
-    filters: List[str],
-) -> Generator[Tuple[str, str, str], str, str]:
-    for filter in filters:
+def filter_processing(filters: List[str]) -> List[dict]:
+    filter_list = []
+    for filterstring in filters:
+        filterstring, types = filterstring.rsplit(" (", 1)
+        types = types[:-1]
         for separator in ("=", "~"):  # Probably add more separators
-            partitioned = filter.partition(separator)
+            partitioned = filterstring.partition(separator)
             if all(partitioned[1:]):
                 break
-        yield partitioned
+        filter_dict = {
+            "key": partitioned[0],
+            "value": partitioned[2],
+            "types": types,
+        }
+        if filter_dict["value"]:
+            splitter = shlex.shlex(filter_dict["value"])
+            splitter.whitespace += ",|"
+            splitter.whitespace_split = True
+            filter_dict["value"] = list(splitter)
+        if any(v for k, v in filter_dict.items() if k != "types"):
+            filter_list.append(filter_dict)
+    return filter_list
 
 
 def overpass_getter(
-    location: str, tags: set, startdate: datetime, enddate: datetime,
-) -> Generator[Tuple[TextIO, TextIO], str, str]:
+    location: str,
+    filters: List[Tuple[str, str, Tuple]],
+    tags: Set[str],
+    startdate: datetime,
+    enddate: datetime,
+) -> Generator[Tuple[TextIO, TextIO], None, None]:
     api = overpass.API(OVERPASS_TIMEOUT)
+
+    formatted_tags = []
+    for i in filters:
+        if i["value"]:
+            formatted = f'~"{"|".join(i["value"])}"'
+        else:
+            formatted = ""
+        formatted_tags.append(
+            f'{i["types"]}["{i["key"]}"{formatted}](area.searchArea)'
+        )
+
     modes = tags | {"name"}
     csv_columns = [
         "::type",
@@ -265,7 +296,6 @@ def overpass_getter(
         "::changeset",
     ] + list(modes)
     response_format = f'csv({",".join(csv_columns)})'
-    formatted_tags = [f'nwr["{tag}"](area.searchArea);' for tag in tags]
 
     overpass_query = (
         f'area["ISO3166-1"="{location}"]->.searchArea;{"".join(formatted_tags)}'
