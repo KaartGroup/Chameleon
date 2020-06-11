@@ -738,11 +738,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             # Value was clicked from fav btn
             raw_label = self.sender().text()
         splitter = shlex.shlex(raw_label)
-        splitter.whitespace += (
-            ","  # Count commas as a delimiter and don't include in the tags
-        )
+        # Count commas as a delimiter and don't include in the tags
+        splitter.whitespace += ","
         splitter.whitespace_split = True
-        label_list = sorted(list(splitter))
+        label_list = sorted(splitter)
         for i, label in enumerate(label_list):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
@@ -750,9 +749,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 label, QtCore.Qt.MatchExactly
             )
             if existing_item:
-                if (
-                    i == 0
-                ):  # Clear the prior selection on the first iteration only
+                # Clear the prior selection on the first iteration only
+                if i == 0:
                     self.listWidget.selectionModel().clear()
                 # existing_item should never have more than 1 member
                 existing_item[0].setSelected(True)
