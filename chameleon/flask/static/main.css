@@ -24,3 +24,7 @@ label {
 ul#tabmenu li {
     display: inline;
 }
+
+fieldset {
+    border: none;
+}
