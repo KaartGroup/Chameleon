@@ -24,7 +24,11 @@ from flask import (
 )
 from werkzeug.exceptions import UnprocessableEntity
 
-from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
+from chameleon.core import (
+    ChameleonDataFrame,
+    ChameleonDataFrameSet,
+    TYPE_EXPANSION,
+)
 
 app = Flask(__name__)
 
@@ -117,7 +121,7 @@ def result():
                 df.update(pd.DataFrame(element_attribs, index=[feature_id]))
                 gevent.sleep(REQUEST_INTERVAL)
 
-            yield str(Message("value", len(deleted_ids) + 1))
+            yield str(Message("value", len(deleted_ids)))
 
         cdf_set.separate_special_dfs()
 
@@ -246,11 +250,17 @@ mimetype = {
 def filter_processing(filters: List[str]) -> List[dict]:
     filter_list = []
     for filterstring in filters:
-        filterstring, types = filterstring.rsplit(" (", 1)
-        types = types[:-1]
+        filterstring, typestring = filterstring.rsplit(" (", 1)
+        typestring = typestring[:-1]
+
+        if typestring == "nwr":
+            types = [typestring]
+        else:
+            types = [TYPE_EXPANSION[i] for i in typestring]
+
         for separator in ("=", "~"):  # Probably add more separators
             partitioned = filterstring.partition(separator)
-            if all(partitioned[1:]):
+            if partitioned[2]:
                 break
         filter_dict = {
             "key": partitioned[0],

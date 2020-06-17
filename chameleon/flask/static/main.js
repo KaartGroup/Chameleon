@@ -36,12 +36,19 @@ class ItemList {
         });
     }
     addToList() {
-        var option = document.createElement("option");
         var item = this.addField.value.trim();
-        this.addField.value = "";
         if (!item) {
             return;
         }
+        if (
+            Array.from(this.theList.options)
+            .map((x) => x.text)
+            .includes(item)
+        ) {
+            return;
+        }
+        var option = document.createElement("option");
+        this.addField.value = "";
         option.text = item;
         this.theList.add(option);
         this.onTagListChange();
@@ -76,27 +83,34 @@ class FilterList extends ItemList {
     constructor(name, required = false) {
         super(name, required);
         this.valueField = document.getElementById(name + "ValueField");
-        this.typeArray = document.getElementsByName(name + "TypeBox");
+        this._typeArray = document.getElementsByName(name + "TypeBox");
+    }
+    get typeArray() {
+        return Array.from(this._typeArray);
     }
     addToList() {
-        var option = document.createElement("option");
         var item = [
             this.addField.value.trim(),
             this.valueField.value.trim().split(/[\s,|]+/),
-            Array.from(this.typeArray)
-            .filter((a) => a.checked)
-            .map((a) => a.value),
+            this.typeArray.filter((a) => a.checked).map((a) => a.value),
         ];
-        item = item.filter((x) => x);
-        this.addField.value = "";
-        this.valueField.value = "";
         if (!item[0]) {
-            // if (!item.some((x) => x)) {
             return;
         }
-        // option.text = item.join("=");
+        item = item.filter((x) => x);
         var keyvalue = [item[0], item[1].join(",")].filter((x) => x).join("=");
-        option.text = keyvalue + " (" + item[2].join("") + ")";
+        this.addField.value = "";
+        this.valueField.value = "";
+        var option = document.createElement("option");
+        var optionstring = keyvalue + " (" + item[2].join("") + ")";
+        if (
+            Array.from(this.theList.options)
+            .map((x) => x.text)
+            .includes(optionstring)
+        ) {
+            return;
+        }
+        option.text = optionstring;
         this.theList.add(option);
     }
 }
@@ -128,19 +142,32 @@ class Progbar {
         this.progressbarLabel = document.getElementById("progressbarLabel");
         this.valueSpan = document.getElementById("curItem");
         this.maxSpan = document.getElementById("maxItem");
+        this._max = 0;
+        this._value = 0;
     }
-    setMax(event) {
-        var max = event.data;
-        this.maxSpan.innerText = max;
-        this.progressbar.max = parseInt(max);
-        this.progressbarLabel.style.display = "block";
+    set max(max) {
+        this._max = max;
+        this.maxSpan.innerText = this._max;
+        this.progressbar.max = parseInt(this._max);
     }
-    setValue(event) {
-        var value = event.data;
-        this.valueSpan.innerText = value;
-        this.progressbar.value = parseInt(value);
-        this.progressbar.innerText =
-            "(" + value + "/" + this.progressbar.max + ")";
+    get max() {
+        return this._max;
+    }
+    set value(value) {
+        this._value = value;
+        this.valueSpan.innerText = this._value;
+        this.progressbar.value = parseInt(this._value);
+        this.progressbar.innerText = "(" + value + "/" + this._max + ")";
+    }
+    get value() {
+        return this._value;
+    }
+    set visible(flag) {
+        if (flag) {
+            this.progressbarLabel.style.display = "block";
+        } else {
+            this.progressbarLabel.style.display = "none";
+        }
     }
 }
 
@@ -161,10 +188,11 @@ function sendData() {
         console.log("message " + m.data);
     });
     evsource.addEventListener("max", (e) => {
-        progress.setMax(e);
+        progress.max = e.data;
+        progress.visible = true;
     });
     evsource.addEventListener("value", (e) => {
-        progress.setValue(e);
+        progress.value = e.data;
     });
     evsource.addEventListener("file", getFile);
     evsource.stream();
