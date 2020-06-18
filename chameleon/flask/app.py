@@ -72,9 +72,6 @@ def result():
 
     filter_list = filter_processing(request.form.getlist("filters"))
 
-    oldfile = request.files.get("old")
-    newfile = request.files.get("new")
-
     output = request.form.get("output") or "chameleon"
     # Strips leading part of Path from the file name to avoid accidental issues
     # We later use Flask's send_from_directory() to block intentional attacks
@@ -88,23 +85,27 @@ def result():
         raise UnprocessableEntity
     file_format = request.form["file_format"]
 
-    if all((country, startdate)):
-        # Running in easy mode, need to make files for the user
-        oldfile, newfile = overpass_getter(
-            country, filter_list, modes, startdate, enddate
-        )
-    elif all((oldfile, newfile)):
-        # Manual mode
-        oldfile = oldfile.stream
-        newfile = newfile.stream
-    else:
-        # Client-side validation slipped up
-        raise UnprocessableEntity
-    with oldfile as old, newfile as new:
-        cdf_set = ChameleonDataFrameSet(old, new)
-
-    def check_api_deletions(cdfs: ChameleonDataFrameSet) -> Generator:
+    def process_data() -> Generator:
         REQUEST_INTERVAL = 0.1
+
+        oldfile = request.files.get("old")
+        newfile = request.files.get("new")
+
+        if all((country, startdate)):
+            # Running in easy mode, need to make files for the user
+            yield str(Message("overpass_timeout", OVERPASS_TIMEOUT))
+            oldfile, newfile = overpass_getter(
+                country, filter_list, modes, startdate, enddate
+            )
+        elif all((oldfile, newfile)):
+            # Manual mode
+            oldfile = oldfile.stream
+            newfile = newfile.stream
+        else:
+            # Client-side validation slipped up
+            raise UnprocessableEntity
+        with oldfile as old, newfile as new:
+            cdfs = ChameleonDataFrameSet(old, new)
 
         df = cdfs.source_data
 
@@ -123,19 +124,19 @@ def result():
 
             yield str(Message("value", len(deleted_ids)))
 
-        cdf_set.separate_special_dfs()
+        cdfs.separate_special_dfs()
 
         for mode in modes:
             try:
                 result = ChameleonDataFrame(
-                    cdf_set.source_data, mode=mode, grouping=grouping
+                    cdfs.source_data, mode=mode, grouping=grouping
                 ).query_cdf()
             except KeyError:
                 error_list.append(mode)
                 continue
-            cdf_set.add(result)
+            cdfs.add(result)
 
-        file_name = write_output[file_format](cdf_set, USER_DIR, output)
+        file_name = write_output[file_format](cdfs, USER_DIR, output)
         # return send_from_directory(
         #     str(BASE_DIR),
         #     file_name,
@@ -150,8 +151,7 @@ def result():
         # )
 
     return Response(
-        stream_with_context(check_api_deletions(cdf_set)),
-        mimetype="text/event-stream",
+        stream_with_context(process_data()), mimetype="text/event-stream",
     )
 
 
@@ -165,10 +165,10 @@ def return_osm_tag():
     return send_file(RESOURCES_DIR.resolve() / "OSMtag.txt")
 
 
-def high_deletions_checker(cdf_set) -> bool:
+def high_deletions_checker(cdfs) -> bool:
     deletion_percentage = (
-        len(cdf_set.source_data[cdf_set.source_data["action"] == "deleted"])
-        / len(cdf_set.source_data)
+        len(cdfs.source_data[cdfs.source_data["action"] == "deleted"])
+        / len(cdfs.source_data)
     ) * 100
     return deletion_percentage > 20 and not user_confirm(
         "There is an unusually high proportion of deletions "
@@ -217,9 +217,8 @@ def write_excel(dataframe_set, base_dir, output):
 
 
 def write_geojson(dataframe_set, base_dir, output):
-    timeout = 120
     try:
-        response = dataframe_set.to_geojson(timeout=timeout)
+        response = dataframe_set.to_geojson(timeout=OVERPASS_TIMEOUT)
     except TimeoutError:
         # TODO Inform user about error
         return
@@ -283,7 +282,7 @@ def overpass_getter(
     tags: Set[str],
     startdate: datetime,
     enddate: datetime,
-) -> Generator[Tuple[TextIO, TextIO], None, None]:
+) -> Generator:
     api = overpass.API(OVERPASS_TIMEOUT)
 
     formatted_tags = []
