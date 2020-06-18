@@ -221,9 +221,24 @@ window.onload = function() {
     window.addEventListener("hashchange", onTabChange);
     mainform.addEventListener("submit", function(event) {
         event.preventDefault();
-        onSubmit(filterListGroup);
-        onSubmit(tagListGroup);
-        sendData();
+        if (document.activeElement.id == "tagAddField") {
+            tagListGroup.addToList();
+        } else if (
+            document.activeElement.id == "filterAddField" ||
+            document.activeElement.id == "filterValueField"
+        ) {
+            filterListGroup.addToList();
+        } else {
+            mainform.novalidate = false;
+            var isValid = mainform.reportValidity();
+            mainform.novalidate = true;
+            if (!isValid) {
+                return;
+            }
+            onSubmit(filterListGroup);
+            onSubmit(tagListGroup);
+            sendData();
+        }
     });
 };
 
