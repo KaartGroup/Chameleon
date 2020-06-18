@@ -292,9 +292,10 @@ def overpass_getter(
             formatted = f'~"{"|".join(i["value"])}"'
         else:
             formatted = ""
-        formatted_tags.append(
-            f'{i["types"]}["{i["key"]}"{formatted}](area.searchArea)'
-        )
+        for t in i["types"]:
+            formatted_tags.append(
+                f'{t}["{i["key"]}"{formatted}](area.searchArea)'
+            )
 
     modes = tags | {"name"}
     csv_columns = [
