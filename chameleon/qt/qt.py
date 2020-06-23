@@ -1138,6 +1138,7 @@ class ChameleonProgressDialog(QProgressDialog):
     Customizes QProgressDialog with methods specific to this app.
     """
 
+    # TODO Redefine properties in terms of major and minor increments, use getters and setters if it helps
     def __init__(self, length: int, use_api=False, use_overpass=False):
         self.current_item = 0
         self.item_count = None
