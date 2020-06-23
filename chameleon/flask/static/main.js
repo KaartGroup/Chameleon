@@ -137,30 +137,92 @@ function loadTagAutocomplete() {
 }
 
 class Progbar {
+    _mode;
     constructor() {
         this.progressbar = document.getElementById("progressbar");
         this.progressbarLabel = document.getElementById("progressbarLabel");
-        this.valueSpan = document.getElementById("curItem");
-        this.maxSpan = document.getElementById("maxItem");
-        this._max = 0;
-        this._value = 0;
+        this.message = document.getElementById("progbarMessage");
+
+        // majorValue: overpass phase is 1, OSM API phase is 1, each mode is 1
+        this._majorMax = 0;
+        this._majorValue = 0;
+        // minorValue: 1 second of overpass time is 1, each OSM API feature is 1
+        this._minorValue = 0;
+        this._minorMax = 0;
+
+        this._modeCount = 0;
+
+        this.overpassTimeout = 120;
+        this.minorStep = this.overpassTimeout;
+        this.use_overpass = false;
+        this.currentPhase = "default";
+        this.updateValueDispatch = {
+            osmapi: () => {
+                this.updateOSMAPI();
+            },
+            mode: () => {
+                this.updateMode();
+            },
+            default: () => {},
+            overpass: () => {
+                this.updateOverpass();
+            },
+        };
     }
-    set max(max) {
-        this._max = max;
-        this.maxSpan.innerText = this._max;
-        this.progressbar.max = parseInt(this._max);
+    set mode(value) {
+        this._mode = value;
+        this.updateValue();
     }
-    get max() {
-        return this._max;
+    get mode() {
+        return this._mode;
     }
-    set value(value) {
-        this._value = value;
-        this.valueSpan.innerText = this._value;
-        this.progressbar.value = parseInt(this._value);
-        this.progressbar.innerText = "(" + value + "/" + this._max + ")";
+    set mode_count(count) {
+        // this.majorMax = count + 1 + this.use_overpass;
+        this._modeCount = parseInt(count);
+        this.updateMax();
     }
-    get value() {
-        return this._value;
+    get mode_count() {
+        return this._modeCount;
+    }
+
+    // set majorMax(max) {
+    //         this._majorMax = parseInt(max);
+    //         this.updateMax();
+    //     }
+    // get majorMax() {
+    //         return this._majorMax;
+    //     }
+
+    get majorMax() {
+        return this.mode_count + this.use_overpass + 1;
+    }
+    get realMax() {
+        return this.majorMax * this.minorStep;
+    }
+    get realValue() {
+        return this.majorValue * this.minorStep + this.minorValue;
+    }
+    set majorValue(value) {
+        this._majorValue = parseInt(value);
+        this._minorValue = 0;
+        this.updateValue();
+    }
+    get majorValue() {
+        return this._majorValue;
+    }
+    set minorValue(value) {
+        this._minorValue = parseInt(value);
+        this.updateValue();
+    }
+    get minorValue() {
+        return this._minorValue;
+    }
+    get minorMax() {
+        return this._minorMax;
+    }
+    set minorMax(max) {
+        this._minorMax = parseInt(max);
+        this.updateValue();
     }
     set visible(flag) {
         if (flag) {
@@ -169,36 +231,145 @@ class Progbar {
             this.progressbarLabel.style.display = "none";
         }
     }
+    updateMax() {
+        this.progressbar.max = this.realMax;
+    }
+    updateValue() {
+        var curPhase = this.currentPhase;
+        this.updateValueDispatch[curPhase]();
+    }
+
+    startOverpass() {
+        this.overpassCountdown = setInterval(() => {
+            // this.incrementOverpass();
+            if (this.minorValue < this.overpassTimeout) {
+                this.minorValue++;
+            } else {
+                clearInterval(this.overpassCountdown);
+                progress.message.innerText = "Overpass timeout";
+            }
+        }, 1000);
+    }
+
+    completeOverpass() {
+        clearInterval(this.overpassCountdown);
+        this.majorValue = 1;
+    }
+
+    // incrementOverpass() {
+    //     if (this.minorValue < this.overpassTimeout) {
+    //         this.minorValue++;
+    //     }
+    // }
+
+    updateOSMAPI() {
+        this.message.innerText =
+            "Checking deleted features on OSM API (" +
+            this.minorValue +
+            "/" +
+            this.minorMax +
+            ")";
+        this.progressbar.value = this.realValue;
+        this.progressbar.innerText =
+            "(" + this.minorValue + "/" + this.minorMax + ")";
+    }
+    updateMode() {
+        this.message.innerText = "Analyzing " + this.mode;
+        this.progressbar.value = this.realValue;
+        this.progressbar.innerText =
+            "(" + this.minorValue + "/" + this.minorMax + ")";
+    }
+    updateOverpass() {
+        this.message.innerText =
+            "Querying Overpass, " +
+            (this.overpassTimeout - this.minorValue) +
+            " seconds until timeout";
+        this.progressbar.value = this.realValue;
+        this.progressbar.innerText =
+            this.overpassTimeout - this.minorValue + " seconds remain";
+    }
 }
 
 // EventSource = SSE;
 
 function sendData() {
     const FD = new FormData(mainform);
+    var overpassCountdown;
     evsource = new SSE("/result", {
         payload: FD,
     });
-    evsource.addEventListener("error", function(m) {
+    evsource.addEventListener("error", () => {
         console.log("error");
     });
-    evsource.addEventListener("open", function(m) {
+    evsource.addEventListener("open", () => {
         console.log("SSE connection open");
     });
-    evsource.addEventListener("message", function(m) {
-        console.log("message " + m.data);
+    evsource.addEventListener("message", (e) => {
+        console.log("message " + e.data);
     });
-    evsource.addEventListener("max", (e) => {
-        progress.max = e.data;
+    evsource.addEventListener("overpass_start", (e) => {
+        progress.currentPhase = "overpass";
+        // progress.majorMax = 1 + progress.mode_count;
+        progress.overpassTimeout = parseInt(e.data);
+        progress.minorMax = parseInt(e.data);
         progress.visible = true;
+        progress.startOverpass();
+        // overpassCountdown = setInterval(function() {
+        //     progress.minorValue++;
+        // }, 1000);
+        progress.updateValue();
     });
-    evsource.addEventListener("value", (e) => {
-        progress.value = e.data;
+    evsource.addEventListener("overpass_complete", () => {
+        clearInterval(overpassCountdown);
+        progress.majorValue = 1;
+        progress.updateValue();
     });
-    evsource.addEventListener("file", getFile);
+    evsource.addEventListener("overpass_failed", () => {
+        clearInterval(overpassCountdown);
+        // progress.completeOverpass();
+        progress.message.innerText = "Overpass timeout";
+        // progress.updateValue();
+    });
+    evsource.addEventListener("mode_count", (e) => {
+        progress.mode_count = parseInt(e.data);
+        // progress.majorMax = parseInt(e.data);
+        progress.visible = true;
+        progress.updateValue();
+    });
+    evsource.addEventListener("osm_api_max", (e) => {
+        progress.currentPhase = "osmapi";
+        progress.minorMax = parseInt(e.data);
+    });
+    evsource.addEventListener("osm_api_value", (e) => {
+        progress.currentPhase = "osmapi";
+        progress.minorValue = parseInt(e.data);
+        progress.updateValue();
+    });
+    evsource.addEventListener("mode", (e) => {
+        if (e.data != progress.mode) {
+            // Don't change if for some reason it's redundant
+            progress.majorValue++;
+            progress.currentPhase = "mode";
+            progress.mode = e.data;
+            progress.updateValue();
+        }
+    });
+    evsource.addEventListener("file", (e) => {
+        progress.message.innerText = "Analysis complete!";
+        getFile(e);
+    });
+
+    // evsource.addEventListener("max", (e) => {
+    //     progress.max = (parseInt(e.data) + 1) * progress.overpassTimeout;
+    //     progress.visible = true;
+    // });
+    // evsource.addEventListener("value", (e) => {
+    //     progress.value = (parseInt(e.data) + 1) * progress.overpassTimeout;
+    // });
     evsource.stream();
 }
 
-window.onload = function() {
+window.onload = () => {
     tagAutocomplete = document.getElementById("tagAutocomplete");
     mainform = document.getElementById("mainform");
 
@@ -219,18 +390,21 @@ window.onload = function() {
     loadTagAutocomplete();
     onTabChange();
     window.addEventListener("hashchange", onTabChange);
-    mainform.addEventListener("submit", function(event) {
+    mainform.addEventListener("submit", (event) => {
         event.preventDefault();
         if (document.activeElement.id == "tagAddField") {
             tagListGroup.addToList();
         } else if (
             document.activeElement.id == "filterAddField" ||
-            document.activeElement.id == "filterValueField"
+            document.activeElement.id == "filterValueField" ||
+            document.activeElement.name == "filterTypeBox"
         ) {
             filterListGroup.addToList();
         } else {
+            // Enable native validation and use it
             mainform.novalidate = false;
             var isValid = mainform.reportValidity();
+            // Disable native validation so the above works again
             mainform.novalidate = true;
             if (!isValid) {
                 return;

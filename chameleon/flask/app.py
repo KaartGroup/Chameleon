@@ -57,6 +57,19 @@ def home():
 
 @app.route("/result", methods=["POST"])
 def result():
+    """
+    Yields:
+    [overpass_start] (if used) : signals the start of an overpass query
+        along with the timeout
+    mode_count : indicates how many modes will be processed
+    [overpass_complete] (if used) : signals overpass has returned
+        and the countdown can stop
+    [overpass_failed] (if used) : signals overpass timed out
+    osm_api_max : indicates beginining of OSM API queries
+    osm_api_value : signals which OSM API is being queried
+    mode : signals start of mode processing and which mode is being processed
+    file : signals end of processing, includes the url for the generated file
+    """
     USER_DIR = USER_FILES_BASE / str(uuid())
     USER_DIR.mkdir(exist_ok=True)
 
@@ -93,11 +106,17 @@ def result():
 
         if all((country, startdate)):
             # Running in easy mode, need to make files for the user
-            yield str(Message("overpass_timeout", OVERPASS_TIMEOUT))
-            oldfile, newfile = overpass_getter(
-                country, filter_list, modes, startdate, enddate
-            )
+            yield message("mode_count", len(modes))
+            yield message("overpass_start", OVERPASS_TIMEOUT)
+            try:
+                oldfile, newfile = overpass_getter(
+                    country, filter_list, modes, startdate, enddate
+                )
+            except overpass.errors.TimeoutError:
+                return message("overpass_failed", None)
+            yield message("overpass_complete", None)
         elif all((oldfile, newfile)):
+            yield message("mode_count", len(modes))
             # Manual mode
             oldfile = oldfile.stream
             newfile = newfile.stream
@@ -111,9 +130,9 @@ def result():
 
         deleted_ids = list(df.loc[df["action"] == "deleted"].index)
         if deleted_ids:
-            yield str(Message("max", len(deleted_ids)))
+            yield message("osm_api_max", len(deleted_ids))
             for num, feature_id in enumerate(deleted_ids):
-                yield str(Message("value", num))
+                yield message("osm_api_value", num)
 
                 element_attribs = cdfs.check_feature_on_api(
                     feature_id, app_version=APP_VERSION
@@ -122,11 +141,13 @@ def result():
                 df.update(pd.DataFrame(element_attribs, index=[feature_id]))
                 gevent.sleep(REQUEST_INTERVAL)
 
-            yield str(Message("value", len(deleted_ids)))
+            yield message("osm_api_value", len(deleted_ids))
 
         cdfs.separate_special_dfs()
 
+        # yield message("start_modes", None)
         for mode in modes:
+            yield message("mode", mode)
             try:
                 result = ChameleonDataFrame(
                     cdfs.source_data, mode=mode, grouping=grouping
@@ -145,7 +166,7 @@ def result():
         # )
         the_path = Path(*(USER_DIR / file_name).parts[-2:])
 
-        yield str(Message("file", the_path))
+        yield str(message("file", the_path))
         # return send_file(
         #     the_path, as_attachment=True, mimetype=mimetype[file_format],
         # )
@@ -326,10 +347,5 @@ def overpass_getter(
         yield fp
 
 
-class Message:
-    def __init__(self, message_type: str, value: int):
-        self.type = message_type
-        self.value = value
-
-    def __str__(self):
-        return f"event: {self.type}\ndata: {self.value}\n\n"
+def message(message_type: str, value: int) -> str:
+    return f"event: {message_type}\ndata: {value}\n\n"
