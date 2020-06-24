@@ -1,30 +1,3 @@
-var tagListField;
-var tagAutocomplete;
-var mainform;
-var locationInput;
-var startDateInput;
-
-var easyTabDiv;
-var easyInputs;
-
-var manualTabDiv;
-var manualInputs;
-
-var filterListGroup;
-var tagListGroup;
-var progress;
-
-var evsource;
-
-var fileType;
-var fileExt;
-
-var extensions = {
-    excel: ".xlsx",
-    geojson: ".geojson",
-    csv: ".zip",
-};
-
 class ItemList {
     constructor(name, required = false) {
         this.addField = document.getElementById(name + "AddField");
@@ -378,61 +351,67 @@ function sendData() {
     evsource.stream();
 }
 
-window.onload = () => {
-    tagAutocomplete = document.getElementById("tagAutocomplete");
-    mainform = document.getElementById("mainform");
+var evsource;
 
-    easyTabDiv = document.getElementById("easytab");
-
-    manualTabDiv = document.getElementById("manualtab");
-    manualInputs = manualTabDiv.getElementsByTagName("input");
-
-    locationInput = document.getElementsByName("location")[0];
-    startDateInput = document.getElementsByName("startdate")[0];
-
-    filterListGroup = new FilterList("filter");
-    tagListGroup = new ItemList("tag", true);
-    progress = new Progbar();
-
-    fileType = Array.from(document.getElementsByName("file_format"));
-    fileExt = document.getElementById("fileExt");
-    fileType.forEach((elem) => {
-        elem.addEventListener("change", () => {
-            extensionChange(elem.value);
-        });
-    });
-    // Initial value on load
-    extensionChange(fileType.filter((e) => e.checked)[0].value);
-    tagListGroup.onTagListChange();
-
-    loadTagAutocomplete();
-    onTabChange();
-    window.addEventListener("hashchange", onTabChange);
-    mainform.addEventListener("submit", (event) => {
-        event.preventDefault();
-        if (document.activeElement.id == "tagAddField") {
-            tagListGroup.addToList();
-        } else if (
-            document.activeElement.id == "filterAddField" ||
-            document.activeElement.id == "filterValueField" ||
-            document.activeElement.name == "filterTypeBox"
-        ) {
-            filterListGroup.addToList();
-        } else {
-            // Enable native validation and use it
-            mainform.novalidate = false;
-            var isValid = mainform.reportValidity();
-            // Disable native validation so the above works again
-            mainform.novalidate = true;
-            if (!isValid) {
-                return;
-            }
-            onSubmit(filterListGroup);
-            onSubmit(tagListGroup);
-            sendData();
-        }
-    });
+var extensions = {
+    excel: ".xlsx",
+    geojson: ".geojson",
+    csv: ".zip",
 };
+
+var tagAutocomplete = document.getElementById("tagAutocomplete");
+var mainform = document.getElementById("mainform");
+
+var easyTabDiv = document.getElementById("easytab");
+
+var manualTabDiv = document.getElementById("manualtab");
+var manualInputs = manualTabDiv.getElementsByTagName("input");
+
+var locationInput = document.getElementsByName("location")[0];
+var startDateInput = document.getElementsByName("startdate")[0];
+
+var filterListGroup = new FilterList("filter");
+var tagListGroup = new ItemList("tag", true);
+var progress = new Progbar();
+
+var fileType = Array.from(document.getElementsByName("file_format"));
+var fileExt = document.getElementById("fileExt");
+fileType.forEach((elem) => {
+    elem.addEventListener("change", () => {
+        extensionChange(elem.value);
+    });
+});
+// Initial value on load
+extensionChange(fileType.filter((e) => e.checked)[0].value);
+tagListGroup.onTagListChange();
+
+loadTagAutocomplete();
+onTabChange();
+window.addEventListener("hashchange", onTabChange);
+mainform.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (document.activeElement.id == "tagAddField") {
+        tagListGroup.addToList();
+    } else if (
+        document.activeElement.id == "filterAddField" ||
+        document.activeElement.id == "filterValueField" ||
+        document.activeElement.name == "filterTypeBox"
+    ) {
+        filterListGroup.addToList();
+    } else {
+        // Enable native validation and use it
+        mainform.novalidate = false;
+        var isValid = mainform.reportValidity();
+        // Disable native validation so the above works again
+        mainform.novalidate = true;
+        if (!isValid) {
+            return;
+        }
+        onSubmit(filterListGroup);
+        onSubmit(tagListGroup);
+        sendData();
+    }
+});
 
 function extensionChange(name) {
     fileExt.innerText = extensions[name];
