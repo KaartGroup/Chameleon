@@ -1,0 +1,3 @@
+[submodule "chameleon/flask/modules/sse.js"]
+	path = chameleon/flask/modules/sse.js
+	url = https://github.com/KaartGroup/sse.js
