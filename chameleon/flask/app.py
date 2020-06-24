@@ -34,6 +34,7 @@ app = Flask(__name__)
 
 USER_FILES_BASE = Path("chameleon/flask/files")
 RESOURCES_DIR = Path("chameleon/resources")
+MODULES_DIR = Path("chameleon/flask/modules/")
 OVERPASS_TIMEOUT = 120
 
 try:
@@ -184,6 +185,11 @@ def download_file(unique_id):
 @app.route("/static/OSMtag.txt")
 def return_osm_tag():
     return send_file(RESOURCES_DIR.resolve() / "OSMtag.txt")
+
+
+@app.route("/static/sse.js")
+def return_sse_js():
+    return send_file(MODULES_DIR.resolve() / "sse.js/lib/sse.js")
 
 
 def high_deletions_checker(cdfs) -> bool:
