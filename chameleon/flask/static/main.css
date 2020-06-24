@@ -28,3 +28,7 @@ ul#tabmenu li {
 fieldset {
     border: none;
 }
+
+input[name="output"] {
+    text-align: right;
+}

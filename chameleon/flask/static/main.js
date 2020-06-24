@@ -16,6 +16,15 @@ var progress;
 
 var evsource;
 
+var fileType;
+var fileExt;
+
+var extensions = {
+    excel: ".xlsx",
+    geojson: ".geojson",
+    csv: ".zip",
+};
+
 class ItemList {
     constructor(name, required = false) {
         this.addField = document.getElementById(name + "AddField");
@@ -385,6 +394,15 @@ window.onload = () => {
     tagListGroup = new ItemList("tag", true);
     progress = new Progbar();
 
+    fileType = Array.from(document.getElementsByName("file_format"));
+    fileExt = document.getElementById("fileExt");
+    fileType.forEach((elem) => {
+        elem.addEventListener("change", () => {
+            extensionChange(elem.value);
+        });
+    });
+    // Initial value on load
+    extensionChange(fileType.filter((e) => e.checked)[0].value);
     tagListGroup.onTagListChange();
 
     loadTagAutocomplete();
@@ -415,6 +433,10 @@ window.onload = () => {
         }
     });
 };
+
+function extensionChange(name) {
+    fileExt.innerText = extensions[name];
+}
 
 function onTabChange() {
     var isManualTab = window.location.hash == "#manualtab";

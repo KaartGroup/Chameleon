@@ -120,10 +120,13 @@
             <button type="button" id="tagRemoveButton">Remove</button>
             <button type="button" id="tagClearButton">Clear</button>
         </fieldset>
-        <p>
+        <fieldset id="fileDetails">
             <label>Output file name
-                    <input type="text" name="output" placeholder="chameleon"
-                /></label> File format:
+                    <input
+                        type="text"
+                        name="output"
+                        placeholder="chameleon" /><span id="fileExt"></span
+                ></label> File format:
             <label>Excel<input
                         value="excel"
                         type="radio"
@@ -137,7 +140,7 @@
                 /></label>
             <label>CSV<input value="csv" type="radio" name="file_format"
                 /></label>
-        </p>
+        </fieldset>
         <label>Group rows by type of change
                 <input type="checkbox" name="grouping"
             /></label>
