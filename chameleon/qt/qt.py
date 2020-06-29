@@ -47,7 +47,7 @@ if getattr(sys, "frozen", False):
 else:
     # Script is not in a frozen package
     # __file__.parent is chameleon, .parents[1] is chameleon-2
-    RESOURCES_DIR = Path(__file__).parents[2] / "resources"
+    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
