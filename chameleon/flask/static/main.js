@@ -376,15 +376,20 @@ var filterListGroup = new FilterList("filter");
 var tagListGroup = new ItemList("tag", true);
 var progress = new Progbar();
 
-var fileType = Array.from(document.getElementsByName("file_format"));
+// TODO Make this into a class with an access method?
+var fileTypeBoxes = Array.from(document.getElementsByName("file_format"));
 var fileExt = document.getElementById("fileExt");
-fileType.forEach((elem) => {
+fileTypeBoxes.forEach((elem) => {
     elem.addEventListener("change", () => {
         extensionChange(elem.value);
     });
 });
+
+// TODO Fix this
+var fileType = localStorage.getItem("file_format") ?? "excel";
+
 // Initial value on load
-extensionChange(fileType.filter((e) => e.checked)[0].value);
+extensionChange(fileTypeBoxes.filter((e) => e.checked)[0].value);
 tagListGroup.onTagListChange();
 
 loadTagAutocomplete();
@@ -434,6 +439,26 @@ function onSubmit(object) {
     for (var x = 0; x < object.theList.options.length; x++) {
         object.theList.options[x].selected = true;
     }
+    localStorage.setItem(
+        "location",
+        document.getElementsByName("location")[0].value
+    );
+    localStorage.setItem(
+        "startdate",
+        document.getElementsByName("startdate")[0].value
+    );
+    localStorage.setItem(
+        "enddate",
+        document.getElementsByName("enddate")[0].value
+    );
+    localStorage.setItem(
+        "output",
+        document.getElementsByName("output")[0].value
+    );
+    localStorage.setItem(
+        "file_format",
+        fileTypeBoxes.filter((x) => x.checked).map((x) => x.value)[0]
+    );
 }
 
 function getFile(event) {
