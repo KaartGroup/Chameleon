@@ -26,8 +26,8 @@ class ItemList {
         }
         if (
             Array.from(this.theList.options)
-            .map((x) => x.text)
-            .includes(item)
+                .map((x) => x.text)
+                .includes(item)
         ) {
             return;
         }
@@ -89,8 +89,8 @@ class FilterList extends ItemList {
         var optionstring = keyvalue + " (" + item[2].join("") + ")";
         if (
             Array.from(this.theList.options)
-            .map((x) => x.text)
-            .includes(optionstring)
+                .map((x) => x.text)
+                .includes(optionstring)
         ) {
             return;
         }
@@ -102,7 +102,7 @@ class FilterList extends ItemList {
 function loadTagAutocomplete() {
     var rawFile = new XMLHttpRequest();
     rawFile.open("GET", "/static/OSMtag.txt", true);
-    rawFile.onreadystatechange = function() {
+    rawFile.onreadystatechange = function () {
         var arrayOfLines;
         if (
             rawFile.readyState === 4 &&
@@ -122,6 +122,33 @@ function loadTagAutocomplete() {
 
 class Progbar {
     _mode;
+    progressbar;
+    progressbarLabel;
+    message;
+    _majorMax;
+    _majorValue;
+    _minorValue;
+    _minorMax;
+    _modeCount;
+
+    overpassTimeout;
+    overpassCountdown;
+    minorStep;
+    use_overpass;
+    currentPhase;
+
+    updateValueDispatch = {
+        osmapi: () => {
+            this.updateOSMAPI();
+        },
+        mode: () => {
+            this.updateMode();
+        },
+        default: () => {},
+        overpass: () => {
+            this.updateOverpass();
+        },
+    };
     constructor() {
         this.progressbar = document.getElementById("progressbar");
         this.progressbarLabel = document.getElementById("progressbarLabel");
@@ -140,18 +167,6 @@ class Progbar {
         this.minorStep = this.overpassTimeout;
         this.use_overpass = false;
         this.currentPhase = "default";
-        this.updateValueDispatch = {
-            osmapi: () => {
-                this.updateOSMAPI();
-            },
-            mode: () => {
-                this.updateMode();
-            },
-            default: () => {},
-            overpass: () => {
-                this.updateOverpass();
-            },
-        };
     }
     set mode(value) {
         this._mode = value;
@@ -219,12 +234,11 @@ class Progbar {
         this.progressbar.max = this.realMax;
     }
     updateValue() {
-        var curPhase = this.currentPhase;
-        this.updateValueDispatch[curPhase]();
+        this.updateValueDispatch[this.currentPhase]();
     }
 
     startOverpass() {
-        this.overpassCountdown = setInterval(() => {
+        this.overpassCountdown = window.setInterval(() => {
             // this.incrementOverpass();
             if (this.minorValue < this.overpassTimeout) {
                 this.minorValue++;
@@ -274,7 +288,39 @@ class Progbar {
     }
 }
 
-// EventSource = SSE;
+class fileTypeSelector {
+    boxes;
+    fileExt;
+    extensions = {
+        excel: ".xlsx",
+        geojson: ".geojson",
+        csv: ".zip",
+    };
+    constructor() {
+        this.boxes = Array.from(document.getElementsByName("file_format"));
+        this.boxes.forEach((elem) => {
+            elem.addEventListener("change", () => {
+                this.extensionChange();
+            });
+        });
+
+        this.fileExt = document.getElementById("fileExt");
+        this.extensionChange();
+    }
+    get type() {
+        return this.boxes.filter((e) => e.checked)[0].value;
+    }
+    set type(value) {
+        if (!value) {
+            return;
+        }
+        var selectedBox = this.boxes.filter((x) => x.value == value)[0];
+        selectedBox.checked = true;
+    }
+    extensionChange() {
+        this.fileExt.innerText = this.extensions[this.type];
+    }
+}
 
 function sendData() {
     const FD = new FormData(mainform);
@@ -355,12 +401,6 @@ function sendData() {
 
 var evsource;
 
-var extensions = {
-    excel: ".xlsx",
-    geojson: ".geojson",
-    csv: ".zip",
-};
-
 var tagAutocomplete = document.getElementById("tagAutocomplete");
 var mainform = document.getElementById("mainform");
 
@@ -371,25 +411,18 @@ var manualInputs = manualTabDiv.getElementsByTagName("input");
 
 var locationInput = document.getElementsByName("location")[0];
 var startDateInput = document.getElementsByName("startdate")[0];
+var endDateInput = document.getElementsByName("enddate")[0];
+var outputInput = document.getElementsByName("output")[0];
 
 var filterListGroup = new FilterList("filter");
 var tagListGroup = new ItemList("tag", true);
 var progress = new Progbar();
 
-// TODO Make this into a class with an access method?
-var fileTypeBoxes = Array.from(document.getElementsByName("file_format"));
-var fileExt = document.getElementById("fileExt");
-fileTypeBoxes.forEach((elem) => {
-    elem.addEventListener("change", () => {
-        extensionChange(elem.value);
-    });
-});
+var fileTypeInstance = new fileTypeSelector();
 
-// TODO Fix this
 var fileType = localStorage.getItem("file_format") ?? "excel";
-
+fileTypeInstance.type = fileType;
 // Initial value on load
-extensionChange(fileTypeBoxes.filter((e) => e.checked)[0].value);
 tagListGroup.onTagListChange();
 
 loadTagAutocomplete();
@@ -420,10 +453,6 @@ mainform.addEventListener("submit", (event) => {
     }
 });
 
-function extensionChange(name) {
-    fileExt.innerText = extensions[name];
-}
-
 function onTabChange() {
     var isManualTab = window.location.hash == "#manualtab";
     easyTabDiv.disabled = isManualTab;
@@ -439,26 +468,11 @@ function onSubmit(object) {
     for (var x = 0; x < object.theList.options.length; x++) {
         object.theList.options[x].selected = true;
     }
-    localStorage.setItem(
-        "location",
-        document.getElementsByName("location")[0].value
-    );
-    localStorage.setItem(
-        "startdate",
-        document.getElementsByName("startdate")[0].value
-    );
-    localStorage.setItem(
-        "enddate",
-        document.getElementsByName("enddate")[0].value
-    );
-    localStorage.setItem(
-        "output",
-        document.getElementsByName("output")[0].value
-    );
-    localStorage.setItem(
-        "file_format",
-        fileTypeBoxes.filter((x) => x.checked).map((x) => x.value)[0]
-    );
+    localStorage.setItem("location", locationInput.value);
+    localStorage.setItem("startdate", startDateInput.value);
+    localStorage.setItem("enddate", endDateInput.value);
+    localStorage.setItem("output", outputInput.value);
+    localStorage.setItem("file_format", fileTypeInstance.type);
 }
 
 function getFile(event) {
