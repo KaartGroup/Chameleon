@@ -388,6 +388,7 @@ function sendData() {
         }
     });
     evsource.addEventListener("file", (e) => {
+        progress.majorValue++;
         progress.message.innerText = "Analysis complete!";
         getFile(e);
     });
