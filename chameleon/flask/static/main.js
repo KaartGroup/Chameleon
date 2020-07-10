@@ -469,8 +469,8 @@ function onTabChange() {
 }
 
 function onSubmit(object) {
-    for (var x = 0; x < object.theList.options.length; x++) {
-        object.theList.options[x].selected = true;
+    for (let x of object.theList.options) {
+        x.selected = true;
     }
     localStorage.setItem("location", locationInput.value);
     localStorage.setItem("startdate", startDateInput.value);
