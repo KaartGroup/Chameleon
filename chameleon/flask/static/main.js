@@ -19,6 +19,9 @@ class ItemList {
             this.clearList();
         });
     }
+    get asArray() {
+        return Array.from(this.theList.options).map((x) => x.text);
+    }
     addToList() {
         var item = this.addField.value.trim();
         if (!item) {
