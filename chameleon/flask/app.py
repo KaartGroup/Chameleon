@@ -8,6 +8,7 @@ from typing import Generator, List, Set, TextIO, Tuple
 from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
+import appdirs
 import gevent
 import overpass
 import oyaml as yaml
@@ -32,7 +33,7 @@ from chameleon.core import (
 
 app = Flask(__name__)
 
-USER_FILES_BASE = Path("chameleon/flask/files")
+USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
 RESOURCES_DIR = Path("chameleon/resources")
 MODULES_DIR = Path("chameleon/flask/modules/")
 OVERPASS_TIMEOUT = 120
@@ -72,7 +73,7 @@ def result():
     file : signals end of processing, includes the url for the generated file
     """
     USER_DIR = USER_FILES_BASE / str(uuid())
-    USER_DIR.mkdir(exist_ok=True)
+    USER_DIR.mkdir(parents=True, exist_ok=True)
 
     country: str = request.form.get("location", "", str.upper)
 
