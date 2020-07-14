@@ -180,7 +180,7 @@ def result():
 
 @app.route("/download/<path:unique_id>")
 def download_file(unique_id):
-    return send_from_directory("files", unique_id)
+    return send_from_directory(USER_FILES_BASE.resolve(), unique_id)
 
 
 @app.route("/static/OSMtag.txt")
