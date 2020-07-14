@@ -23,21 +23,20 @@ class ItemList {
         return Array.from(this.theList.options).map((x) => x.text);
     }
     addToList() {
-        var item = this.addField.value.trim();
-        if (!item) {
+        let items = this.addField.value.trim().split(/[\s,|]+/);
+        if (!items) {
             return;
         }
-        if (
-            Array.from(this.theList.options)
-                .map((x) => x.text)
-                .includes(item)
-        ) {
-            return;
+
+        for (let item of items) {
+            if (this.asArray.includes(item)) {
+                continue;
+            }
+            let option = document.createElement("option");
+            this.addField.value = "";
+            option.text = item;
+            this.theList.add(option);
         }
-        var option = document.createElement("option");
-        this.addField.value = "";
-        option.text = item;
-        this.theList.add(option);
         this.onTagListChange();
     }
     removeFromList() {
