@@ -324,6 +324,13 @@ class fileTypeSelector {
     }
 }
 
+function addArray(obj, array) {
+    for (let x of array) {
+        let value = obj[x] ?? 0;
+        obj[x] = value + 1;
+    }
+}
+
 function sendData() {
     const FD = new FormData(mainform);
     var overpassCountdown;
@@ -421,6 +428,8 @@ var filterListGroup = new FilterList("filter");
 var tagListGroup = new ItemList("tag", true);
 var progress = new Progbar();
 
+var counter = favLoader();
+
 var fileTypeInstance = new fileTypeSelector();
 
 var fileType = localStorage.getItem("file_format") ?? "excel";
@@ -452,6 +461,8 @@ mainform.addEventListener("submit", (event) => {
         }
         onSubmit(filterListGroup);
         onSubmit(tagListGroup);
+
+        addArray(counter, tagListGroup.asArray);
         sendData();
     }
 });
@@ -476,6 +487,7 @@ function onSubmit(object) {
     localStorage.setItem("enddate", endDateInput.value);
     localStorage.setItem("output", outputInput.value);
     localStorage.setItem("file_format", fileTypeInstance.type);
+    localStorage.setItem("counter", JSON.stringify(counter));
 }
 
 function getFile(event) {
@@ -485,4 +497,8 @@ function getFile(event) {
 
 function askUserForConfirmation(message) {
     // TODO Finish this function
+}
+
+function favLoader() {
+    return JSON.parse(localStorage.getItem("counter")) ?? new Object();
 }
