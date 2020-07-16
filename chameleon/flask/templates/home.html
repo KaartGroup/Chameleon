@@ -134,6 +134,7 @@
             </div>
             <fieldset id="howStep">
                 <h2 class="stepHeading">How</h2>
+                <ul id="favButtons"></ul>
                 <label
                     >Enter tag:
                     <input list="tagAutocomplete" type="text" id="tagAddField"
@@ -148,6 +149,12 @@
                 <button type="button" id="tagClearButton">Clear</button>
             </fieldset>
             <fieldset id="fileDetails">
+                <input
+                    type="hidden"
+                    name="high_deletions_ok"
+                    value="true"
+                    disabled
+                />
                 <label
                     >Output file name
                     <input
@@ -180,9 +187,18 @@
 
             <button name="run" type="submit">Run</button>
         </form>
-        <label id="progressbarLabel">
-            <span id="progbarMessage"></span>
-            <progress id="progressbar"></progress>
-        </label>
+        <dialog id="progressbarDialog">
+            <label id="progressbarLabel">
+                <span id="progbarMessage"></span>
+                <progress id="progressbar"></progress>
+            </label>
+        </dialog>
+        <dialog id="highdeletionsdialog">
+            <p id="highdeletionstext"></p>
+            <form method="dialog">
+                <button id="highdeletionsyes" type="button">Yes</button>
+                <button id="highdeletionsno" type="button">No</button>
+            </form>
+        </dialog>
     </body>
 </html>
