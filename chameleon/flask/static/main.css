@@ -2,11 +2,6 @@ select {
     min-width: 20em;
 }
 
-label#progressbarLabel {
-    /* Initial state before data starts getting returned */
-    display: none;
-}
-
 .tabcontainer > .tabbedpage:target ~ .tabbedpage:last-child,
 .tabcontainer > .tabbedpage {
     display: none;
