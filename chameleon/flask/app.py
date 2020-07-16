@@ -77,6 +77,8 @@ def result():
 
     country: str = request.form.get("location", "", str.upper)
 
+    high_deletions_ok = request.form.get("high_deletions_ok", None, bool)
+
     startdate = request.form.get("startdate", type=datetime.fromisoformat)
     enddate = request.form.get("enddate")
     if enddate:
@@ -127,6 +129,17 @@ def result():
             raise UnprocessableEntity
         with oldfile as old, newfile as new:
             cdfs = ChameleonDataFrameSet(old, new)
+
+        deletion_percentage = high_deletions_checker(cdfs)
+        if deletion_percentage > 20 and not high_deletions_ok:
+            yield message(
+                "high_deletion_percentage",
+                "There is an unusually high proportion of deletions "
+                f"({round(deletion_percentage,2)}%). "
+                "This often indicates that the two input files have different scope. "
+                "Would you like to continue?",
+            )
+            return
 
         df = cdfs.source_data
 
@@ -193,17 +206,12 @@ def return_sse_js():
     return send_file(MODULES_DIR.resolve() / "sse.js/lib/sse.js")
 
 
-def high_deletions_checker(cdfs) -> bool:
+def high_deletions_checker(cdfs: ChameleonDataFrameSet) -> bool:
     deletion_percentage = (
         len(cdfs.source_data[cdfs.source_data["action"] == "deleted"])
         / len(cdfs.source_data)
     ) * 100
-    return deletion_percentage > 20 and not user_confirm(
-        "There is an unusually high proportion of deletions "
-        f"({round(deletion_percentage,2)}%). "
-        "This often indicates that the two input files have different scope. "
-        "Would you like to continue?"
-    )
+    return deletion_percentage
 
 
 def user_confirm(message):

@@ -1,5 +1,9 @@
 import { SSE } from "/static/sse.js";
 
+function $(id) {
+    return document.getElementById(id);
+}
+
 class ItemList {
     constructor(name, required = false) {
         this.addField = document.getElementById(name + "AddField");
@@ -65,6 +69,32 @@ class ItemList {
     }
 }
 
+class HighDeletionsOk {
+    input;
+    dialog;
+    constructor() {
+        this.input = document.getElementsByName("high_deletions_ok")[0];
+        this.dialog = $("highdeletionsdialog");
+        $("highdeletionsyes").addEventListener("click", () => {
+            this.respond(true);
+        });
+        $("highdeletionsno").addEventListener("click", () => {
+            this.dialog.cancel();
+        });
+    }
+    respond(answer) {
+        if (answer) {
+            this.input.disabled = false;
+            let event = new Event("submit");
+            mainform.dispatchEvent(event);
+        }
+        this.dialog.open = false;
+    }
+    askUser(message) {
+        $("highdeletionstext").innerText = message;
+        this.dialog.open = true;
+    }
+}
 class FilterList extends ItemList {
     constructor(name, required = false) {
         super(name, required);
@@ -89,11 +119,7 @@ class FilterList extends ItemList {
         this.valueField.value = "";
         var option = document.createElement("option");
         var optionstring = keyvalue + " (" + item[2].join("") + ")";
-        if (
-            Array.from(this.theList.options)
-                .map((x) => x.text)
-                .includes(optionstring)
-        ) {
+        if (this.asArray.includes(optionstring)) {
             return;
         }
         option.text = optionstring;
@@ -123,10 +149,10 @@ function loadTagAutocomplete() {
 }
 
 class Progbar {
-    _mode;
     progressbar;
-    progressbarLabel;
+    progressbarDialog;
     message;
+    _mode;
     _majorMax;
     _majorValue;
     _minorValue;
@@ -153,7 +179,7 @@ class Progbar {
     };
     constructor() {
         this.progressbar = document.getElementById("progressbar");
-        this.progressbarLabel = document.getElementById("progressbarLabel");
+        this.progressbarDialog = document.getElementById("progressbarDialog");
         this.message = document.getElementById("progbarMessage");
 
         // majorValue: overpass phase is 1, OSM API phase is 1, each mode is 1
@@ -227,9 +253,11 @@ class Progbar {
     }
     set visible(flag) {
         if (flag) {
-            this.progressbarLabel.style.display = "block";
+            // this.progressbarDialog.style.display = "block";
+            this.progressbarDialog.open = true;
         } else {
-            this.progressbarLabel.style.display = "none";
+            // this.progressbarDialog.style.display = "none";
+            this.progressbarDialog.open = false;
         }
     }
     updateMax() {
@@ -241,7 +269,6 @@ class Progbar {
 
     startOverpass() {
         this.overpassCountdown = window.setInterval(() => {
-            // this.incrementOverpass();
             if (this.minorValue < this.overpassTimeout) {
                 this.minorValue++;
             } else {
@@ -398,6 +425,9 @@ function sendData() {
         progress.message.innerText = "Analysis complete!";
         getFile(e);
     });
+    evsource.addEventListener("high_deletion_percentage", (e) => {
+        high_deletions_instance.askUser(e.data);
+    });
 
     // evsource.addEventListener("max", (e) => {
     //     progress.max = (parseInt(e.data) + 1) * progress.overpassTimeout;
@@ -408,6 +438,8 @@ function sendData() {
     // });
     evsource.stream();
 }
+
+var high_deletions_instance = new HighDeletionsOk();
 
 var evsource;
 
@@ -501,4 +533,8 @@ function askUserForConfirmation(message) {
 
 function favLoader() {
     return JSON.parse(localStorage.getItem("counter")) ?? new Object();
+}
+
+function isObject(value) {
+    return Object(value) === value;
 }
