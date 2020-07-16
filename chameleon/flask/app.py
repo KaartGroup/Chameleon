@@ -121,7 +121,7 @@ def result():
             yield message("overpass_complete", None)
         elif all((oldfile, newfile)):
             yield message("mode_count", len(modes))
-            # Manual mode
+            # BYOD mode
             oldfile = oldfile.stream
             newfile = newfile.stream
         else:
@@ -173,18 +173,10 @@ def result():
             cdfs.add(result)
 
         file_name = write_output[file_format](cdfs, USER_DIR, output)
-        # return send_from_directory(
-        #     str(BASE_DIR),
-        #     file_name,
-        #     as_attachment=True,
-        #     mimetype=mimetype[file_format],
-        # )
+
         the_path = Path(*(USER_DIR / file_name).parts[-2:])
 
         yield str(message("file", the_path))
-        # return send_file(
-        #     the_path, as_attachment=True, mimetype=mimetype[file_format],
-        # )
 
     return Response(
         stream_with_context(process_data()), mimetype="text/event-stream",
