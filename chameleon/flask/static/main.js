@@ -5,6 +5,11 @@ function $(id) {
 }
 
 class ItemList {
+    addField;
+    addButton;
+    removeButton;
+    theList;
+    required;
     constructor(name, required = false) {
         this.addField = document.getElementById(name + "AddField");
         this.addButton = document.getElementById(name + "AddButton");
@@ -13,21 +18,34 @@ class ItemList {
         this.theList = document.getElementById(name + "List");
         this.required = required;
 
-        this.addButton.addEventListener("click", (e) => {
-            this.addToList();
+        this.addButton.addEventListener("click", () => {
+            this.addFromAddField();
         });
-        this.removeButton.addEventListener("click", (e) => {
+        this.removeButton.addEventListener("click", () => {
             this.removeFromList();
         });
-        this.clearButton.addEventListener("click", (e) => {
+        this.clearButton.addEventListener("click", () => {
             this.clearList();
         });
     }
     get asArray() {
         return Array.from(this.theList.options).map((x) => x.text);
     }
-    addToList() {
-        let items = this.addField.value.trim().split(/[\s,|]+/);
+    addFromAddField() {
+        /*
+        Sends whatever value to the add func from the input field
+        and clears the field
+        */
+        let fieldValue = this.addField.value;
+        this.addField.value = "";
+        this.addToList(fieldValue);
+    }
+    addToList(rawText) {
+        /*
+        Takes whatever value(s) is given, parses into multiple delimited inputs,
+        and adds to the list
+        */
+        let items = rawText.trim().split(/[\s,|]+/);
         if (!items) {
             return;
         }
@@ -37,7 +55,6 @@ class ItemList {
                 continue;
             }
             let option = document.createElement("option");
-            this.addField.value = "";
             option.text = item;
             this.theList.add(option);
         }
@@ -317,7 +334,7 @@ class Progbar {
     }
 }
 
-class fileTypeSelector {
+class FileTypeSelector {
     boxes;
     fileExt;
     extensions = {
@@ -348,6 +365,56 @@ class fileTypeSelector {
     }
     extensionChange() {
         this.fileExt.innerText = this.extensions[this.type];
+    }
+}
+
+class Shortcuts {
+    defaultTags = ["highway", "name", "ref", "addr:housenumber", "addr:street"];
+    loadedFavs;
+    tagListObject;
+    constructor(tagListObject) {
+        this.tagListObject = tagListObject;
+        let counter = favLoader();
+        this.loadedFavs = Shortcuts.counter_to_array(counter);
+        this.fillFavs();
+    }
+    fillFavs() {
+        let difference = 5 - this.loadedFavs.length;
+        if (difference > 0) {
+            let toBeAdded = this.defaultTags
+                .filter((x) => !this.loadedFavs.includes(x))
+                .slice(0, 2);
+            this.loadedFavs.concat(toBeAdded);
+        }
+    }
+    createButtons() {
+        for (let x of this.loadedFavs) {
+            this.add(x);
+        }
+    }
+    add(tag) {
+        let item = document.createElement("li");
+        let button = document.createElement("button");
+        button.id = tag + "Shortcut";
+        button.type = "button";
+        button.innerText = tag;
+        button.addEventListener("click", () => {
+            this.tagListObject.addToList(tag);
+        });
+        item.appendChild(button);
+        // item.innerHTML =
+        //     '<button type="button" id="' + tag + 'Shortcut">' + tag + "</button>";
+        $("favButtons").appendChild(item);
+    }
+    static counter_to_array(input) {
+        let intermediate = [];
+        for (let item in input) {
+            intermediate.push([item, input[item]]);
+        }
+        intermediate.sort(function (a, b) {
+            return a[1] - b[1];
+        });
+        return Array.from(intermediate.map((x) => x[0]).reverse());
     }
 }
 
@@ -454,9 +521,10 @@ var filterListGroup = new FilterList("filter");
 var tagListGroup = new ItemList("tag", true);
 var progress = new Progbar();
 
-var counter = favLoader();
+var fileTypeInstance = new FileTypeSelector();
 
-var fileTypeInstance = new fileTypeSelector();
+var shortcutsInstance = new Shortcuts(tagListGroup);
+shortcutsInstance.createButtons();
 
 var fileType = localStorage.getItem("file_format") ?? "excel";
 fileTypeInstance.type = fileType;
@@ -469,7 +537,7 @@ window.addEventListener("hashchange", onTabChange);
 $("mainform").addEventListener("submit", (event) => {
     event.preventDefault();
     if (document.activeElement.id == "tagAddField") {
-        tagListGroup.addToList();
+        tagListGroup.addFromAddField();
     } else if (
         document.activeElement.id == "filterAddField" ||
         document.activeElement.id == "filterValueField" ||
