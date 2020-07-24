@@ -1,6 +1,7 @@
 appdirs
 coverage
 geopandas
+gevent
 nose
 osm2geojson
 overpass
