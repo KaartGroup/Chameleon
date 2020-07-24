@@ -86,7 +86,7 @@ class HighDeletionsOk {
         if (answer) {
             this.input.disabled = false;
             let event = new Event("submit");
-            mainform.dispatchEvent(event);
+            $("mainform").dispatchEvent(event);
         }
         this.dialog.open = false;
     }
@@ -141,7 +141,7 @@ function loadTagAutocomplete() {
             for (var i of arrayOfLines) {
                 var option = document.createElement("option");
                 option.value = i;
-                tagAutocomplete.append(option);
+                $("tagAutocomplete").append(option);
             }
         }
     };
@@ -359,7 +359,7 @@ function addArray(obj, array) {
 }
 
 function sendData() {
-    const FD = new FormData(mainform);
+    const FD = new FormData($("mainform"));
     var overpassCountdown;
     evsource = new SSE("/result", {
         payload: FD,
@@ -443,13 +443,7 @@ var high_deletions_instance = new HighDeletionsOk();
 
 var evsource;
 
-var tagAutocomplete = document.getElementById("tagAutocomplete");
-var mainform = document.getElementById("mainform");
-
-var easyTabDiv = document.getElementById("easytab");
-
-var manualTabDiv = document.getElementById("manualtab");
-var manualInputs = manualTabDiv.getElementsByTagName("input");
+var manualInputs = $("manualtab").getElementsByTagName("input");
 
 var locationInput = document.getElementsByName("location")[0];
 var startDateInput = document.getElementsByName("startdate")[0];
@@ -472,7 +466,7 @@ tagListGroup.onTagListChange();
 loadTagAutocomplete();
 onTabChange();
 window.addEventListener("hashchange", onTabChange);
-mainform.addEventListener("submit", (event) => {
+$("mainform").addEventListener("submit", (event) => {
     event.preventDefault();
     if (document.activeElement.id == "tagAddField") {
         tagListGroup.addToList();
@@ -484,10 +478,10 @@ mainform.addEventListener("submit", (event) => {
         filterListGroup.addToList();
     } else {
         // Enable native validation and use it
-        mainform.novalidate = false;
-        var isValid = mainform.reportValidity();
+        $("mainform").novalidate = false;
+        var isValid = $("mainform").reportValidity();
         // Disable native validation so the above works again
-        mainform.novalidate = true;
+        $("mainform").novalidate = true;
         if (!isValid) {
             return;
         }
@@ -501,8 +495,8 @@ mainform.addEventListener("submit", (event) => {
 
 function onTabChange() {
     var isManualTab = window.location.hash == "#manualtab";
-    easyTabDiv.disabled = isManualTab;
-    manualTabDiv.disabled = !isManualTab;
+    $("easytab").disabled = isManualTab;
+    $("manualtab").disabled = !isManualTab;
 
     // Cleans the URL of unnecessary hash
     if (window.location.hash == "") {
