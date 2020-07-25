@@ -9,3 +9,4 @@ oyaml
 pandas
 PySide2
 pytest
+xlsxwriter
