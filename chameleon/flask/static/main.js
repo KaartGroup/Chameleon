@@ -159,8 +159,8 @@ function loadTagAutocomplete() {
         ) {
             var alltext = rawFile.responseText;
             arrayOfLines = alltext.split("\n");
-            for (var i of arrayOfLines) {
-                var option = document.createElement("option");
+            for (let i of arrayOfLines) {
+                let option = document.createElement("option");
                 option.value = i;
                 $("tagAutocomplete").append(option);
             }
