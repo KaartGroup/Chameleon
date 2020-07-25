@@ -96,20 +96,24 @@ class HighDeletionsOk {
             this.respond(true);
         });
         $("highdeletionsno").addEventListener("click", () => {
-            this.dialog.cancel();
+            this.dialog.close();
         });
     }
     respond(answer) {
         if (answer) {
             this.input.disabled = false;
-            let event = new Event("submit");
+            let event = new Event("submit", {
+                bubbles: true,
+                cancelable: true,
+            });
             $("mainform").dispatchEvent(event);
+            this.input.disabled = true;
         }
-        this.dialog.open = false;
+        this.dialog.close();
     }
     askUser(message) {
         $("highdeletionstext").innerText = message;
-        this.dialog.open = true;
+        this.dialog.showModal();
     }
 }
 class FilterList extends ItemList {
@@ -372,10 +376,11 @@ class Shortcuts {
     defaultTags = ["highway", "name", "ref", "addr:housenumber", "addr:street"];
     loadedFavs;
     tagListObject;
+    counter;
     constructor(tagListObject) {
         this.tagListObject = tagListObject;
-        let counter = favLoader();
-        this.loadedFavs = Shortcuts.counter_to_array(counter);
+        this.counter = favLoader();
+        this.loadedFavs = Shortcuts.counter_to_array(this.counter);
         this.fillFavs();
     }
     fillFavs() {
@@ -553,10 +558,12 @@ $("mainform").addEventListener("submit", (event) => {
         if (!isValid) {
             return;
         }
+        addArray(shortcutsInstance.counter, tagListGroup.asArray);
+        saveToLocalStorage();
+
         onSubmit(filterListGroup);
         onSubmit(tagListGroup);
 
-        addArray(counter, tagListGroup.asArray);
         sendData();
     }
 });
@@ -576,21 +583,20 @@ function onSubmit(object) {
     for (let x of object.theList.options) {
         x.selected = true;
     }
+}
+
+function saveToLocalStorage() {
     localStorage.setItem("location", locationInput.value);
     localStorage.setItem("startdate", startDateInput.value);
     localStorage.setItem("enddate", endDateInput.value);
     localStorage.setItem("output", outputInput.value);
     localStorage.setItem("file_format", fileTypeInstance.type);
-    localStorage.setItem("counter", JSON.stringify(counter));
+    localStorage.setItem("counter", JSON.stringify(shortcutsInstance.counter));
 }
 
 function getFile(event) {
     var path = event.data;
     window.location.pathname = "/download/" + path;
-}
-
-function askUserForConfirmation(message) {
-    // TODO Finish this function
 }
 
 function favLoader() {
