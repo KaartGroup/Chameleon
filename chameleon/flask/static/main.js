@@ -272,15 +272,6 @@ class Progbar {
         this._minorMax = parseInt(max);
         this.updateValue();
     }
-    set visible(flag) {
-        if (flag) {
-            // this.progressbarDialog.style.display = "block";
-            this.progressbarDialog.open = true;
-        } else {
-            // this.progressbarDialog.style.display = "none";
-            this.progressbarDialog.open = false;
-        }
-    }
     updateMax() {
         this.progressbar.max = this.realMax;
     }
@@ -450,7 +441,7 @@ function sendData() {
         // progress.majorMax = 1 + progress.mode_count;
         progress.overpassTimeout = parseInt(e.data);
         progress.minorMax = parseInt(e.data);
-        progress.visible = true;
+        progress.progressbarDialog.showModal();
         progress.startOverpass();
         // overpassCountdown = setInterval(function() {
         //     progress.minorValue++;
@@ -471,7 +462,7 @@ function sendData() {
     evsource.addEventListener("mode_count", (e) => {
         progress.mode_count = parseInt(e.data);
         // progress.majorMax = parseInt(e.data);
-        progress.visible = true;
+        progress.progressbarDialog.showModal();
         progress.updateValue();
     });
     evsource.addEventListener("osm_api_max", (e) => {
@@ -496,18 +487,14 @@ function sendData() {
         progress.majorValue++;
         progress.message.innerText = "Analysis complete!";
         getFile(e);
+        setTimeout(() => {
+            progress.progressbarDialog.close(), 5000;
+        });
     });
     evsource.addEventListener("high_deletion_percentage", (e) => {
         high_deletions_instance.askUser(e.data);
     });
 
-    // evsource.addEventListener("max", (e) => {
-    //     progress.max = (parseInt(e.data) + 1) * progress.overpassTimeout;
-    //     progress.visible = true;
-    // });
-    // evsource.addEventListener("value", (e) => {
-    //     progress.value = (parseInt(e.data) + 1) * progress.overpassTimeout;
-    // });
     evsource.stream();
 }
 
