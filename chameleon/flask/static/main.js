@@ -535,7 +535,7 @@ $("mainform").addEventListener("submit", (event) => {
         document.activeElement.id == "filterValueField" ||
         document.activeElement.name == "filterTypeBox"
     ) {
-        filterListGroup.addToList();
+        filterListGroup.addFromAddField();
     } else {
         // Enable native validation and use it
         $("mainform").novalidate = false;
