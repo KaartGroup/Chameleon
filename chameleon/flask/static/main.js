@@ -86,36 +86,6 @@ class ItemList {
     }
 }
 
-class HighDeletionsOk {
-    input;
-    dialog;
-    constructor() {
-        this.input = document.getElementsByName("high_deletions_ok")[0];
-        this.dialog = $("highdeletionsdialog");
-        $("highdeletionsyes").addEventListener("click", () => {
-            this.respond(true);
-        });
-        $("highdeletionsno").addEventListener("click", () => {
-            this.dialog.close();
-        });
-    }
-    respond(answer) {
-        if (answer) {
-            this.input.disabled = false;
-            let event = new Event("submit", {
-                bubbles: true,
-                cancelable: true,
-            });
-            $("mainform").dispatchEvent(event);
-            this.input.disabled = true;
-        }
-        this.dialog.close();
-    }
-    askUser(message) {
-        $("highdeletionstext").innerText = message;
-        this.dialog.showModal();
-    }
-}
 class FilterList extends ItemList {
     constructor(name, required = false) {
         super(name, required);
@@ -145,6 +115,37 @@ class FilterList extends ItemList {
         }
         option.text = optionstring;
         this.theList.add(option);
+    }
+}
+
+class HighDeletionsOk {
+    input;
+    dialog;
+    constructor() {
+        this.input = document.getElementsByName("high_deletions_ok")[0];
+        this.dialog = $("highdeletionsdialog");
+        $("highdeletionsyes").addEventListener("click", () => {
+            this.respond(true);
+        });
+        $("highdeletionsno").addEventListener("click", () => {
+            this.dialog.close();
+        });
+    }
+    respond(answer) {
+        if (answer) {
+            this.input.disabled = false;
+            let event = new Event("submit", {
+                bubbles: true,
+                cancelable: true,
+            });
+            $("mainform").dispatchEvent(event);
+            this.input.disabled = true;
+        }
+        this.dialog.close();
+    }
+    askUser(message) {
+        $("highdeletionstext").innerText = message;
+        this.dialog.showModal();
     }
 }
 
