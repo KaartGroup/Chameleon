@@ -379,7 +379,7 @@ class Shortcuts {
         if (difference > 0) {
             let toBeAdded = this.defaultTags
                 .filter((x) => !this.loadedFavs.includes(x))
-                .slice(0, 2);
+                .slice(0, difference);
             this.loadedFavs.concat(toBeAdded);
         }
     }
