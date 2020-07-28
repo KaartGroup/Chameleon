@@ -441,7 +441,9 @@ function sendData() {
         // progress.majorMax = 1 + progress.mode_count;
         progress.overpassTimeout = parseInt(e.data);
         progress.minorMax = parseInt(e.data);
-        progress.progressbarDialog.showModal();
+        if (!progress.progressbarDialog.open) {
+            progress.progressbarDialog.showModal();
+        }
         progress.startOverpass();
         // overpassCountdown = setInterval(function() {
         //     progress.minorValue++;
@@ -462,7 +464,9 @@ function sendData() {
     evsource.addEventListener("mode_count", (e) => {
         progress.mode_count = parseInt(e.data);
         // progress.majorMax = parseInt(e.data);
-        progress.progressbarDialog.showModal();
+        if (!progress.progressbarDialog.open) {
+            progress.progressbarDialog.showModal();
+        }
         progress.updateValue();
     });
     evsource.addEventListener("osm_api_max", (e) => {
