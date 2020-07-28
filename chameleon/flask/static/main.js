@@ -125,7 +125,7 @@ class FilterList extends ItemList {
     get typeArray() {
         return Array.from(this._typeArray);
     }
-    addToList() {
+    addFromAddField() {
         var item = [
             this.addField.value.trim(),
             this.valueField.value.trim().split(/[\s,|]+/),
