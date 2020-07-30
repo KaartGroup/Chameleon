@@ -9,10 +9,8 @@ from uuid import uuid4 as uuid
 from zipfile import ZipFile
 
 import appdirs
-import gevent
 import overpass
 import oyaml as yaml
-import pandas as pd
 from flask import (
     Flask,
     Response,
@@ -103,7 +101,6 @@ def result():
     file_format = request.form["file_format"]
 
     def process_data() -> Generator:
-        REQUEST_INTERVAL = 0.1
 
         oldfile = request.files.get("old")
         newfile = request.files.get("new")
@@ -140,23 +137,6 @@ def result():
                 "Would you like to continue?",
             )
             return
-
-        df = cdfs.source_data
-
-        deleted_ids = list(df.loc[df["action"] == "deleted"].index)
-        if deleted_ids:
-            yield message("osm_api_max", len(deleted_ids))
-            for num, feature_id in enumerate(deleted_ids):
-                yield message("osm_api_value", num)
-
-                element_attribs = cdfs.check_feature_on_api(
-                    feature_id, app_version=APP_VERSION
-                )
-
-                df.update(pd.DataFrame(element_attribs, index=[feature_id]))
-                gevent.sleep(REQUEST_INTERVAL)
-
-            yield message("osm_api_value", len(deleted_ids))
 
         cdfs.separate_special_dfs()
 
