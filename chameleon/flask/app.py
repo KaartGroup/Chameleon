@@ -84,26 +84,39 @@ def result():
 
     args = {
         "country": request.form.get("location", "", str.upper),
-        "high_deletions_ok": request.form.get("high_deletions_ok", None, bool),
         "startdate": request.form.get("startdate", type=datetime.fromisoformat),
         "enddate": request.form.get("enddate"),
-        "grouping": request.form.get("grouping", False, bool),
-        "modes": set(request.form.getlist("modes")),
+        "modes": request.form.getlist("modes"),
         "file_format": request.form["file_format"],
         "filter_list": filter_processing(request.form.getlist("filters")),
         "output": request.form.get("output") or "chameleon",
         "client_uuid": request.form.get("client_uuid", str(uuid4())),
-        "oldfile": request.files.get("old"),
-        "newfile": request.files.get("new"),
+        "grouping": request.form.get("grouping", False, bool),
+        "high_deletions_ok": request.form.get("high_deletions_ok", type=bool),
     }
     if not args["modes"]:
         # Should only happen if client-side validation slips up
         raise UnprocessableEntity
 
+    user_dir = Path(safe_join(USER_FILES_BASE, args["client_uuid"]))
+    user_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        input_dir = user_dir / "input"
+        input_dir.mkdir(exist_ok=True)
+
+        args["oldfile"] = str(input_dir / "oldfile.csv")
+        args["newfile"] = str(input_dir / "newfile.csv")
+
+        request.files.get("old").save(args["oldfile"])
+        request.files.get("new").save(args["newfile"])
+    except:
+        pass
+
     try:
         args["enddate"] = datetime.fromisoformat(args["enddate"])
     except (TypeError, ValueError):
         pass
+
     # 2012-09-12 is the earliest Overpass can query
     if any(
         d and d < datetime(2012, 9, 12, 6, 55)
@@ -129,12 +142,8 @@ def result():
     #         "client_uuid",
     #     }
     # }
-    args_subset = args
-    args_subset["modes"] = list("modes")
 
-    task = process_data.apply_async(
-        args=[args_subset], task_id=args["client_uuid"]
-    )
+    task = process_data.apply_async(args=[args], task_id=args["client_uuid"])
 
     # return Response(
     #     stream_with_context(process_data()), mimetype="text/event-stream",
@@ -175,11 +184,11 @@ def process_data(
         except overpass.errors.TimeoutError:
             return {"result": "overpass_timeout"}
         # yield message("overpass_complete", None)
-    elif all((oldfile, newfile)):
-        self.update_state(meta={"mode_count": len(args["modes"])})
+    elif all((args.get("oldfile"), args.get("newfile"))):
+        self.update_state(meta={"mode_count": len(set(args["modes"]))})
         # BYOD mode
-        oldfile = oldfile.stream
-        newfile = newfile.stream
+        oldfile = open(args["oldfile"], "r")
+        newfile = open(args["newfile"], "r")
     else:
         # Client-side validation slipped up
         raise UnprocessableEntity
