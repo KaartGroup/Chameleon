@@ -37,10 +37,10 @@ from chameleon.core import (
 app = Flask(__name__)
 
 app.config["CELERY_BROKER_URL"] = "redis://localhost:6379/0"
-app.config["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/0"
+# app.config["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/0"
 
-client = Celery(app.name, broker=app.config["CELERY_BROKER_URL"])
-client.conf.update(app.config)
+celery = Celery(app.name, broker=app.config["CELERY_BROKER_URL"])
+celery.conf.update(app.config)
 
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
 RESOURCES_DIR = Path("chameleon/resources")
@@ -88,7 +88,7 @@ def result():
         "startdate": request.form.get("startdate", type=datetime.fromisoformat),
         "enddate": request.form.get("enddate"),
         "grouping": request.form.get("grouping", False, bool),
-        "modes": set(request.form.getlist("args['modes']")),
+        "modes": set(request.form.getlist("modes")),
         "file_format": request.form["file_format"],
         "filter_list": filter_processing(request.form.getlist("filters")),
         "output": request.form.get("output") or "chameleon",
@@ -96,10 +96,13 @@ def result():
         "oldfile": request.files.get("old"),
         "newfile": request.files.get("new"),
     }
+    if not args["modes"]:
+        # Should only happen if client-side validation slips up
+        raise UnprocessableEntity
 
     try:
         args["enddate"] = datetime.fromisoformat(args["enddate"])
-    except TypeError:
+    except (TypeError, ValueError):
         pass
     # 2012-09-12 is the earliest Overpass can query
     if any(
@@ -112,11 +115,26 @@ def result():
     while args["output"] != Path(args["output"]).with_suffix("").name:
         args["output"] = Path(args["output"]).with_suffix("").name
 
-    if not args["modes"]:
-        # Should only happen if client-side validation slips up
-        raise UnprocessableEntity
+    # args_subset = {
+    #     k: v
+    #     for k, v in args.items()
+    #     if k
+    #     in {
+    #         "country",
+    #         "startdate",
+    #         "enddate",
+    #         "file_format",
+    #         "output",
+    #         "grouping",
+    #         "client_uuid",
+    #     }
+    # }
+    args_subset = args
+    args_subset["modes"] = list("modes")
 
-    task = process_data_celery.apply_async(args, task_id=args["client_uuid"])
+    task = process_data.apply_async(
+        args=[args_subset], task_id=args["client_uuid"]
+    )
 
     # return Response(
     #     stream_with_context(process_data()), mimetype="text/event-stream",
@@ -125,14 +143,14 @@ def result():
         jsonify({}),
         202,
         {
-            "Location": url_for("taskstatus", task_id=task.id),
+            "Location": url_for("longtask_status", task_id=task.id),
             "mode_count": len(args["modes"]),
         },
     )
 
 
-@client.task(bind=True)
-def process_data_celery(
+@celery.task(bind=True, name="chameleon.process_data")
+def process_data(
     self, args: dict, deleted_ids=[],
 ):
     REQUEST_INTERVAL = 0.5
@@ -168,36 +186,40 @@ def process_data_celery(
     with oldfile as old, newfile as new:
         cdfs = ChameleonDataFrameSet(old, new)
 
-    deletion_percentage = high_deletions_checker(cdfs)
-    if deletion_percentage > 20 and not args["high_deletions_ok"]:
-        return {
-            # "high_deletion_percentage": "There is an unusually high proportion of deletions "
-            # f"({round(deletion_percentage, 2)}%). "
-            # "This often indicates that the two input files have different scope. "
-            # "Would you like to continue?",
-            "result": "high_deletion_percentage",
-            "high_deletion_percentage": round(deletion_percentage, 2),
-        }
+    # deletion_percentage = high_deletions_checker(cdfs)
+    # if deletion_percentage > 20 and not args["high_deletions_ok"]:
+    #     return {
+    #         # "high_deletion_percentage": "There is an unusually high proportion of deletions "
+    #         # f"({round(deletion_percentage, 2)}%). "
+    #         # "This often indicates that the two input files have different scope. "
+    #         # "Would you like to continue?",
+    #         "result": "high_deletion_percentage",
+    #         "high_deletion_percentage": round(deletion_percentage, 2),
+    #     }
 
-    df = cdfs.source_data
+    # df = cdfs.source_data
 
-    deleted_ids = list(df.loc[df["action"] == "deleted"].index)
-    for num, feature_id in enumerate(deleted_ids):
-        self.update_state(
-            state="OSM_API", meta={"current": num, "total": len(deleted_ids)},
-        )
+    # deleted_ids = list(df.loc[df["action"] == "deleted"].index)
+    # for num, feature_id in enumerate(deleted_ids):
+    #     self.update_state(
+    #         state="OSM_API", meta={"current": num, "total": len(deleted_ids)},
+    #     )
 
-        element_attribs = cdfs.check_feature_on_api(
-            feature_id, app_version=APP_VERSION
-        )
+    #     element_attribs = cdfs.check_feature_on_api(
+    #         feature_id, app_version=APP_VERSION
+    #     )
 
-        df.update(pd.DataFrame(element_attribs, index=[feature_id]))
-        gevent.sleep(REQUEST_INTERVAL)
+    #     df.update(pd.DataFrame(element_attribs, index=[feature_id]))
+    #     gevent.sleep(REQUEST_INTERVAL)
 
     cdfs.separate_special_dfs()
 
-    for mode in args["modes"]:
-        self.update_state(state="MODES", meta={"mode": mode})
+    for num, mode in enumerate(args["modes"]):
+        # self.update_state(state="MODES", meta={"mode": mode})
+        self.update_state(
+            state="PROGRESS",
+            meta={"current": num, "total": len(args["modes"]), "mode": mode},
+        )
         try:
             result = ChameleonDataFrame(
                 cdfs.source_data, mode=mode, grouping=args["grouping"]
@@ -214,10 +236,13 @@ def process_data_celery(
     return {"path": the_path}
 
 
-@app.route("/status", methods=["POST"])
-def longtask():
-    task = process_data_celery.apply_async()
-    return jsonify({}), 202, {"Location": url_for("taskstatus", task_id=task.id)}
+@app.route("/status/<task_id>", methods=["POST"])
+def longtask_status(task_id):
+    return (
+        jsonify({}),
+        202,
+        {"Location": url_for("longtask_status", task_id=task_id)},
+    )
 
 
 @app.route("/download/<path:unique_id>")
@@ -361,7 +386,10 @@ def overpass_getter(args: dict) -> Generator:
     ] + list(modes)
     response_format = f'csv({",".join(csv_columns)})'
 
-    overpass_query = f'area["ISO3166-1"="{args["location"]}"]->.searchArea;{"".join(formatted_tags)}'
+    overpass_query = (
+        f'area["ISO3166-1"="{args["location"]}"]->.searchArea;'
+        f'{"".join(formatted_tags)}'
+    )
 
     for date in (args["startdate"], args["enddate"]):
         date = date or ""
