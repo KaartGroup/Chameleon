@@ -1,11 +1,11 @@
 import csv
 import json
 import shlex
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
 from typing import Generator, List, Set, TextIO, Tuple
-from uuid import uuid4 as uuid
+from uuid import uuid4
 from zipfile import ZipFile
 
 import appdirs
@@ -13,25 +13,34 @@ import gevent
 import overpass
 import oyaml as yaml
 import pandas as pd
+from celery import Celery
 from flask import (
     Flask,
     Response,
+    jsonify,
     render_template,
     request,
     safe_join,
     send_file,
     send_from_directory,
     stream_with_context,
+    url_for,
 )
 from werkzeug.exceptions import UnprocessableEntity
 
 from chameleon.core import (
+    TYPE_EXPANSION,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
-    TYPE_EXPANSION,
 )
 
 app = Flask(__name__)
+
+app.config["CELERY_BROKER_URL"] = "redis://localhost:6379/0"
+app.config["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/0"
+
+client = Celery(app.name, broker=app.config["CELERY_BROKER_URL"])
+client.conf.update(app.config)
 
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
 RESOURCES_DIR = Path("chameleon/resources")
@@ -63,7 +72,7 @@ def result():
     Yields:
     [overpass_start] (if used) : signals the start of an overpass query
         along with the timeout
-    mode_count : indicates how many modes will be processed
+    mode_count : indicates how many args['modes'] will be processed
     [overpass_complete] (if used) : signals overpass has returned
         and the countdown can stop
     [overpass_failed] (if used) : signals overpass timed out
@@ -72,115 +81,143 @@ def result():
     mode : signals start of mode processing and which mode is being processed
     file : signals end of processing, includes the url for the generated file
     """
-    USER_DIR = USER_FILES_BASE / str(uuid())
-    USER_DIR.mkdir(parents=True, exist_ok=True)
 
-    country: str = request.form.get("location", "", str.upper)
+    args = {
+        "country": request.form.get("location", "", str.upper),
+        "high_deletions_ok": request.form.get("high_deletions_ok", None, bool),
+        "startdate": request.form.get("startdate", type=datetime.fromisoformat),
+        "enddate": request.form.get("enddate"),
+        "grouping": request.form.get("grouping", False, bool),
+        "modes": set(request.form.getlist("args['modes']")),
+        "file_format": request.form["file_format"],
+        "filter_list": filter_processing(request.form.getlist("filters")),
+        "output": request.form.get("output") or "chameleon",
+        "client_uuid": request.form.get("client_uuid", str(uuid4())),
+        "oldfile": request.files.get("old"),
+        "newfile": request.files.get("new"),
+    }
 
-    high_deletions_ok = request.form.get("high_deletions_ok", None, bool)
-
-    startdate = request.form.get("startdate", type=datetime.fromisoformat)
-    enddate = request.form.get("enddate")
-    if enddate:
-        enddate = datetime.fromisoformat(enddate)
+    try:
+        args["enddate"] = datetime.fromisoformat(args["enddate"])
+    except TypeError:
+        pass
     # 2012-09-12 is the earliest Overpass can query
-    if any(d and d < datetime(2012, 9, 12, 6, 55) for d in (startdate, enddate)):
+    if any(
+        d and d < datetime(2012, 9, 12, 6, 55)
+        for d in (args["startdate"], args["enddate"])
+    ):
         raise UnprocessableEntity
 
-    filter_list = filter_processing(request.form.getlist("filters"))
+    # Gets rid of any suffixes the user may have added
+    while args["output"] != Path(args["output"]).with_suffix("").name:
+        args["output"] = Path(args["output"]).with_suffix("").name
 
-    output = request.form.get("output") or "chameleon"
-    # Strips leading part of Path from the file name to avoid accidental issues
-    # We later use Flask's send_from_directory() to block intentional attacks
-    # Also gets rid of any suffixes the user may have added
-    while output != Path(output).with_suffix("").name:
-        output = Path(output).with_suffix("").name
-
-    grouping = request.form.get("grouping", False, bool)
-    modes = set(request.form.getlist("modes"))
-    if not modes:  # Should only happen if client-side validation slips up
+    if not args["modes"]:
+        # Should only happen if client-side validation slips up
         raise UnprocessableEntity
-    file_format = request.form["file_format"]
 
-    def process_data() -> Generator:
-        REQUEST_INTERVAL = 0.1
+    task = process_data_celery.apply_async(args, task_id=args["client_uuid"])
 
-        oldfile = request.files.get("old")
-        newfile = request.files.get("new")
-
-        if all((country, startdate)):
-            # Running in easy mode, need to make files for the user
-            yield message("mode_count", len(modes))
-            yield message("overpass_start", OVERPASS_TIMEOUT)
-            try:
-                oldfile, newfile = overpass_getter(
-                    country, filter_list, modes, startdate, enddate
-                )
-            except overpass.errors.TimeoutError:
-                return message("overpass_failed", None)
-            yield message("overpass_complete", None)
-        elif all((oldfile, newfile)):
-            yield message("mode_count", len(modes))
-            # BYOD mode
-            oldfile = oldfile.stream
-            newfile = newfile.stream
-        else:
-            # Client-side validation slipped up
-            raise UnprocessableEntity
-        with oldfile as old, newfile as new:
-            cdfs = ChameleonDataFrameSet(old, new)
-
-        deletion_percentage = high_deletions_checker(cdfs)
-        if deletion_percentage > 20 and not high_deletions_ok:
-            yield message(
-                "high_deletion_percentage",
-                "There is an unusually high proportion of deletions "
-                f"({round(deletion_percentage,2)}%). "
-                "This often indicates that the two input files have different scope. "
-                "Would you like to continue?",
-            )
-            return
-
-        df = cdfs.source_data
-
-        deleted_ids = list(df.loc[df["action"] == "deleted"].index)
-        if deleted_ids:
-            yield message("osm_api_max", len(deleted_ids))
-            for num, feature_id in enumerate(deleted_ids):
-                yield message("osm_api_value", num)
-
-                element_attribs = cdfs.check_feature_on_api(
-                    feature_id, app_version=APP_VERSION
-                )
-
-                df.update(pd.DataFrame(element_attribs, index=[feature_id]))
-                gevent.sleep(REQUEST_INTERVAL)
-
-            yield message("osm_api_value", len(deleted_ids))
-
-        cdfs.separate_special_dfs()
-
-        # yield message("start_modes", None)
-        for mode in modes:
-            yield message("mode", mode)
-            try:
-                result = ChameleonDataFrame(
-                    cdfs.source_data, mode=mode, grouping=grouping
-                ).query_cdf()
-            except KeyError:
-                error_list.append(mode)
-                continue
-            cdfs.add(result)
-
-        file_name = write_output[file_format](cdfs, USER_DIR, output)
-
-        the_path = Path(*(USER_DIR / file_name).parts[-2:])
-
-        yield str(message("file", the_path))
-
-    return Response(
-        stream_with_context(process_data()), mimetype="text/event-stream",
+    # return Response(
+    #     stream_with_context(process_data()), mimetype="text/event-stream",
+    # )
+    return (
+        jsonify({}),
+        202,
+        {
+            "Location": url_for("taskstatus", task_id=task.id),
+            "mode_count": len(args["modes"]),
+        },
     )
+
+
+@client.task(bind=True)
+def process_data_celery(
+    self, args: dict, deleted_ids=[],
+):
+    REQUEST_INTERVAL = 0.5
+
+    user_dir = USER_FILES_BASE / args["client_uuid"]
+    user_dir.mkdir(parents=True, exist_ok=True)
+
+    if all((args["country"], args["startdate"])):
+        # Running in easy mode, need to make files for the user
+        overpass_start_time = datetime.now(timezone.utc)
+        self.update_state(
+            state="OVERPASS_RUNNING",
+            meta={
+                "overpass_timeout": OVERPASS_TIMEOUT,
+                "start_time": overpass_start_time,
+                "timeout_time": overpass_start_time
+                + timedelta(seconds=OVERPASS_TIMEOUT),
+            },
+        )
+        try:
+            oldfile, newfile = overpass_getter(args)
+        except overpass.errors.TimeoutError:
+            return {"result": "overpass_timeout"}
+        # yield message("overpass_complete", None)
+    elif all((oldfile, newfile)):
+        self.update_state(meta={"mode_count": len(args["modes"])})
+        # BYOD mode
+        oldfile = oldfile.stream
+        newfile = newfile.stream
+    else:
+        # Client-side validation slipped up
+        raise UnprocessableEntity
+    with oldfile as old, newfile as new:
+        cdfs = ChameleonDataFrameSet(old, new)
+
+    deletion_percentage = high_deletions_checker(cdfs)
+    if deletion_percentage > 20 and not args["high_deletions_ok"]:
+        return {
+            # "high_deletion_percentage": "There is an unusually high proportion of deletions "
+            # f"({round(deletion_percentage, 2)}%). "
+            # "This often indicates that the two input files have different scope. "
+            # "Would you like to continue?",
+            "result": "high_deletion_percentage",
+            "high_deletion_percentage": round(deletion_percentage, 2),
+        }
+
+    df = cdfs.source_data
+
+    deleted_ids = list(df.loc[df["action"] == "deleted"].index)
+    for num, feature_id in enumerate(deleted_ids):
+        self.update_state(
+            state="OSM_API", meta={"current": num, "total": len(deleted_ids)},
+        )
+
+        element_attribs = cdfs.check_feature_on_api(
+            feature_id, app_version=APP_VERSION
+        )
+
+        df.update(pd.DataFrame(element_attribs, index=[feature_id]))
+        gevent.sleep(REQUEST_INTERVAL)
+
+    cdfs.separate_special_dfs()
+
+    for mode in args["modes"]:
+        self.update_state(state="MODES", meta={"mode": mode})
+        try:
+            result = ChameleonDataFrame(
+                cdfs.source_data, mode=mode, grouping=args["grouping"]
+            ).query_cdf()
+        except KeyError:
+            error_list.append(mode)
+            continue
+        cdfs.add(result)
+
+    file_name = write_output[args["file_format"]](cdfs, user_dir, args["output"])
+
+    the_path = Path(*(user_dir / file_name).parts[-2:])
+
+    return {"path": the_path}
+
+
+@app.route("/status", methods=["POST"])
+def longtask():
+    task = process_data_celery.apply_async()
+    return jsonify({}), 202, {"Location": url_for("taskstatus", task_id=task.id)}
 
 
 @app.route("/download/<path:unique_id>")
@@ -204,11 +241,6 @@ def high_deletions_checker(cdfs: ChameleonDataFrameSet) -> bool:
         / len(cdfs.source_data)
     ) * 100
     return deletion_percentage
-
-
-def user_confirm(message):
-    # TODO Make a real confirmation prompt
-    return True
 
 
 def load_extra_columns() -> dict:
@@ -304,17 +336,11 @@ def filter_processing(filters: List[str]) -> List[dict]:
     return filter_list
 
 
-def overpass_getter(
-    location: str,
-    filters: List[Tuple[str, str, Tuple]],
-    tags: Set[str],
-    startdate: datetime,
-    enddate: datetime,
-) -> Generator:
+def overpass_getter(args: dict) -> Generator:
     api = overpass.API(OVERPASS_TIMEOUT)
 
     formatted_tags = []
-    for i in filters:
+    for i in args["filters"]:
         if i["value"]:
             formatted = f'~"{"|".join(i["value"])}"'
         else:
@@ -324,7 +350,7 @@ def overpass_getter(
                 f'{t}["{i["key"]}"{formatted}](area.searchArea)'
             )
 
-    modes = tags | {"name"}
+    modes = args["modes"] | {"name"}
     csv_columns = [
         "::type",
         "::id",
@@ -335,11 +361,9 @@ def overpass_getter(
     ] + list(modes)
     response_format = f'csv({",".join(csv_columns)})'
 
-    overpass_query = (
-        f'area["ISO3166-1"="{location}"]->.searchArea;{"".join(formatted_tags)}'
-    )
+    overpass_query = f'area["ISO3166-1"="{args["location"]}"]->.searchArea;{"".join(formatted_tags)}'
 
-    for date in (startdate, enddate):
+    for date in (args["startdate"], args["enddate"]):
         date = date or ""
         response = api.get(
             overpass_query,
