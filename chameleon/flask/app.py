@@ -37,7 +37,7 @@ from chameleon.core import (
 app = Flask(__name__)
 
 app.config["CELERY_BROKER_URL"] = "redis://localhost:6379/0"
-# app.config["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/0"
+app.config["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/0"
 
 celery = Celery(app.name, broker=app.config["CELERY_BROKER_URL"])
 celery.conf.update(app.config)
@@ -52,8 +52,6 @@ try:
         APP_VERSION = version_file.read()
 except OSError:
     APP_VERSION = ""
-
-error_list = []
 
 
 @app.route("/about")
@@ -162,30 +160,44 @@ def result():
 def process_data(
     self, args: dict, deleted_ids=[],
 ):
+    """
+    task_metadata:
+        mode_count
+        overpass_start_time
+        overpass_timeout_time
+        osm_api_max
+        osm_api_completed
+        modes_completed
+        modes_max
+
+    """
     REQUEST_INTERVAL = 0.5
+
+    error_list = []
 
     user_dir = USER_FILES_BASE / args["client_uuid"]
     user_dir.mkdir(parents=True, exist_ok=True)
 
+    task_metadata = {"modes_max": len(args["modes"])}
+
     if all((args["country"], args["startdate"])):
         # Running in easy mode, need to make files for the user
         overpass_start_time = datetime.now(timezone.utc)
-        self.update_state(
-            state="OVERPASS_RUNNING",
-            meta={
-                "overpass_timeout": OVERPASS_TIMEOUT,
-                "start_time": overpass_start_time,
-                "timeout_time": overpass_start_time
+        task_metadata.update(
+            {
+                "overpass_start_time": overpass_start_time,
+                "overpass_timeout_time": overpass_start_time
                 + timedelta(seconds=OVERPASS_TIMEOUT),
-            },
+            }
         )
+        self.update_state(state="PROGRESS", meta=task_metadata)
         try:
             oldfile, newfile = overpass_getter(args)
         except overpass.errors.TimeoutError:
-            return {"result": "overpass_timeout"}
+            return jsonify({"result": "overpass_timeout"})
         # yield message("overpass_complete", None)
     elif all((args.get("oldfile"), args.get("newfile"))):
-        self.update_state(meta={"mode_count": len(set(args["modes"]))})
+        self.update_state(state="PROGRESS", meta=task_metadata)
         # BYOD mode
         oldfile = open(args["oldfile"], "r")
         newfile = open(args["newfile"], "r")
@@ -195,36 +207,47 @@ def process_data(
     with oldfile as old, newfile as new:
         cdfs = ChameleonDataFrameSet(old, new)
 
-    # deletion_percentage = high_deletions_checker(cdfs)
-    # if deletion_percentage > 20 and not args["high_deletions_ok"]:
-    #     return {
-    #         # "high_deletion_percentage": "There is an unusually high proportion of deletions "
-    #         # f"({round(deletion_percentage, 2)}%). "
-    #         # "This often indicates that the two input files have different scope. "
-    #         # "Would you like to continue?",
-    #         "result": "high_deletion_percentage",
-    #         "high_deletion_percentage": round(deletion_percentage, 2),
-    #     }
+    deletion_percentage = high_deletions_checker(cdfs)
+    if deletion_percentage > 20 and not args["high_deletions_ok"]:
+        return jsonify(
+            {
+                # "high_deletion_percentage": "There is an unusually high proportion of deletions "
+                # f"({round(deletion_percentage, 2)}%). "
+                # "This often indicates that the two input files have different scope. "
+                # "Would you like to continue?",
+                "result": "high_deletion_percentage",
+                "high_deletion_percentage": round(deletion_percentage, 2),
+            }
+        )
 
-    # df = cdfs.source_data
+    df = cdfs.source_data
 
-    # deleted_ids = list(df.loc[df["action"] == "deleted"].index)
-    # for num, feature_id in enumerate(deleted_ids):
-    #     self.update_state(
-    #         state="OSM_API", meta={"current": num, "total": len(deleted_ids)},
-    #     )
+    deleted_ids = list(df.loc[df["action"] == "deleted"].index)
+    task_metadata["osm_api_max"] = len(deleted_ids)
+    for num, feature_id in enumerate(deleted_ids):
+        task_metadata["osm_api_completed"] = num
+        self.update_state(
+            state="PROGRESS", meta=task_metadata,
+        )
 
-    #     element_attribs = cdfs.check_feature_on_api(
-    #         feature_id, app_version=APP_VERSION
-    #     )
+        element_attribs = cdfs.check_feature_on_api(
+            feature_id, app_version=APP_VERSION
+        )
 
-    #     df.update(pd.DataFrame(element_attribs, index=[feature_id]))
-    #     gevent.sleep(REQUEST_INTERVAL)
+        df.update(pd.DataFrame(element_attribs, index=[feature_id]))
+        gevent.sleep(REQUEST_INTERVAL)
+
+    task_metadata["osm_api_completed"] = task_metadata["osm_api_max"]
+    self.update_state(
+        state="PROGRESS", meta=task_metadata,
+    )
 
     cdfs.separate_special_dfs()
 
     for num, mode in enumerate(args["modes"]):
         # self.update_state(state="MODES", meta={"mode": mode})
+        task_metadata["modes_completed"] = num
+        task_metadata["current_mode"] = mode
         self.update_state(
             state="PROGRESS",
             meta={"current": num, "total": len(args["modes"]), "mode": mode},
@@ -240,18 +263,73 @@ def process_data(
 
     file_name = write_output[args["file_format"]](cdfs, user_dir, args["output"])
 
-    the_path = Path(*(user_dir / file_name).parts[-2:])
+    the_path = str(Path(*(user_dir / file_name).parts[-2:]))
 
-    return {"path": the_path}
-
-
-@app.route("/status/<task_id>", methods=["POST"])
-def longtask_status(task_id):
-    return (
-        jsonify({}),
-        202,
-        {"Location": url_for("longtask_status", task_id=task_id)},
+    return jsonify(
+        {
+            # "path": the_path
+            "uuid": args["client_uuid"],
+            "file_name": file_name,
+        }
     )
+
+
+# @app.route("/status/<task_id>", methods=["POST"])
+# def longtask_status(task_id):
+#     return (
+#         jsonify({}),
+#         202,
+#         {"Location": url_for("longtask_status", task_id=task_id)},
+#     )
+
+
+@app.route("/longtask_status/<task_id>")
+def longtask_status(task_id):
+    task = process_data.AsyncResult(task_id)
+    if task.state == "PENDING":
+        # job did not start yet
+        response = {
+            "state": task.state,
+            "current": 0,
+            "total": 1,
+            "status": "Pending...",
+        }
+    elif task.state != "FAILURE":
+        # In progress
+        response = {
+            k: v
+            for k, v in task.info.items()
+            if k
+            in {
+                "mode_count",
+                "overpass_start_time",
+                "overpass_timeout_time",
+                "osm_api_max",
+                "osm_api_completed",
+                "modes_completed",
+                "modes_max",
+            }
+        }
+        response["state"] = task.state
+        # response = {
+        # "state": task.state,
+        # "current": task.info.get("current", 0),
+        # "total": task.info.get("total", 1),
+        # "status": task.info.get("status", ""),
+        # "osm_api_completed": task.info.get("osm_api_completed"),
+        # "mode_count": task.info.get("mode_count"),
+        # }
+        if "result" in task.info:
+            response["result"] = task.info["result"]
+    else:
+        # something went wrong in the background job
+        response = {
+            "state": task.state,
+            "current": 1,
+            "total": 1,
+            "status": str(task.info),  # this is the exception raised
+        }
+    return jsonify(response)
 
 
 @app.route("/download/<path:unique_id>")
@@ -384,7 +462,7 @@ def overpass_getter(args: dict) -> Generator:
                 f'{t}["{i["key"]}"{formatted}](area.searchArea)'
             )
 
-    modes = args["modes"] | {"name"}
+    modes = set(args["modes"]) | {"name"}
     csv_columns = [
         "::type",
         "::id",
