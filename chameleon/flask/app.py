@@ -288,51 +288,62 @@ def process_data(
 
 @app.route("/longtask_status/<task_id>")
 def longtask_status(task_id):
+    """
+    Server Sent Event endpoint for monitoring a task's status until completion
+    """
     task = process_data.AsyncResult(task_id)
-    if task.state == "PENDING":
-        # job did not start yet
-        response = {
-            "state": task.state,
-            "current": 0,
-            "total": 1,
-            "status": "Pending...",
-        }
-    elif task.state != "FAILURE":
-        # In progress
-        response = {
-            k: v
-            for k, v in task.info.items()
-            if k
-            in {
-                "mode_count",
-                "overpass_start_time",
-                "overpass_timeout_time",
-                "osm_api_max",
-                "osm_api_completed",
-                "modes_completed",
-                "modes_max",
+
+    def stream_events():
+        if task.state == "FAILURE":
+            # something went wrong in the background job
+            response = {
+                "state": task.state,
+                "current": 1,
+                "total": 1,
+                "status": str(task.info),  # this is the exception raised
             }
-        }
-        response["state"] = task.state
-        # response = {
-        # "state": task.state,
-        # "current": task.info.get("current", 0),
-        # "total": task.info.get("total", 1),
-        # "status": task.info.get("status", ""),
-        # "osm_api_completed": task.info.get("osm_api_completed"),
-        # "mode_count": task.info.get("mode_count"),
-        # }
-        if "result" in task.info:
-            response["result"] = task.info["result"]
-    else:
-        # something went wrong in the background job
-        response = {
-            "state": task.state,
-            "current": 1,
-            "total": 1,
-            "status": str(task.info),  # this is the exception raised
-        }
-    return jsonify(response)
+            yield message_task_update(response)
+        else:
+            # In progress
+            prior_response = None
+            while process_data.AsyncResult(task_id).state not in {
+                "SUCCESS",
+                "FAILURE",
+            }:
+                if task.state == "PENDING":
+                    # job did not start yet
+                    response = {
+                        "state": task.state,
+                        "current": 0,
+                        "total": 1,
+                        "status": "Pending...",
+                    }
+                    yield message_task_update(response)
+                else:
+                    response = {
+                        k: v
+                        for k, v in task.info.items()
+                        if k
+                        in {
+                            "mode_count",
+                            "modes_completed",
+                            "modes_max",
+                            "osm_api_completed",
+                            "osm_api_max",
+                            "overpass_start_time",
+                            "overpass_timeout_time",
+                            "result",
+                        }
+                    }
+                    response["state"] = task.state
+
+                    if response != prior_response:
+                        yield message_task_update(response)
+                    prior_response = response
+
+                gevent.sleep(0.5)
+
+    return Response(stream_events(), mimetype="text/event-stream")
 
 
 @app.route("/download/<path:unique_id>")
