@@ -422,12 +422,10 @@ function addArray(obj, array) {
     }
 }
 
-function sendData() {
-    const FD = new FormData($("mainform"));
+function checkStatus(task_id) {
+    evsource = new EventSource("/longtask_status/" + task_id);
     var overpassCountdown;
-    evsource = new SSE("/result", {
-        payload: FD,
-    });
+
     evsource.addEventListener("error", () => {
         console.log("error");
     });
@@ -436,6 +434,10 @@ function sendData() {
     });
     evsource.addEventListener("message", (e) => {
         console.log("message " + e.data);
+    });
+    evsource.addEventListener("task_update", (e) => {
+        task_status = JSON.parse(e.data, jsonReviver);
+        Object.assign(progress, task_status);
     });
     evsource.addEventListener("overpass_start", (e) => {
         progress.currentPhase = "overpass";
@@ -499,13 +501,42 @@ function sendData() {
     evsource.addEventListener("high_deletion_percentage", (e) => {
         high_deletions_instance.askUser(e.data);
     });
+}
 
-    evsource.stream();
+function jsonReviver(key, value) {
+    if (key in ["overpass_start_time", "overpass_timeout_time"]) {
+        return new Date(value);
+    }
+    return value;
+}
+
+function sendData() {
+    const FD = new FormData($("mainform"));
+    fetch("/result", {
+        method: "POST",
+        body: FD,
+    })
+        .then((response) => response.json())
+        .then((jsonResponse) => {
+            set_uuid(jsonResponse["client_uuid"]);
+        });
+}
+
+function set_uuid(uuid) {
+    if (
+        uuid.match(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        )
+    ) {
+        localStorage.setItem("client_uuid", uuid);
+        $("client_uuid").value = uuid;
+    }
 }
 
 var high_deletions_instance = new HighDeletionsOk();
 
 var evsource;
+var task_status;
 
 var manualInputs = $("manualtab").getElementsByTagName("input");
 
@@ -522,6 +553,11 @@ var fileTypeInstance = new FileTypeSelector();
 
 var shortcutsInstance = new Shortcuts(tagListGroup);
 shortcutsInstance.createButtons();
+
+var client_uuid = localStorage.getItem("client_uuid");
+if (client_uuid) {
+    $("client_uuid").value = client_uuid;
+}
 
 var fileType = localStorage.getItem("file_format") ?? "excel";
 fileTypeInstance.type = fileType;

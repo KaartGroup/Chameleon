@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
 from typing import Generator, List, Set, TextIO, Tuple
-from uuid import uuid4
+from uuid import uuid4, UUID
 from zipfile import ZipFile
 
 import appdirs
@@ -88,7 +88,7 @@ def result():
         "file_format": request.form["file_format"],
         "filter_list": filter_processing(request.form.getlist("filters")),
         "output": request.form.get("output") or "chameleon",
-        "client_uuid": request.form.get("client_uuid", str(uuid4())),
+        "client_uuid": str(request.form.get("client_uuid", uuid4(), UUID)),
         "grouping": request.form.get("grouping", False, bool),
         "high_deletions_ok": request.form.get("high_deletions_ok", type=bool),
     }
@@ -147,12 +147,14 @@ def result():
     #     stream_with_context(process_data()), mimetype="text/event-stream",
     # )
     return (
-        jsonify({}),
+        jsonify(
+            {
+                "Location": url_for("longtask_status", task_id=task.id),
+                "client_uuid": task.id,
+                "mode_count": len(args["modes"]),
+            }
+        ),
         202,
-        {
-            "Location": url_for("longtask_status", task_id=task.id),
-            "mode_count": len(args["modes"]),
-        },
     )
 
 
