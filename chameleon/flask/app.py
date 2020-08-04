@@ -187,9 +187,10 @@ def process_data(
         overpass_start_time = datetime.now(timezone.utc)
         task_metadata.update(
             {
-                "overpass_start_time": overpass_start_time,
-                "overpass_timeout_time": overpass_start_time
-                + timedelta(seconds=OVERPASS_TIMEOUT),
+                "overpass_start_time": overpass_start_time.isoformat(),
+                "overpass_timeout_time": (
+                    overpass_start_time + timedelta(seconds=OVERPASS_TIMEOUT)
+                ).isoformat(),
             }
         )
         self.update_state(state="PROGRESS", meta=task_metadata)
