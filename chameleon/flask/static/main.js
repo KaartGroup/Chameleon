@@ -365,6 +365,7 @@ class FileTypeSelector {
 }
 
 class Shortcuts {
+    shortcutCount = 5;
     defaultTags = ["highway", "name", "ref", "addr:housenumber", "addr:street"];
     loadedFavs;
     tagListObject;
@@ -372,11 +373,14 @@ class Shortcuts {
     constructor(tagListObject) {
         this.tagListObject = tagListObject;
         this.counter = favLoader();
-        this.loadedFavs = Shortcuts.counter_to_array(this.counter);
+        this.loadedFavs = Shortcuts.counter_to_array(this.counter).slice(
+            0,
+            this.shortcutCount
+        );
         this.fillFavs();
     }
     fillFavs() {
-        let difference = 5 - this.loadedFavs.length;
+        let difference = this.shortcutCount - this.loadedFavs.length;
         if (difference > 0) {
             let toBeAdded = this.defaultTags
                 .filter((x) => !this.loadedFavs.includes(x))
