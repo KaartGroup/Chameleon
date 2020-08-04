@@ -107,7 +107,7 @@ def result():
 
         request.files.get("old").save(args["oldfile"])
         request.files.get("new").save(args["newfile"])
-    except:
+    except OSError:
         pass
 
     try:
