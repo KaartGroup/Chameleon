@@ -164,14 +164,14 @@ def process_data(
 ):
     """
     task_metadata:
+        current_mode
+        current_phase = [overpass|osm_api|modes]
         mode_count
+        modes_completed
+        osm_api_completed
+        osm_api_max
         overpass_start_time
         overpass_timeout_time
-        osm_api_max
-        osm_api_completed
-        modes_completed
-        modes_max
-
     """
     REQUEST_INTERVAL = 0.5
 
@@ -180,13 +180,14 @@ def process_data(
     user_dir = USER_FILES_BASE / args["client_uuid"]
     user_dir.mkdir(parents=True, exist_ok=True)
 
-    task_metadata = {"modes_max": len(args["modes"])}
+    task_metadata = {"mode_count": len(args["modes"])}
 
     if all((args["country"], args["startdate"])):
         # Running in easy mode, need to make files for the user
         overpass_start_time = datetime.now(timezone.utc)
         task_metadata.update(
             {
+                "current_phase": "overpass",
                 "overpass_start_time": overpass_start_time.isoformat(),
                 "overpass_timeout_time": (
                     overpass_start_time + timedelta(seconds=OVERPASS_TIMEOUT)
@@ -227,6 +228,7 @@ def process_data(
 
     deleted_ids = list(df.loc[df["action"] == "deleted"].index)
     task_metadata["osm_api_max"] = len(deleted_ids)
+    task_metadata["current_phase"] = "osm_api"
     for num, feature_id in enumerate(deleted_ids):
         task_metadata["osm_api_completed"] = num
         self.update_state(
@@ -241,6 +243,7 @@ def process_data(
         gevent.sleep(REQUEST_INTERVAL)
 
     task_metadata["osm_api_completed"] = task_metadata["osm_api_max"]
+    task_metadata["current_phase"] = "modes"
     self.update_state(
         state="PROGRESS", meta=task_metadata,
     )

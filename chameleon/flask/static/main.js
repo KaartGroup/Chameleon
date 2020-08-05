@@ -1,5 +1,3 @@
-import { SSE } from "/static/sse.js";
-
 function $(id) {
     return document.getElementById(id);
 }
@@ -150,6 +148,7 @@ class HighDeletionsOk {
 }
 
 function loadTagAutocomplete() {
+    // TODO Change to use fetch()
     var rawFile = new XMLHttpRequest();
     rawFile.open("GET", "/static/OSMtag.txt", true);
     rawFile.onreadystatechange = function () {
@@ -171,162 +170,109 @@ function loadTagAutocomplete() {
 }
 
 class Progbar {
+    current_mode;
+    current_phase;
+    mode_count;
+    modes_completed;
+    osm_api_completed;
+    osm_api_max;
+    overpass_start_time;
+    overpass_timeout_time;
+
     progressbar;
     progressbarDialog;
     message;
-    _mode;
-    _majorMax;
-    _majorValue;
-    _minorValue;
-    _minorMax;
-    _modeCount;
 
-    overpassTimeout;
-    overpassCountdown;
-    minorStep;
-    use_overpass;
-    currentPhase;
-
-    updateValueDispatch = {
-        osmapi: () => {
-            this.updateOSMAPI();
-        },
-        mode: () => {
-            this.updateMode();
-        },
-        default: () => {},
-        overpass: () => {
-            this.updateOverpass();
-        },
+    phaseDispatch = {
+        init: this.initial_message,
+        overpass: this.overpass_message,
+        osm_api: this.osm_api_message,
+        modes: this.modes_message,
     };
+
     constructor() {
-        this.progressbar = document.getElementById("progressbar");
-        this.progressbarDialog = document.getElementById("progressbarDialog");
-        this.message = document.getElementById("progbarMessage");
+        this.progressbar = $("progressbar");
+        this.progressbarDialog = $("progressbarDialog");
+        this.message = $("progressbarMessage");
 
-        // majorValue: overpass phase is 1, OSM API phase is 1, each mode is 1
-        this._majorMax = 0;
-        this._majorValue = 0;
-        // minorValue: 1 second of overpass time is 1, each OSM API feature is 1
-        this._minorValue = 0;
-        this._minorMax = 0;
-
-        this._modeCount = 0;
-
-        this.overpassTimeout = 120;
-        this.minorStep = this.overpassTimeout;
-        this.use_overpass = false;
-        this.currentPhase = "default";
-    }
-    set mode(value) {
-        this._mode = value;
-        this.updateValue();
-    }
-    get mode() {
-        return this._mode;
-    }
-    set mode_count(count) {
-        // this.majorMax = count + 1 + this.use_overpass;
-        this._modeCount = parseInt(count);
-        this.updateMax();
-    }
-    get mode_count() {
-        return this._modeCount;
+        this.overpass_start_time = this.overpass_timeout_time = null;
+        this.current_phase = "init";
     }
 
-    // set majorMax(max) {
-    //         this._majorMax = parseInt(max);
-    //         this.updateMax();
-    //     }
-    // get majorMax() {
-    //         return this._majorMax;
-    //     }
-
-    get majorMax() {
-        return this.mode_count + this.use_overpass + 1;
-    }
-    get realMax() {
-        return this.majorMax * this.minorStep;
-    }
-    get realValue() {
-        return this.majorValue * this.minorStep + this.minorValue;
-    }
-    set majorValue(value) {
-        this._majorValue = parseInt(value);
-        this._minorValue = 0;
-        this.updateValue();
-    }
-    get majorValue() {
-        return this._majorValue;
-    }
-    set minorValue(value) {
-        this._minorValue = parseInt(value);
-        this.updateValue();
-    }
-    get minorValue() {
-        return this._minorValue;
-    }
-    get minorMax() {
-        return this._minorMax;
-    }
-    set minorMax(max) {
-        this._minorMax = parseInt(max);
-        this.updateValue();
-    }
-    updateMax() {
-        this.progressbar.max = this.realMax;
-    }
-    updateValue() {
-        this.updateValueDispatch[this.currentPhase]();
+    updateMessage() {
+        this.phaseDispatch[this.current_phase]();
     }
 
-    startOverpass() {
-        this.overpassCountdown = window.setInterval(() => {
-            if (this.minorValue < this.overpassTimeout) {
-                this.minorValue++;
-            } else {
-                clearInterval(this.overpassCountdown);
-                progress.message.innerText = "Overpass timeout";
-            }
-        }, 1000);
+    initial_message() {
+        this.message.innerText = "Initiating...";
     }
 
-    completeOverpass() {
-        clearInterval(this.overpassCountdown);
-        this.majorValue = 1;
+    overpass_message() {
+        this.message.innerText =
+            "Querying Overpass, " +
+            this.overpassRemaining +
+            " seconds until timeout";
+        this.progressbar.value = this.realValue;
+        this.progressbar.innerText = this.overpassRemaining + " seconds remain";
     }
-
-    // incrementOverpass() {
-    //     if (this.minorValue < this.overpassTimeout) {
-    //         this.minorValue++;
-    //     }
-    // }
-
-    updateOSMAPI() {
+    osm_api_message() {
         this.message.innerText =
             "Checking deleted features on OSM API (" +
-            this.minorValue +
+            (this.osm_api_completed + 1) +
             "/" +
-            this.minorMax +
+            this.osm_api_max +
             ")";
         this.progressbar.value = this.realValue;
         this.progressbar.innerText =
-            "(" + this.minorValue + "/" + this.minorMax + ")";
+            "(" + (this.osm_api_completed + 1) + "/" + this.osm_api_max + ")";
     }
-    updateMode() {
-        this.message.innerText = "Analyzing " + this.mode;
+    modes_message() {
+        this.message.innerText = "Analyzing " + this.current_mode;
         this.progressbar.value = this.realValue;
         this.progressbar.innerText =
-            "(" + this.minorValue + "/" + this.minorMax + ")";
+            "(" + this.modes_completed + "/" + this.mode_count + ")";
     }
-    updateOverpass() {
-        this.message.innerText =
-            "Querying Overpass, " +
-            (this.overpassTimeout - this.minorValue) +
-            " seconds until timeout";
-        this.progressbar.value = this.realValue;
-        this.progressbar.innerText =
-            this.overpassTimeout - this.minorValue + " seconds remain";
+    get usingOverpass() {
+        return (
+            this.overpass_start_time !== null &&
+            this.overpass_timeout_time !== null
+        );
+    }
+
+    get overpassElapsed() {
+        // Return whole seconds elapsed
+        if (this.usingOverpass) {
+            return Math.round((new Date() - this.overpass_start_time) / 1000);
+        } else {
+            return 0;
+        }
+    }
+    get overpassRemaining() {
+        // Return whole seconds until timeout
+        if (this.usingOverpass) {
+            return Math.max(
+                Math.round((this.overpass_timeout_time - new Date()) / 1000),
+                0
+            );
+        } else {
+            return 0;
+        }
+    }
+    get overpassTimeout() {
+        return Math.round(
+            (this.overpass_timeout_time - this.overpass_start_time) / 1000
+        );
+    }
+
+    get realMax() {
+        return this.overpassTimeout + this.osm_api_max + this.mode_count * 10;
+    }
+    get realValue() {
+        return (
+            this.overpassElapsed +
+            this.osm_api_completed +
+            this.modes_completed * 10
+        );
     }
 }
 
