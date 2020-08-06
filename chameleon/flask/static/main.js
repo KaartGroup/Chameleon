@@ -148,25 +148,15 @@ class HighDeletionsOk {
 }
 
 function loadTagAutocomplete() {
-    // TODO Change to use fetch()
-    var rawFile = new XMLHttpRequest();
-    rawFile.open("GET", "/static/OSMtag.txt", true);
-    rawFile.onreadystatechange = function () {
-        var arrayOfLines;
-        if (
-            rawFile.readyState === 4 &&
-            (rawFile.status === 200 || rawFile.status == 0)
-        ) {
-            var alltext = rawFile.responseText;
-            arrayOfLines = alltext.split("\n");
-            for (let i of arrayOfLines) {
+    fetch("/static/OSMtag.txt")
+        .then((response) => response.text())
+        .then((rawText) => {
+            for (let i of rawText.split("\n")) {
                 let option = document.createElement("option");
                 option.value = i;
                 $("tagAutocomplete").append(option);
             }
-        }
-    };
-    rawFile.send();
+        });
 }
 
 class Progbar {
