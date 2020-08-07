@@ -174,10 +174,11 @@ class Progbar {
     message;
 
     phaseDispatch = {
-        init: this.initial_message,
-        overpass: this.overpass_message,
-        osm_api: this.osm_api_message,
-        modes: this.modes_message,
+        init: () => this.initial_message(),
+        overpass: () => this.overpass_message(),
+        osm_api: () => this.osm_api_message(),
+        modes: () => this.modes_message(),
+        complete: () => this.complete_message(),
     };
 
     constructor() {
@@ -186,11 +187,18 @@ class Progbar {
         this.message = $("progressbarMessage");
 
         this.overpass_start_time = this.overpass_timeout_time = null;
+        this.modes_completed = 0;
         this.current_phase = "init";
     }
 
     updateMessage() {
         this.phaseDispatch[this.current_phase]();
+        if (this.realMax) {
+            this.progressbar.max = this.realMax;
+        }
+        if (!progress.progressbarDialog.open) {
+            progress.progressbarDialog.showModal();
+        }
     }
 
     initial_message() {
@@ -221,6 +229,11 @@ class Progbar {
         this.progressbar.value = this.realValue;
         this.progressbar.innerText =
             "(" + this.modes_completed + "/" + this.mode_count + ")";
+    }
+    complete_message() {
+        this.message.innerText = "Analysis complete!";
+        this.progressbar.value = this.realMax;
+        this.progressbar.innerText = "100%";
     }
     get usingOverpass() {
         return (
@@ -364,7 +377,6 @@ function addArray(obj, array) {
 
 function checkStatus(task_id) {
     evsource = new EventSource("/longtask_status/" + task_id);
-    var overpassCountdown;
 
     evsource.addEventListener("error", () => {
         console.log("error");
@@ -378,60 +390,9 @@ function checkStatus(task_id) {
     evsource.addEventListener("task_update", (e) => {
         task_status = JSON.parse(e.data, jsonReviver);
         Object.assign(progress, task_status);
-    });
-    evsource.addEventListener("overpass_start", (e) => {
-        progress.currentPhase = "overpass";
-        // progress.majorMax = 1 + progress.mode_count;
-        progress.overpassTimeout = parseInt(e.data);
-        progress.minorMax = parseInt(e.data);
-        if (!progress.progressbarDialog.open) {
-            progress.progressbarDialog.showModal();
-        }
-        progress.startOverpass();
-        // overpassCountdown = setInterval(function() {
-        //     progress.minorValue++;
-        // }, 1000);
-        progress.updateValue();
-    });
-    evsource.addEventListener("overpass_complete", () => {
-        clearInterval(overpassCountdown);
-        progress.majorValue = 1;
-        progress.updateValue();
-    });
-    evsource.addEventListener("overpass_failed", () => {
-        clearInterval(overpassCountdown);
-        // progress.completeOverpass();
-        progress.message.innerText = "Overpass timeout";
-        // progress.updateValue();
-    });
-    evsource.addEventListener("mode_count", (e) => {
-        progress.mode_count = parseInt(e.data);
-        // progress.majorMax = parseInt(e.data);
-        if (!progress.progressbarDialog.open) {
-            progress.progressbarDialog.showModal();
-        }
-        progress.updateValue();
-    });
-    evsource.addEventListener("osm_api_max", (e) => {
-        progress.currentPhase = "osmapi";
-        progress.minorMax = parseInt(e.data);
-    });
-    evsource.addEventListener("osm_api_value", (e) => {
-        progress.currentPhase = "osmapi";
-        progress.minorValue = parseInt(e.data);
-        progress.updateValue();
-    });
-    evsource.addEventListener("mode", (e) => {
-        if (e.data != progress.mode) {
-            // Don't change if for some reason it's redundant
-            progress.majorValue++;
-            progress.currentPhase = "mode";
-            progress.mode = e.data;
-            progress.updateValue();
-        }
+        progress.updateMessage();
     });
     evsource.addEventListener("file", (e) => {
-        progress.majorValue++;
         progress.message.innerText = "Analysis complete!";
         getFile(e);
         setTimeout(() => {
@@ -459,6 +420,7 @@ function sendData() {
         .then((response) => response.json())
         .then((jsonResponse) => {
             set_uuid(jsonResponse["client_uuid"]);
+            checkStatus(jsonResponse["client_uuid"]);
         });
 }
 
@@ -495,9 +457,10 @@ var shortcutsInstance = new Shortcuts(tagListGroup);
 shortcutsInstance.createButtons();
 
 var client_uuid = localStorage.getItem("client_uuid");
-if (client_uuid) {
-    $("client_uuid").value = client_uuid;
-}
+// Disabled until better system for managing jobs by client is implemented
+// if (client_uuid) {
+//     $("client_uuid").value = client_uuid;
+// }
 
 var fileType = localStorage.getItem("file_format") ?? "excel";
 fileTypeInstance.type = fileType;
@@ -528,6 +491,9 @@ $("mainform").addEventListener("submit", (event) => {
         }
         addArray(shortcutsInstance.counter, tagListGroup.asArray);
         saveToLocalStorage();
+
+        // Show message so user knows their input was accepted
+        progress.updateMessage();
 
         onSubmit(filterListGroup);
         onSubmit(tagListGroup);

@@ -126,21 +126,6 @@ def result():
     while args["output"] != Path(args["output"]).with_suffix("").name:
         args["output"] = Path(args["output"]).with_suffix("").name
 
-    # args_subset = {
-    #     k: v
-    #     for k, v in args.items()
-    #     if k
-    #     in {
-    #         "country",
-    #         "startdate",
-    #         "enddate",
-    #         "file_format",
-    #         "output",
-    #         "grouping",
-    #         "client_uuid",
-    #     }
-    # }
-
     task = process_data.apply_async(args=[args], task_id=args["client_uuid"])
 
     # return Response(
@@ -328,6 +313,8 @@ def longtask_status(task_id):
                         for k, v in task.info.items()
                         if k
                         in {
+                            "current_mode",
+                            "current_phase",
                             "mode_count",
                             "modes_completed",
                             "modes_max",
@@ -479,6 +466,7 @@ def overpass_getter(args: dict) -> Generator:
                 f'{t}["{i["key"]}"{formatted}](area.searchArea)'
             )
 
+    # Cast to set to eliminate any possible duplicates that squeaked through client-side validation
     modes = set(args["modes"]) | {"name"}
     csv_columns = [
         "::type",
@@ -512,3 +500,7 @@ def overpass_getter(args: dict) -> Generator:
 
 def message(message_type: str, value: int) -> str:
     return f"event: {message_type}\ndata: {value}\n\n"
+
+
+def message_task_update(value: dict) -> str:
+    return f"event: task_update\ndata: {json.dumps(value)}\n\n"
