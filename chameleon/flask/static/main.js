@@ -175,6 +175,7 @@ class Progbar {
 
     phaseDispatch = {
         init: () => this.initial_message(),
+        pending: () => this.pending_message(),
         overpass: () => this.overpass_message(),
         osm_api: () => this.osm_api_message(),
         modes: () => this.modes_message(),
@@ -204,7 +205,9 @@ class Progbar {
     initial_message() {
         this.message.innerText = "Initiating...";
     }
-
+    pending_message() {
+        this.message.innerText = "Data recieved, beginning analysis...";
+    }
     overpass_message() {
         this.message.innerText =
             "Querying Overpass, " +
@@ -392,12 +395,16 @@ function checkStatus(task_id) {
         Object.assign(progress, task_status);
         progress.updateMessage();
     });
-    evsource.addEventListener("file", (e) => {
-        progress.message.innerText = "Analysis complete!";
-        getFile(e);
-        setTimeout(() => {
-            progress.progressbarDialog.close(), 5000;
-        });
+    evsource.addEventListener("task_complete", (e) => {
+        // progress.message.innerText = "Analysis complete!";
+        task_status = JSON.parse(e.data, jsonReviver);
+        Object.assign(progress, task_status);
+        progress.updateMessage();
+
+        getFile(task_status["uuid"] + "/" + task_status["file_name"]);
+
+        console.log("Closing SSE connection");
+        evsource.close();
     });
     evsource.addEventListener("high_deletion_percentage", (e) => {
         high_deletions_instance.askUser(e.data);
@@ -528,8 +535,7 @@ function saveToLocalStorage() {
     localStorage.setItem("counter", JSON.stringify(shortcutsInstance.counter));
 }
 
-function getFile(event) {
-    var path = event.data;
+function getFile(path) {
     window.location.pathname = "/download/" + path;
 }
 

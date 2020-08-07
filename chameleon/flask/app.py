@@ -183,7 +183,7 @@ def process_data(
         try:
             oldfile, newfile = overpass_getter(args)
         except overpass.errors.TimeoutError:
-            return jsonify({"result": "overpass_timeout"})
+            return {"result": "overpass_timeout"}
         # yield message("overpass_complete", None)
     elif all((args.get("oldfile"), args.get("newfile"))):
         self.update_state(state="PROGRESS", meta=task_metadata)
@@ -198,16 +198,14 @@ def process_data(
 
     deletion_percentage = high_deletions_checker(cdfs)
     if deletion_percentage > 20 and not args["high_deletions_ok"]:
-        return jsonify(
-            {
-                # "high_deletion_percentage": "There is an unusually high proportion of deletions "
-                # f"({round(deletion_percentage, 2)}%). "
-                # "This often indicates that the two input files have different scope. "
-                # "Would you like to continue?",
-                "result": "high_deletion_percentage",
-                "high_deletion_percentage": round(deletion_percentage, 2),
-            }
-        )
+        {
+            # "high_deletion_percentage": "There is an unusually high proportion of deletions "
+            # f"({round(deletion_percentage, 2)}%). "
+            # "This often indicates that the two input files have different scope. "
+            # "Would you like to continue?",
+            "result": "high_deletion_percentage",
+            "high_deletion_percentage": round(deletion_percentage, 2),
+        }
 
     df = cdfs.source_data
 
@@ -240,8 +238,7 @@ def process_data(
         task_metadata["modes_completed"] = num
         task_metadata["current_mode"] = mode
         self.update_state(
-            state="PROGRESS",
-            meta={"current": num, "total": len(args["modes"]), "mode": mode},
+            state="PROGRESS", meta=task_metadata,
         )
         try:
             result = ChameleonDataFrame(
@@ -254,31 +251,16 @@ def process_data(
 
     file_name = write_output[args["file_format"]](cdfs, user_dir, args["output"])
 
-    the_path = str(Path(*(user_dir / file_name).parts[-2:]))
-
-    return jsonify(
-        {
-            # "path": the_path
-            "uuid": args["client_uuid"],
-            "file_name": file_name,
-        }
-    )
+    return {"uuid": args["client_uuid"], "file_name": file_name}
 
 
-# @app.route("/status/<task_id>", methods=["POST"])
-# def longtask_status(task_id):
-#     return (
-#         jsonify({}),
-#         202,
-#         {"Location": url_for("longtask_status", task_id=task_id)},
-#     )
-
-
-@app.route("/longtask_status/<task_id>")
+@app.route("/longtask_status/<uuid:task_id>")
 def longtask_status(task_id):
     """
     Server Sent Event endpoint for monitoring a task's status until completion
     """
+    # Once the UUID has been validated, we want it as a string
+    task_id = str(task_id)
     task = process_data.AsyncResult(task_id)
 
     def stream_events():
@@ -302,9 +284,7 @@ def longtask_status(task_id):
                     # job did not start yet
                     response = {
                         "state": task.state,
-                        "current": 0,
-                        "total": 1,
-                        "status": "Pending...",
+                        "current_phase": "pending",
                     }
                     yield message_task_update(response)
                 else:
@@ -333,6 +313,18 @@ def longtask_status(task_id):
 
                 gevent.sleep(0.5)
 
+            # Task finished
+            yield message(
+                "task_complete",
+                json.dumps(
+                    {
+                        "state": task.state,
+                        "uuid": task.info.get("uuid"),
+                        "file_name": task.info.get("file_name"),
+                    }
+                ),
+            )
+
     return Response(stream_events(), mimetype="text/event-stream")
 
 
@@ -344,11 +336,6 @@ def download_file(unique_id):
 @app.route("/static/OSMtag.txt")
 def return_osm_tag():
     return send_file(RESOURCES_DIR.resolve() / "OSMtag.txt")
-
-
-@app.route("/static/sse.js")
-def return_sse_js():
-    return send_file(MODULES_DIR.resolve() / "sse.js/lib/sse.js")
 
 
 def high_deletions_checker(cdfs: ChameleonDataFrameSet) -> bool:
