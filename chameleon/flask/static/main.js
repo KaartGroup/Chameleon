@@ -141,7 +141,13 @@ class HighDeletionsOk {
         }
         this.dialog.close();
     }
-    askUser(message) {
+    askUser(percentage) {
+        let message =
+            "There is an unusually high proportion of deletions (" +
+            percentage +
+            "%). " +
+            "This often indicates that the two input files have different scope. " +
+            "Would you like to continue?";
         $("highdeletionstext").innerText = message;
         this.dialog.showModal();
     }

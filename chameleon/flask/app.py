@@ -198,11 +198,7 @@ def process_data(
 
     deletion_percentage = high_deletions_checker(cdfs)
     if deletion_percentage > 20 and not args["high_deletions_ok"]:
-        {
-            # "high_deletion_percentage": "There is an unusually high proportion of deletions "
-            # f"({round(deletion_percentage, 2)}%). "
-            # "This often indicates that the two input files have different scope. "
-            # "Would you like to continue?",
+        return {
             "result": "high_deletion_percentage",
             "high_deletion_percentage": round(deletion_percentage, 2),
         }
@@ -312,6 +308,10 @@ def longtask_status(task_id):
                     prior_response = response
 
                 gevent.sleep(0.5)
+
+            # High deletions
+            # if high deletions
+            # yield message("high_deletion_percentage", deletion_percentage)
 
             # Task finished
             yield message(
