@@ -238,32 +238,27 @@ class Progbar {
             this.overpass_timeout_time !== null
         );
     }
-
     get overpassElapsed() {
         // Return whole seconds elapsed
-        if (this.usingOverpass) {
-            return Math.round((new Date() - this.overpass_start_time) / 1000);
-        } else {
-            return 0;
-        }
+        return this.usingOverpass
+            ? Math.round((new Date() - this.overpass_start_time) / 1000)
+            : 0;
     }
     get overpassRemaining() {
         // Return whole seconds until timeout
-        if (this.usingOverpass) {
-            return Math.max(
-                Math.round((this.overpass_timeout_time - new Date()) / 1000),
-                0
-            );
-        } else {
-            return 0;
-        }
+        return this.usingOverpass
+            ? Math.max(
+                  Math.round((this.overpass_timeout_time - new Date()) / 1000),
+                  0
+              )
+            : 0;
     }
     get overpassTimeout() {
+        // Deduce the server's original timeout setting
         return Math.round(
             (this.overpass_timeout_time - this.overpass_start_time) / 1000
         );
     }
-
     get realMax() {
         return this.overpassTimeout + this.osm_api_max + this.mode_count * 10;
     }
@@ -376,9 +371,8 @@ function loadTagAutocomplete() {
 }
 
 function addArray(obj, array) {
-    for (let x of array) {
-        let value = obj[x] ?? 0;
-        obj[x] = value + 1;
+    for (let key of array) {
+        obj[key] = (obj[key] ?? 0) + 1;
     }
 }
 
@@ -416,17 +410,15 @@ function checkStatus(task_id) {
 }
 
 function jsonReviver(key, value) {
-    if (key in ["overpass_start_time", "overpass_timeout_time"]) {
-        return new Date(value);
-    }
-    return value;
+    return key in ["overpass_start_time", "overpass_timeout_time"]
+        ? new Date(value)
+        : value;
 }
 
 function sendData() {
-    const FD = new FormData($("mainform"));
     fetch("/result", {
         method: "POST",
-        body: FD,
+        body: new FormData($("mainform")),
     })
         .then((response) => response.json())
         .then((jsonResponse) => {
