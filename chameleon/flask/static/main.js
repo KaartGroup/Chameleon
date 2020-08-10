@@ -74,11 +74,16 @@ class ItemList {
     }
     onTagListChange() {
         if (this.required) {
-            if (!this.theList.options.length) {
-                this.theList.setCustomValidity("Please add at least one item!");
-            } else {
-                this.theList.setCustomValidity("");
-            }
+            this.theList.setCustomValidity(
+                !this.theList.options.length
+                    ? "Please add at least one item!"
+                    : ""
+            );
+        }
+    }
+    selectAll() {
+        for (let x of this.theList.options) {
+            x.selected = true;
         }
     }
 }
@@ -102,15 +107,15 @@ class FilterList extends ItemList {
             return;
         }
         item = item.filter((x) => x);
-        var keyvalue = [item[0], item[1].join(",")].filter((x) => x).join("=");
+        var keyValue = [item[0], item[1].join(",")].filter((x) => x).join("=");
         this.addField.value = "";
         this.valueField.value = "";
         var option = document.createElement("option");
-        var optionstring = keyvalue + " (" + item[2].join("") + ")";
-        if (this.asArray.includes(optionstring)) {
+        var optionString = `${keyValue} (${item[2].join("")})`;
+        if (this.asArray.includes(optionString)) {
             return;
         }
-        option.text = optionstring;
+        option.text = optionString;
         this.theList.add(option);
     }
 }
@@ -271,12 +276,12 @@ class FileTypeSelector {
         this.boxes = Array.from(document.getElementsByName("file_format"));
         this.boxes.forEach((elem) => {
             elem.addEventListener("change", () => {
-                this.extensionChange();
+                this.extensionUpdate();
             });
         });
 
-        this.fileExt = document.getElementById("fileExt");
-        this.extensionChange();
+        this.fileExt = $("fileExt");
+        this.extensionUpdate();
     }
     get type() {
         return this.boxes.filter((e) => e.checked)[0].value;
@@ -285,10 +290,9 @@ class FileTypeSelector {
         if (!value) {
             return;
         }
-        var selectedBox = this.boxes.filter((x) => x.value == value)[0];
-        selectedBox.checked = true;
+        this.boxes.filter((x) => x.value == value)[0].checked = true;
     }
-    extensionChange() {
+    extensionUpdate() {
         this.fileExt.innerText = this.extensions[this.type];
     }
 }
@@ -301,8 +305,9 @@ class Shortcuts {
     counter;
     constructor(tagListObject) {
         this.tagListObject = tagListObject;
-        this.counter = favLoader();
-        this.loadedFavs = Shortcuts.counter_to_array(this.counter).slice(
+        this.counter =
+            JSON.parse(localStorage.getItem("counter")) ?? new Object();
+        this.loadedFavs = Shortcuts.counterToArray(this.counter).slice(
             0,
             this.shortcutCount
         );
@@ -334,7 +339,7 @@ class Shortcuts {
         item.appendChild(button);
         $("favButtons").appendChild(item);
     }
-    static counter_to_array(input) {
+    static counterToArray(input) {
         let intermediate = [];
         for (let item in input) {
             intermediate.push([item, input[item]]);
@@ -437,12 +442,6 @@ function onTabChange() {
     }
 }
 
-function onSubmit(object) {
-    for (let x of object.theList.options) {
-        x.selected = true;
-    }
-}
-
 function saveToLocalStorage() {
     localStorage.setItem("location", locationInput.value);
     localStorage.setItem("startdate", startDateInput.value);
@@ -452,54 +451,7 @@ function saveToLocalStorage() {
     localStorage.setItem("counter", JSON.stringify(shortcutsInstance.counter));
 }
 
-function getFile(path) {
-    window.location.pathname = "/download/" + path;
-}
-
-function favLoader() {
-    return JSON.parse(localStorage.getItem("counter")) ?? new Object();
-}
-
-function isObject(value) {
-    return Object(value) === value;
-}
-
-var high_deletions_instance = new HighDeletionsOk();
-
-var evsource;
-var task_status;
-
-var manualInputs = $("manualtab").getElementsByTagName("input");
-
-var locationInput = document.getElementsByName("location")[0];
-var startDateInput = document.getElementsByName("startdate")[0];
-var endDateInput = document.getElementsByName("enddate")[0];
-var outputInput = document.getElementsByName("output")[0];
-
-var filterListGroup = new FilterList("filter");
-var tagListGroup = new ItemList("tag", true);
-var progress = new Progbar();
-
-var fileTypeInstance = new FileTypeSelector();
-
-var shortcutsInstance = new Shortcuts(tagListGroup);
-shortcutsInstance.createButtons();
-
-var client_uuid = localStorage.getItem("client_uuid");
-// Disabled until better system for managing jobs by client is implemented
-// if (client_uuid) {
-//     $("client_uuid").value = client_uuid;
-// }
-
-var fileType = localStorage.getItem("file_format") ?? "excel";
-fileTypeInstance.type = fileType;
-// Initial value on load
-tagListGroup.onTagListChange();
-
-loadTagAutocomplete();
-onTabChange();
-window.addEventListener("hashchange", onTabChange);
-$("mainform").addEventListener("submit", (event) => {
+function onSubmit(event) {
     event.preventDefault();
     if (document.activeElement.id == "tagAddField") {
         tagListGroup.addFromAddField();
@@ -512,7 +464,7 @@ $("mainform").addEventListener("submit", (event) => {
     } else {
         // Enable native validation and use it
         $("mainform").novalidate = false;
-        var isValid = $("mainform").reportValidity();
+        let isValid = $("mainform").reportValidity();
         // Disable native validation so the above works again
         $("mainform").novalidate = true;
         if (!isValid) {
@@ -524,9 +476,41 @@ $("mainform").addEventListener("submit", (event) => {
         // Show message so user knows their input was accepted
         progress.updateMessage();
 
-        onSubmit(filterListGroup);
-        onSubmit(tagListGroup);
+        filterListGroup.selectAll();
+        tagListGroup.selectAll();
 
         sendData();
     }
-});
+}
+
+var evsource;
+
+const locationInput = document.getElementsByName("location")[0];
+const startDateInput = document.getElementsByName("startdate")[0];
+const endDateInput = document.getElementsByName("enddate")[0];
+const outputInput = document.getElementsByName("output")[0];
+
+var highDeletionsInstance = new HighDeletionsOk();
+var filterListGroup = new FilterList("filter");
+
+var tagListGroup = new ItemList("tag", true);
+// Initial value on load
+tagListGroup.onTagListChange();
+
+var progress = new Progbar();
+
+var fileTypeInstance = new FileTypeSelector();
+fileTypeInstance.type = localStorage.getItem("file_format") ?? "excel";
+
+var shortcutsInstance = new Shortcuts(tagListGroup);
+shortcutsInstance.createButtons();
+
+var clientUuid = localStorage.getItem("client_uuid");
+if (clientUuid) {
+    checkStatus(clientUuid, false);
+}
+
+loadTagAutocomplete();
+onTabChange();
+window.addEventListener("hashchange", onTabChange);
+$("mainform").addEventListener("submit", onSubmit);
