@@ -162,15 +162,6 @@ class Progbar {
     progressbarDialog;
     message;
 
-    phaseDispatch = {
-        init: () => this.initial_message(),
-        pending: () => this.pending_message(),
-        overpass: () => this.overpass_message(),
-        osm_api: () => this.osm_api_message(),
-        modes: () => this.modes_message(),
-        complete: () => this.complete_message(),
-    };
-
     constructor() {
         this.progressbar = $("progressbar");
         this.progressbarDialog = $("progressbarDialog");
@@ -181,52 +172,6 @@ class Progbar {
         this.current_phase = "init";
     }
 
-    updateMessage() {
-        this.phaseDispatch[this.current_phase]();
-        if (this.realMax) {
-            this.progressbar.max = this.realMax;
-        }
-        if (!progress.progressbarDialog.open) {
-            progress.progressbarDialog.showModal();
-        }
-    }
-
-    initial_message() {
-        this.message.innerText = "Initiating...";
-    }
-    pending_message() {
-        this.message.innerText = "Data recieved, beginning analysis...";
-    }
-    overpass_message() {
-        this.message.innerText =
-            "Querying Overpass, " +
-            this.overpassRemaining +
-            " seconds until timeout";
-        this.progressbar.value = this.realValue;
-        this.progressbar.innerText = this.overpassRemaining + " seconds remain";
-    }
-    osm_api_message() {
-        this.message.innerText =
-            "Checking deleted features on OSM API (" +
-            (this.osm_api_completed + 1) +
-            "/" +
-            this.osm_api_max +
-            ")";
-        this.progressbar.value = this.realValue;
-        this.progressbar.innerText =
-            "(" + (this.osm_api_completed + 1) + "/" + this.osm_api_max + ")";
-    }
-    modes_message() {
-        this.message.innerText = "Analyzing " + this.current_mode;
-        this.progressbar.value = this.realValue;
-        this.progressbar.innerText =
-            "(" + this.modes_completed + "/" + this.mode_count + ")";
-    }
-    complete_message() {
-        this.message.innerText = "Analysis complete!";
-        this.progressbar.value = this.realMax;
-        this.progressbar.innerText = "100%";
-    }
     get usingOverpass() {
         return (
             this.overpass_start_time !== null &&
@@ -263,6 +208,54 @@ class Progbar {
             this.osm_api_completed +
             this.modes_completed * 10
         );
+    }
+
+    updateMessage() {
+        this.phaseDispatch[this.current_phase]();
+        if (this.realMax) {
+            this.progressbar.max = this.realMax;
+        }
+        if (!progress.progressbarDialog.open) {
+            progress.progressbarDialog.showModal();
+        }
+    }
+
+    phaseDispatch = {
+        init: () => {
+            this.message.innerText = "Initiating...";
+        },
+        pending: () => {
+            this.message.innerText = "Data recieved, beginning analysis...";
+        },
+        overpass: () => this.overpass_message(),
+        osm_api: () => this.osm_api_message(),
+        modes: () => this.modes_message(),
+        complete: () => this.complete_message(),
+    };
+
+    overpass_message() {
+        this.message.innerText = `Querying Overpass, ${this.overpassRemaining} seconds until timeout`;
+        this.progressbar.value = this.realValue;
+        this.progressbar.innerText = `${this.overpassRemaining} seconds remain`;
+    }
+    osm_api_message() {
+        this.message.innerText = `Checking deleted features on OSM API (${
+            this.osm_api_completed + 1
+        }/${this.osm_api_max})`;
+        this.progressbar.value = this.realValue;
+        this.progressbar.innerText = `(${this.osm_api_completed + 1}/${
+            this.osm_api_max
+        })`;
+    }
+    modes_message() {
+        this.message.innerText = `Analyzing ${this.current_mode}`;
+        this.progressbar.value = this.realValue;
+        this.progressbar.innerText = `(${this.modes_completed}/${this.mode_count})`;
+    }
+    complete_message() {
+        this.message.innerText = "Analysis complete!";
+        this.progressbar.value = this.realMax;
+        this.progressbar.innerText = "100%";
     }
 }
 
