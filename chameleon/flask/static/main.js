@@ -9,11 +9,11 @@ class ItemList {
     theList;
     required;
     constructor(name, required = false) {
-        this.addField = document.getElementById(name + "AddField");
-        this.addButton = document.getElementById(name + "AddButton");
-        this.removeButton = document.getElementById(name + "RemoveButton");
-        this.clearButton = document.getElementById(name + "ClearButton");
-        this.theList = document.getElementById(name + "List");
+        this.addField = $(name + "AddField");
+        this.addButton = $(name + "AddButton");
+        this.removeButton = $(name + "RemoveButton");
+        this.clearButton = $(name + "ClearButton");
+        this.theList = $(name + "List");
         this.required = required;
 
         this.addButton.addEventListener("click", () => {
@@ -47,7 +47,6 @@ class ItemList {
         if (!items) {
             return;
         }
-
         for (let item of items) {
             if (this.asArray.includes(item)) {
                 continue;
@@ -87,7 +86,7 @@ class ItemList {
 class FilterList extends ItemList {
     constructor(name, required = false) {
         super(name, required);
-        this.valueField = document.getElementById(name + "ValueField");
+        this.valueField = $(name + "ValueField");
         this._typeArray = document.getElementsByName(name + "TypeBox");
     }
     get typeArray() {
@@ -120,7 +119,7 @@ class HighDeletionsOk {
     input;
     dialog;
     constructor() {
-        this.input = document.getElementsByName("high_deletions_ok")[0];
+        this.input = $("high_deletions_ok");
         this.dialog = $("highdeletionsdialog");
         $("highdeletionsyes").addEventListener("click", () => {
             this.respond(true);
@@ -142,13 +141,9 @@ class HighDeletionsOk {
         this.dialog.close();
     }
     askUser(percentage) {
-        let message =
-            "There is an unusually high proportion of deletions (" +
-            percentage +
-            "%). " +
-            "This often indicates that the two input files have different scope. " +
-            "Would you like to continue?";
-        $("highdeletionstext").innerText = message;
+        $(
+            "highdeletionstext"
+        ).innerText = `There is an unusually high proportion of deletions (${percentage}%). This often indicates that the two input files have different scope. Would you like to continue?`;
         this.dialog.showModal();
     }
 }
