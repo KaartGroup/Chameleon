@@ -153,18 +153,6 @@ class HighDeletionsOk {
     }
 }
 
-function loadTagAutocomplete() {
-    fetch("/static/OSMtag.txt")
-        .then((response) => response.text())
-        .then((rawText) => {
-            for (let i of rawText.split("\n")) {
-                let option = document.createElement("option");
-                option.value = i;
-                $("tagAutocomplete").append(option);
-            }
-        });
-}
-
 class Progbar {
     current_mode;
     current_phase;
@@ -361,8 +349,6 @@ class Shortcuts {
             this.tagListObject.addToList(tag);
         });
         item.appendChild(button);
-        // item.innerHTML =
-        //     '<button type="button" id="' + tag + 'Shortcut">' + tag + "</button>";
         $("favButtons").appendChild(item);
     }
     static counter_to_array(input) {
@@ -375,6 +361,18 @@ class Shortcuts {
         });
         return Array.from(intermediate.map((x) => x[0]).reverse());
     }
+}
+
+function loadTagAutocomplete() {
+    fetch("/static/OSMtag.txt")
+        .then((response) => response.text())
+        .then((rawText) => {
+            for (let i of rawText.split("\n")) {
+                let option = document.createElement("option");
+                option.value = i;
+                $("tagAutocomplete").append(option);
+            }
+        });
 }
 
 function addArray(obj, array) {
@@ -448,6 +446,44 @@ function set_uuid(uuid) {
     }
 }
 
+function onTabChange() {
+    var isManualTab = window.location.hash == "#manualtab";
+    $("easytab").disabled = isManualTab;
+    $("manualtab").disabled = !isManualTab;
+
+    // Cleans the URL of unnecessary hash
+    if (window.location.hash == "") {
+        history.replaceState(null, "", window.location.href.split("#")[0]);
+    }
+}
+
+function onSubmit(object) {
+    for (let x of object.theList.options) {
+        x.selected = true;
+    }
+}
+
+function saveToLocalStorage() {
+    localStorage.setItem("location", locationInput.value);
+    localStorage.setItem("startdate", startDateInput.value);
+    localStorage.setItem("enddate", endDateInput.value);
+    localStorage.setItem("output", outputInput.value);
+    localStorage.setItem("file_format", fileTypeInstance.type);
+    localStorage.setItem("counter", JSON.stringify(shortcutsInstance.counter));
+}
+
+function getFile(path) {
+    window.location.pathname = "/download/" + path;
+}
+
+function favLoader() {
+    return JSON.parse(localStorage.getItem("counter")) ?? new Object();
+}
+
+function isObject(value) {
+    return Object(value) === value;
+}
+
 var high_deletions_instance = new HighDeletionsOk();
 
 var evsource;
@@ -514,41 +550,3 @@ $("mainform").addEventListener("submit", (event) => {
         sendData();
     }
 });
-
-function onTabChange() {
-    var isManualTab = window.location.hash == "#manualtab";
-    $("easytab").disabled = isManualTab;
-    $("manualtab").disabled = !isManualTab;
-
-    // Cleans the URL of unnecessary hash
-    if (window.location.hash == "") {
-        history.replaceState(null, "", window.location.href.split("#")[0]);
-    }
-}
-
-function onSubmit(object) {
-    for (let x of object.theList.options) {
-        x.selected = true;
-    }
-}
-
-function saveToLocalStorage() {
-    localStorage.setItem("location", locationInput.value);
-    localStorage.setItem("startdate", startDateInput.value);
-    localStorage.setItem("enddate", endDateInput.value);
-    localStorage.setItem("output", outputInput.value);
-    localStorage.setItem("file_format", fileTypeInstance.type);
-    localStorage.setItem("counter", JSON.stringify(shortcutsInstance.counter));
-}
-
-function getFile(path) {
-    window.location.pathname = "/download/" + path;
-}
-
-function favLoader() {
-    return JSON.parse(localStorage.getItem("counter")) ?? new Object();
-}
-
-function isObject(value) {
-    return Object(value) === value;
-}
