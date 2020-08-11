@@ -269,43 +269,42 @@ def longtask_status(task_id):
                 "status": str(task.info),  # this is the exception raised
             }
             yield message_task_update(response)
+        elif task.state == "PENDING":
+            # job is unknown
+            response = {
+                "state": task.state,
+                "current_phase": "pending",
+            }
+            yield message_task_update(response)
         else:
             # In progress
             prior_response = None
-            while process_data.AsyncResult(task_id).state not in {
+            while task.state not in {
                 "SUCCESS",
                 "FAILURE",
             }:
-                if task.state == "PENDING":
-                    # job did not start yet
-                    response = {
-                        "state": task.state,
-                        "current_phase": "pending",
+                response = {
+                    k: v
+                    for k, v in task.info.items()
+                    if k
+                    in {
+                        "current_mode",
+                        "current_phase",
+                        "mode_count",
+                        "modes_completed",
+                        "modes_max",
+                        "osm_api_completed",
+                        "osm_api_max",
+                        "overpass_start_time",
+                        "overpass_timeout_time",
+                        "result",
                     }
-                    yield message_task_update(response)
-                else:
-                    response = {
-                        k: v
-                        for k, v in task.info.items()
-                        if k
-                        in {
-                            "current_mode",
-                            "current_phase",
-                            "mode_count",
-                            "modes_completed",
-                            "modes_max",
-                            "osm_api_completed",
-                            "osm_api_max",
-                            "overpass_start_time",
-                            "overpass_timeout_time",
-                            "result",
-                        }
-                    }
-                    response["state"] = task.state
+                }
+                response["state"] = task.state
 
-                    if response != prior_response:
-                        yield message_task_update(response)
-                    prior_response = response
+                if response != prior_response:
+                    yield message_task_update(response)
+                prior_response = response
 
                 gevent.sleep(0.5)
 
@@ -314,15 +313,12 @@ def longtask_status(task_id):
             # yield message("high_deletion_percentage", deletion_percentage)
 
             # Task finished
-            yield message(
-                "task_complete",
-                json.dumps(
-                    {
-                        "state": task.state,
-                        "uuid": task.info.get("uuid"),
-                        "file_name": task.info.get("file_name"),
-                    }
-                ),
+            yield message_task_update(
+                {
+                    "state": task.state,
+                    "uuid": task.info.get("uuid"),
+                    "file_name": task.info.get("file_name"),
+                }
             )
 
     return Response(stream_events(), mimetype="text/event-stream")
@@ -330,7 +326,9 @@ def longtask_status(task_id):
 
 @app.route("/download/<path:unique_id>")
 def download_file(unique_id):
-    return send_from_directory(USER_FILES_BASE.resolve(), unique_id)
+    return send_from_directory(
+        USER_FILES_BASE.resolve(), unique_id, as_attachment=True
+    )
 
 
 @app.route("/static/OSMtag.txt")

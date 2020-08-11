@@ -369,8 +369,8 @@ function addArray(obj, array) {
     }
 }
 
-function checkStatus(task_id) {
-    evsource = new EventSource("/longtask_status/" + task_id);
+function checkStatus(task_id, recieved_id = true) {
+    var evsource = new EventSource(`/longtask_status/${task_id}`);
 
     evsource.addEventListener("error", () => {
         console.log("error");
@@ -378,27 +378,30 @@ function checkStatus(task_id) {
     evsource.addEventListener("open", () => {
         console.log("SSE connection open");
     });
-    evsource.addEventListener("message", (e) => {
-        console.log("message " + e.data);
+    evsource.addEventListener("message", (event) => {
+        console.log(`message ${event.data}`);
     });
-    evsource.addEventListener("task_update", (e) => {
-        task_status = JSON.parse(e.data, jsonReviver);
-        Object.assign(progress, task_status);
+    evsource.addEventListener("task_update", (event) => {
+        let taskStatus = JSON.parse(event.data, jsonReviver);
+
+        if (taskStatus["state"] == "SUCCESS") {
+            window.location.pathname = `/download/${taskStatus["uuid"]}/${taskStatus["file_name"]}`;
+            console.log("Closing SSE connection");
+            evsource.close();
+            localStorage.removeItem("client_uuid");
+            progress.current_phase = "complete";
+        } else if (taskStatus["state"] == "PENDING" && !recieved_id) {
+            console.log("Bad UUID given, closing SSE connection");
+            evsource.close();
+            localStorage.removeItem("client_uuid");
+        } else {
+            Object.assign(progress, taskStatus);
+        }
         progress.updateMessage();
     });
-    evsource.addEventListener("task_complete", (e) => {
-        // progress.message.innerText = "Analysis complete!";
-        task_status = JSON.parse(e.data, jsonReviver);
-        Object.assign(progress, task_status);
-        progress.updateMessage();
-
-        getFile(task_status["uuid"] + "/" + task_status["file_name"]);
-
-        console.log("Closing SSE connection");
+    evsource.addEventListener("high_deletion_percentage", (event) => {
+        highDeletionsInstance.askUser(event.data);
         evsource.close();
-    });
-    evsource.addEventListener("high_deletion_percentage", (e) => {
-        high_deletions_instance.askUser(e.data);
     });
 }
 
@@ -415,19 +418,18 @@ function sendData() {
     })
         .then((response) => response.json())
         .then((jsonResponse) => {
-            set_uuid(jsonResponse["client_uuid"]);
+            setUuid(jsonResponse["client_uuid"]);
             checkStatus(jsonResponse["client_uuid"]);
         });
 }
 
-function set_uuid(uuid) {
+function setUuid(uuid) {
     if (
         uuid.match(
             /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
         )
     ) {
         localStorage.setItem("client_uuid", uuid);
-        $("client_uuid").value = uuid;
     }
 }
 
@@ -482,8 +484,6 @@ function onSubmit(event) {
         sendData();
     }
 }
-
-var evsource;
 
 const locationInput = document.getElementsByName("location")[0];
 const startDateInput = document.getElementsByName("startdate")[0];
