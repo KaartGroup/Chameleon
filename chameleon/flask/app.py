@@ -54,6 +54,12 @@ except OSError:
     APP_VERSION = ""
 
 
+class HighDeletionPercentageError(Exception):
+    def __init__(self, deletion_percentage):
+        super(HighDeletionPercentageError).__init__()
+        self.deletion_percentage = deletion_percentage
+
+
 @app.route("/about")
 def about():
     return render_template("about.html")
@@ -107,7 +113,7 @@ def result():
 
         request.files.get("old").save(args["oldfile"])
         request.files.get("new").save(args["newfile"])
-    except OSError:
+    except (AttributeError, OSError):
         pass
 
     try:
@@ -128,17 +134,8 @@ def result():
 
     task = process_data.apply_async(args=[args], task_id=args["client_uuid"])
 
-    # return Response(
-    #     stream_with_context(process_data()), mimetype="text/event-stream",
-    # )
     return (
-        jsonify(
-            {
-                "Location": url_for("longtask_status", task_id=task.id),
-                "client_uuid": task.id,
-                "mode_count": len(args["modes"]),
-            }
-        ),
+        jsonify({"client_uuid": task.id, "mode_count": len(args["modes"])}),
         202,
     )
 
@@ -167,8 +164,9 @@ def process_data(
 
     task_metadata = {"mode_count": len(args["modes"])}
 
-    if all((args["country"], args["startdate"])):
-        # Running in easy mode, need to make files for the user
+    easy_mode = all((args["country"], args["startdate"]))
+    if easy_mode:
+        # Need to make files for the user
         overpass_start_time = datetime.now(timezone.utc)
         task_metadata.update(
             {
@@ -180,14 +178,11 @@ def process_data(
             }
         )
         self.update_state(state="PROGRESS", meta=task_metadata)
-        try:
-            oldfile, newfile = overpass_getter(args)
-        except overpass.errors.TimeoutError:
-            return {"result": "overpass_timeout"}
-        # yield message("overpass_complete", None)
+
+        oldfile, newfile = overpass_getter(args)
     elif all((args.get("oldfile"), args.get("newfile"))):
-        self.update_state(state="PROGRESS", meta=task_metadata)
         # BYOD mode
+        self.update_state(state="PROGRESS", meta=task_metadata)
         oldfile = open(args["oldfile"], "r")
         newfile = open(args["newfile"], "r")
     else:
@@ -196,12 +191,12 @@ def process_data(
     with oldfile as old, newfile as new:
         cdfs = ChameleonDataFrameSet(old, new)
 
-    deletion_percentage = high_deletions_checker(cdfs)
-    if deletion_percentage > 20 and not args["high_deletions_ok"]:
-        return {
-            "result": "high_deletion_percentage",
-            "high_deletion_percentage": round(deletion_percentage, 2),
-        }
+    if (
+        not easy_mode
+        and not args["high_deletions_ok"]
+        and (deletion_percentage := high_deletions_checker(cdfs)) > 20
+    ):
+        raise HighDeletionPercentageError(round(deletion_percentage, 2))
 
     df = cdfs.source_data
 
@@ -247,7 +242,7 @@ def process_data(
 
     file_name = write_output[args["file_format"]](cdfs, user_dir, args["output"])
 
-    return {"uuid": args["client_uuid"], "file_name": file_name}
+    return {"file_name": file_name}
 
 
 @app.route("/longtask_status/<uuid:task_id>")
@@ -259,17 +254,8 @@ def longtask_status(task_id):
     task_id = str(task_id)
     task = process_data.AsyncResult(task_id)
 
-    def stream_events():
-        if task.state == "FAILURE":
-            # something went wrong in the background job
-            response = {
-                "state": task.state,
-                "current": 1,
-                "total": 1,
-                "status": str(task.info),  # this is the exception raised
-            }
-            yield message_task_update(response)
-        elif task.state == "PENDING":
+    def stream_events() -> Generator:
+        if task.state == "PENDING":
             # job is unknown
             response = {
                 "state": task.state,
@@ -308,18 +294,37 @@ def longtask_status(task_id):
 
                 gevent.sleep(0.5)
 
-            # High deletions
-            # if high deletions
-            # yield message("high_deletion_percentage", deletion_percentage)
-
             # Task finished
-            yield message_task_update(
-                {
-                    "state": task.state,
-                    "uuid": task.info.get("uuid"),
-                    "file_name": task.info.get("file_name"),
-                }
-            )
+            if task.state == "SUCCESS":
+                try:
+                    file_name = task.info.get("file_name")
+                except AttributeError:
+                    # Can happen if task.info is an Exception
+                    file_name = None
+
+                yield message_task_update(
+                    {
+                        "state": task.state,
+                        "uuid": task.id,
+                        "file_name": file_name,
+                    }
+                )
+            elif hasattr(task.info, "deletion_percentage"):
+                # Task failed due to high deletion percentage and needs to be reconfirmed
+                yield message_task_update(
+                    {
+                        "state": task.state,
+                        "deletion_percentage": task.info.deletion_percentage,
+                    }
+                )
+            else:
+                # something went wrong in the background job
+                yield message_task_update(
+                    {
+                        "state": task.state,
+                        "error": str(task.info),  # this is the exception raised
+                    }
+                )
 
     return Response(stream_events(), mimetype="text/event-stream")
 

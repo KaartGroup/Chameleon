@@ -154,6 +154,7 @@ class HighDeletionsOk {
 }
 
 class Progbar {
+    // Snake case properties are direct from the server, camelCase are internal only
     current_mode;
     current_phase;
     mode_count;
@@ -173,7 +174,7 @@ class Progbar {
         this.message = $("progressbarMessage");
 
         this.overpass_start_time = this.overpass_timeout_time = null;
-        this.modes_completed = 0;
+        this.osm_api_completed = this.osm_api_max = this.modes_completed = 0;
         this.current_phase = "init";
     }
 
@@ -216,7 +217,21 @@ class Progbar {
     }
 
     updateMessage() {
-        this.phaseDispatch[this.current_phase]();
+        if (this.current_phase == "overpass") {
+            overpassIntervalID = window.setInterval(() => {
+                if (this.overpassRemaining <= 0) {
+                    window.clearInterval(overpassIntervalID);
+                    this.failure_message();
+                } else {
+                    this.overpass_message();
+                }
+            }, 1000);
+        } else {
+            if (overpassIntervalID) {
+                window.clearInterval(overpassIntervalID);
+            }
+            this.phaseDispatch[this.current_phase]();
+        }
         if (this.realMax) {
             this.progressbar.max = this.realMax;
         }
@@ -227,12 +242,12 @@ class Progbar {
 
     phaseDispatch = {
         init: () => {
-            this.message.innerText = "Initiating...";
+            this.message.innerText = "Initiating…";
         },
         pending: () => {
-            this.message.innerText = "Data recieved, beginning analysis...";
+            this.message.innerText = "Data recieved, beginning analysis…";
         },
-        overpass: () => this.overpass_message(),
+        // overpass: () => this.overpass_message(),
         osm_api: () => this.osm_api_message(),
         modes: () => this.modes_message(),
         complete: () => this.complete_message(),
@@ -261,6 +276,10 @@ class Progbar {
         this.message.innerText = "Analysis complete!";
         this.progressbar.value = this.realMax;
         this.progressbar.innerText = "100%";
+    }
+    failure_message() {
+        this.message.innerText = "Analysis failed!";
+        this.progressbar.value = this.progressbar.max = 1;
     }
 }
 
@@ -391,17 +410,29 @@ function checkStatus(task_id, recieved_id = true) {
             localStorage.removeItem("client_uuid");
             progress.current_phase = "complete";
         } else if (taskStatus["state"] == "PENDING" && !recieved_id) {
+            // PENDING means unknown to the task manager
+            // Unless the UUID was recieved from the server, it's probably not valid
             console.log("Bad UUID given, closing SSE connection");
+            evsource.close();
+            localStorage.removeItem("client_uuid");
+        } else if (
+            taskStatus["state"] == "FAILURE" &&
+            taskStatus["deletion_percentage"]
+        ) {
+            // Task failed because of high deletion rate, indicating mismatched data
+            highDeletionsInstance.askUser(taskStatus["deletion_percentage"]);
+            evsource.close();
+            localStorage.removeItem("client_uuid");
+        } else if (taskStatus["state"] == "FAILURE") {
+            // Other, unknown failure
+            console.log(`Task failed with error: ${taskStatus["error"]}`);
+            console.log("Closing SSE connection");
             evsource.close();
             localStorage.removeItem("client_uuid");
         } else {
             Object.assign(progress, taskStatus);
         }
         progress.updateMessage();
-    });
-    evsource.addEventListener("high_deletion_percentage", (event) => {
-        highDeletionsInstance.askUser(event.data);
-        evsource.close();
     });
 }
 
@@ -484,6 +515,8 @@ function onSubmit(event) {
         sendData();
     }
 }
+
+var overpassIntervalID;
 
 const locationInput = document.getElementsByName("location")[0];
 const startDateInput = document.getElementsByName("startdate")[0];
