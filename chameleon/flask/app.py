@@ -441,7 +441,7 @@ def overpass_getter(args: dict) -> Generator:
     api = overpass.API(OVERPASS_TIMEOUT)
 
     formatted_tags = []
-    for i in args["filters"]:
+    for i in args["filter_list"]:
         if i["value"]:
             formatted = f'~"{"|".join(i["value"])}"'
         else:
@@ -464,8 +464,8 @@ def overpass_getter(args: dict) -> Generator:
     response_format = f'csv({",".join(csv_columns)})'
 
     overpass_query = (
-        f'area["ISO3166-1"="{args["location"]}"]->.searchArea;'
-        f'{"".join(formatted_tags)}'
+        f'area["ISO3166-1"="{args["country"]}"]->.searchArea;'
+        + ";".join(formatted_tags)
     )
 
     for date in (args["startdate"], args["enddate"]):
