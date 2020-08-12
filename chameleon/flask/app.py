@@ -442,8 +442,8 @@ def filter_processing(filters: List[str]) -> List[dict]:
     return filter_list
 
 
-def overpass_getter(args: dict) -> Generator:
-    api = overpass.API(OVERPASS_TIMEOUT)
+def overpass_getter(args: dict) -> Iterator[TextIO]:
+    api = overpass.API(timeout=OVERPASS_TIMEOUT)
 
     formatted_tags = []
     for i in args["filter_list"]:
