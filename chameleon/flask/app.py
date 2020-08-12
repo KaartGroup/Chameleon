@@ -336,10 +336,10 @@ def return_osm_tag():
     return send_file(RESOURCES_DIR.resolve() / "OSMtag.txt")
 
 
-def high_deletions_checker(cdfs: ChameleonDataFrameSet) -> bool:
+def high_deletions_checker(cdfs: ChameleonDataFrameSet) -> float:
     deletion_percentage = (
         len(cdfs.source_data[cdfs.source_data["action"] == "deleted"])
-        / len(cdfs.source_data)
+        / max(len(cdfs.source_data), 1)  # Protect against zero division
     ) * 100
     return deletion_percentage
 
