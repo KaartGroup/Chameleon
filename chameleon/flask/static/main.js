@@ -437,7 +437,7 @@ function checkStatus(task_id, recieved_id = true) {
 }
 
 function jsonReviver(key, value) {
-    return key in ["overpass_start_time", "overpass_timeout_time"]
+    return ["overpass_start_time", "overpass_timeout_time"].includes(key)
         ? new Date(value)
         : value;
 }
