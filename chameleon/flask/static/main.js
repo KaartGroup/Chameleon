@@ -130,7 +130,7 @@ class HighDeletionsOk {
             this.respond(true);
         });
         $("highdeletionsno").addEventListener("click", () => {
-            this.dialog.close();
+            this.respond(false);
         });
     }
     respond(answer) {
@@ -142,6 +142,9 @@ class HighDeletionsOk {
             });
             $("mainform").dispatchEvent(event);
             this.input.disabled = true;
+        } else {
+            localStorage.removeItem("client_uuid");
+            progress.progressbarDialog.close();
         }
         this.dialog.close();
     }
@@ -534,6 +537,10 @@ var progress = new Progbar();
 
 var fileTypeInstance = new FileTypeSelector();
 fileTypeInstance.type = localStorage.getItem("file_format") ?? "excel";
+
+locationInput.value = localStorage.getItem("location");
+startDateInput.value = localStorage.getItem("startdate");
+endDateInput.value = localStorage.getItem("enddate");
 
 var shortcutsInstance = new Shortcuts(tagListGroup);
 shortcutsInstance.createButtons();
