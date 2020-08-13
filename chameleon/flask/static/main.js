@@ -14,6 +14,7 @@ class ItemList {
         this.removeButton = $(name + "RemoveButton");
         this.clearButton = $(name + "ClearButton");
         this.theList = $(name + "List");
+        this.autoComplete = $(name + "Autocomplete");
         this.required = required;
 
         this.addButton.addEventListener("click", () => {
@@ -25,9 +26,23 @@ class ItemList {
         this.clearButton.addEventListener("click", () => {
             this.clearList();
         });
+        if (this.autoComplete) {
+            this.loadTagAutocomplete();
+        }
     }
     get asArray() {
         return Array.from(this.theList.options).map((x) => x.text);
+    }
+    loadTagAutocomplete() {
+        fetch("/static/OSMtag.txt")
+            .then((response) => response.text())
+            .then((rawText) => {
+                for (let i of rawText.split("\n")) {
+                    let option = document.createElement("option");
+                    option.value = i;
+                    this.autoComplete.append(option);
+                }
+            });
     }
     addFromAddField() {
         /*
@@ -120,12 +135,13 @@ class FilterList extends ItemList {
     }
 }
 
-class HighDeletionsOk {
+class HighDeletionsOK {
     input;
     dialog;
-    constructor() {
+    constructor(parent = null) {
         this.input = $("high_deletions_ok");
         this.dialog = $("highdeletionsdialog");
+        this.parent = parent;
         $("highdeletionsyes").addEventListener("click", () => {
             this.respond(true);
         });
@@ -144,7 +160,7 @@ class HighDeletionsOk {
             this.input.disabled = true;
         } else {
             localStorage.removeItem("client_uuid");
-            progress.progressbarDialog.close();
+            this.parent.progressbarDialog.close();
         }
         this.dialog.close();
     }
@@ -238,8 +254,8 @@ class Progbar {
         if (this.realMax) {
             this.progressbar.max = this.realMax;
         }
-        if (!progress.progressbarDialog.open) {
-            progress.progressbarDialog.showModal();
+        if (!this.progressbarDialog.open) {
+            this.progressbarDialog.showModal();
         }
     }
 
@@ -327,12 +343,8 @@ class Shortcuts {
     counter;
     constructor(tagListObject) {
         this.tagListObject = tagListObject;
-        this.counter =
-            JSON.parse(localStorage.getItem("counter")) ?? new Object();
-        this.loadedFavs = Shortcuts.counterToArray(this.counter).slice(
-            0,
-            this.shortcutCount
-        );
+        this.counter = new Counter(JSON.parse(localStorage.getItem("counter")));
+        this.loadedFavs = this.counter.asArray.slice(0, this.shortcutCount);
         this.fillFavs();
     }
     fillFavs() {
@@ -373,88 +385,115 @@ class Shortcuts {
     }
 }
 
-function loadTagAutocomplete() {
-    fetch("/static/OSMtag.txt")
-        .then((response) => response.text())
-        .then((rawText) => {
-            for (let i of rawText.split("\n")) {
-                let option = document.createElement("option");
-                option.value = i;
-                $("tagAutocomplete").append(option);
-            }
-        });
-}
+class ChameleonServer {
+    client_uuid;
+    evsource;
+    progress;
+    highDeletionsInstance;
 
-function addArray(obj, array) {
-    for (let key of array) {
-        obj[key] = (obj[key] ?? 0) + 1;
+    constructor() {
+        this.progress = new Progbar();
+        this.highDeletionsInstance = new HighDeletionsOK(this);
+    }
+    submit() {
+        fetch("/result", {
+            method: "POST",
+            body: new FormData($("mainform")),
+        })
+            .then((response) => response.json())
+            .then((jsonResponse) => {
+                this.client_uuid = jsonResponse["client_uuid"];
+                setUuid(this.client_uuid);
+                this.checkStatus(this.client_uuid);
+            });
+    }
+    stop() {
+        this.evsource.close();
+        localStorage.removeItem("client_uuid");
+    }
+    pause() {}
+    checkStatus(task_id, recieved_id = true) {
+        this.evsource = new ChameleonEventSource(task_id);
+        this.evsource.addEventListener("task_update", (event) => {
+            let taskStatus = JSON.parse(event.data, jsonReviver);
+
+            if (taskStatus["state"] == "SUCCESS") {
+                window.location.pathname = `/download/${taskStatus["uuid"]}/${taskStatus["file_name"]}`;
+                console.log("Closing SSE connection");
+                this.progress.current_phase = "complete";
+                this.stop();
+            } else if (!recieved_id && taskStatus["state"] == "PENDING") {
+                // PENDING means unknown to the task manager
+                // Unless the UUID was recieved from the server, it's probably not valid
+                console.log("Bad UUID given, closing SSE connection");
+                this.stop();
+            } else if (
+                recieved_id &&
+                taskStatus["state"] == "FAILURE" &&
+                taskStatus["deletion_percentage"]
+            ) {
+                // Task failed because of high deletion rate, indicating mismatched data
+                this.highDeletionsInstance.askUser(
+                    taskStatus["deletion_percentage"]
+                );
+                this.stop();
+            } else if (taskStatus["state"] == "FAILURE") {
+                // Other, unknown failure
+                console.log(`Task failed with error: ${taskStatus["error"]}`);
+                console.log("Closing SSE connection");
+                this.stop();
+            } else {
+                Object.assign(this.progress, taskStatus);
+            }
+            this.progress.updateMessage();
+        });
     }
 }
 
-function checkStatus(task_id, recieved_id = true) {
-    var evsource = new EventSource(`/longtask_status/${task_id}`);
-
-    evsource.addEventListener("error", () => {
-        console.log("error");
-    });
-    evsource.addEventListener("open", () => {
-        console.log("SSE connection open");
-    });
-    evsource.addEventListener("message", (event) => {
-        console.log(`message ${event.data}`);
-    });
-    evsource.addEventListener("task_update", (event) => {
-        let taskStatus = JSON.parse(event.data, jsonReviver);
-
-        if (taskStatus["state"] == "SUCCESS") {
-            window.location.pathname = `/download/${taskStatus["uuid"]}/${taskStatus["file_name"]}`;
-            console.log("Closing SSE connection");
-            evsource.close();
-            localStorage.removeItem("client_uuid");
-            progress.current_phase = "complete";
-        } else if (taskStatus["state"] == "PENDING" && !recieved_id) {
-            // PENDING means unknown to the task manager
-            // Unless the UUID was recieved from the server, it's probably not valid
-            console.log("Bad UUID given, closing SSE connection");
-            evsource.close();
-            localStorage.removeItem("client_uuid");
-        } else if (
-            taskStatus["state"] == "FAILURE" &&
-            taskStatus["deletion_percentage"]
-        ) {
-            // Task failed because of high deletion rate, indicating mismatched data
-            highDeletionsInstance.askUser(taskStatus["deletion_percentage"]);
-            evsource.close();
-            localStorage.removeItem("client_uuid");
-        } else if (taskStatus["state"] == "FAILURE") {
-            // Other, unknown failure
-            console.log(`Task failed with error: ${taskStatus["error"]}`);
-            console.log("Closing SSE connection");
-            evsource.close();
-            localStorage.removeItem("client_uuid");
-        } else {
-            Object.assign(progress, taskStatus);
+class Counter extends Object {
+    constructor(object) {
+        super();
+        this.update(object);
+    }
+    update(input) {
+        Object.assign(this, input);
+    }
+    addArray(array) {
+        for (let key of array) {
+            this[key] = (this[key] ?? 0) + 1;
         }
-        progress.updateMessage();
-    });
+    }
+    get asArray() {
+        let intermediate = [];
+        for (let item in this) {
+            intermediate.push([item, this[item]]);
+        }
+        intermediate.sort(function (a, b) {
+            return a[1] - b[1];
+        });
+        return Array.from(intermediate.map((x) => x[0]).reverse());
+    }
+}
+
+class ChameleonEventSource extends EventSource {
+    constructor(task_id, recieved_id = true) {
+        super(`/longtask_status/${task_id}`);
+        this.addEventListener("error", () => {
+            console.log("error");
+        });
+        this.addEventListener("open", () => {
+            console.log("SSE connection open");
+        });
+        this.addEventListener("message", (event) => {
+            console.log(`message ${event.data}`);
+        });
+    }
 }
 
 function jsonReviver(key, value) {
     return ["overpass_start_time", "overpass_timeout_time"].includes(key)
         ? new Date(value)
         : value;
-}
-
-function sendData() {
-    fetch("/result", {
-        method: "POST",
-        body: new FormData($("mainform")),
-    })
-        .then((response) => response.json())
-        .then((jsonResponse) => {
-            setUuid(jsonResponse["client_uuid"]);
-            checkStatus(jsonResponse["client_uuid"]);
-        });
 }
 
 function setUuid(uuid) {
@@ -506,16 +545,16 @@ function onSubmit(event) {
         if (!isValid) {
             return;
         }
-        addArray(shortcutsInstance.counter, tagListGroup.asArray);
+        shortcutsInstance.counter.addArray(tagListGroup.asArray);
         saveToLocalStorage();
 
         // Show message so user knows their input was accepted
-        progress.updateMessage();
+        server.progress.updateMessage();
 
         filterListGroup.selectAll();
         tagListGroup.selectAll();
 
-        sendData();
+        server.submit();
     }
 }
 
@@ -526,14 +565,13 @@ const startDateInput = document.getElementsByName("startdate")[0];
 const endDateInput = document.getElementsByName("enddate")[0];
 const outputInput = document.getElementsByName("output")[0];
 
-var highDeletionsInstance = new HighDeletionsOk();
+var server = new ChameleonServer();
+
 var filterListGroup = new FilterList("filter");
 
 var tagListGroup = new ItemList("tag", true);
 // Initial value on load
 tagListGroup.onTagListChange();
-
-var progress = new Progbar();
 
 var fileTypeInstance = new FileTypeSelector();
 fileTypeInstance.type = localStorage.getItem("file_format") ?? "excel";
@@ -547,10 +585,9 @@ shortcutsInstance.createButtons();
 
 var clientUuid = localStorage.getItem("client_uuid");
 if (clientUuid) {
-    checkStatus(clientUuid, false);
+    server.checkStatus(clientUuid, false);
 }
 
-loadTagAutocomplete();
 onTabChange();
 window.addEventListener("hashchange", onTabChange);
 $("mainform").addEventListener("submit", onSubmit);
