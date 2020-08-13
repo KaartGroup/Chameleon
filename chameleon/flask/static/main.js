@@ -136,6 +136,7 @@ class FilterList extends ItemList {
 }
 
 class HighDeletionsOK {
+    // TODO Merge into ChameleonSever and make a function?
     input;
     dialog;
     constructor(parent = null) {
@@ -160,7 +161,7 @@ class HighDeletionsOK {
             this.input.disabled = true;
         } else {
             localStorage.removeItem("client_uuid");
-            this.parent.progressbarDialog.close();
+            this.parent.dialog.close();
         }
         this.dialog.close();
     }
@@ -184,13 +185,15 @@ class Progbar {
     overpass_timeout_time;
 
     progressbar;
-    progressbarDialog;
+    dialog;
     message;
+    cancelButton;
 
     constructor() {
         this.progressbar = $("progressbar");
-        this.progressbarDialog = $("progressbarDialog");
+        this.dialog = $("progressbarDialog");
         this.message = $("progressbarMessage");
+        this.cancelButton = $("cancelTask");
 
         this.overpass_start_time = this.overpass_timeout_time = null;
         this.osm_api_completed = this.osm_api_max = this.modes_completed = 0;
@@ -236,6 +239,11 @@ class Progbar {
     }
 
     updateMessage() {
+        if (this.current_phase == "osm_api") {
+            this.cancelButton.disabled = false;
+        } else {
+            this.cancelButton.disabled = true;
+        }
         if (this.current_phase == "overpass") {
             overpassIntervalID = window.setInterval(() => {
                 if (this.overpassRemaining <= 0) {
@@ -251,11 +259,8 @@ class Progbar {
             }
             this.phaseDispatch[this.current_phase]();
         }
-        if (this.realMax) {
-            this.progressbar.max = this.realMax;
-        }
-        if (!this.progressbarDialog.open) {
-            this.progressbarDialog.showModal();
+        if (!this.dialog.open) {
+            this.dialog.showModal();
         }
     }
 
@@ -270,6 +275,7 @@ class Progbar {
         osm_api: () => this.osm_api_message(),
         modes: () => this.modes_message(),
         complete: () => this.complete_message(),
+        cancel: () => this.cancel_message(),
     };
 
     overpass_message() {
@@ -282,6 +288,7 @@ class Progbar {
             this.osm_api_completed + 1
         }/${this.osm_api_max})`;
         this.progressbar.value = this.realValue;
+        this.progressbar.max = this.realMax;
         this.progressbar.innerText = `(${this.osm_api_completed + 1}/${
             this.osm_api_max
         })`;
@@ -289,16 +296,24 @@ class Progbar {
     modes_message() {
         this.message.innerText = `Analyzing ${this.current_mode}`;
         this.progressbar.value = this.realValue;
+        this.progressbar.max = this.realMax;
         this.progressbar.innerText = `(${this.modes_completed}/${this.mode_count})`;
     }
     complete_message() {
         this.message.innerText = "Analysis complete!";
-        this.progressbar.value = this.realMax;
+        this.progressbar.value = 1;
+        this.progressbar.max = 1;
         this.progressbar.innerText = "100%";
     }
     failure_message() {
         this.message.innerText = "Analysis failed!";
         this.progressbar.value = this.progressbar.max = 1;
+        this.progressbar.innerText = "";
+    }
+    cancel_message() {
+        this.message.innerText = "Analysis canceled!";
+        this.progressbar.value = this.progressbar.max = 1;
+        this.progressbar.innerText = "";
     }
 }
 
@@ -390,12 +405,16 @@ class ChameleonServer {
     evsource;
     progress;
     highDeletionsInstance;
+    formSubmitted;
 
     constructor() {
         this.progress = new Progbar();
         this.highDeletionsInstance = new HighDeletionsOK(this);
+        $("cancelTask").addEventListener("click", () => this.cancel());
+        this.formSubmitted = false;
     }
     submit() {
+        this.formSubmitted = true;
         fetch("/result", {
             method: "POST",
             body: new FormData($("mainform")),
@@ -412,23 +431,30 @@ class ChameleonServer {
         localStorage.removeItem("client_uuid");
     }
     pause() {}
-    checkStatus(task_id, recieved_id = true) {
+    checkStatus(task_id) {
         this.evsource = new ChameleonEventSource(task_id);
         this.evsource.addEventListener("task_update", (event) => {
             let taskStatus = JSON.parse(event.data, jsonReviver);
 
             if (taskStatus["state"] == "SUCCESS") {
-                window.location.pathname = `/download/${taskStatus["uuid"]}/${taskStatus["file_name"]}`;
+                // if (!this.progress.dialog.open) {
+                //     this.progress.dialog.showModal();
+                // }
                 console.log("Closing SSE connection");
                 this.progress.current_phase = "complete";
+                this.progress.updateMessage();
                 this.stop();
-            } else if (!recieved_id && taskStatus["state"] == "PENDING") {
+                window.location.pathname = `/download/${taskStatus["uuid"]}/${taskStatus["file_name"]}`;
+            } else if (
+                !this.formSubmitted &&
+                taskStatus["state"] == "PENDING"
+            ) {
                 // PENDING means unknown to the task manager
                 // Unless the UUID was recieved from the server, it's probably not valid
                 console.log("Bad UUID given, closing SSE connection");
                 this.stop();
             } else if (
-                recieved_id &&
+                this.formSubmitted &&
                 taskStatus["state"] == "FAILURE" &&
                 taskStatus["deletion_percentage"]
             ) {
@@ -447,6 +473,22 @@ class ChameleonServer {
             }
             this.progress.updateMessage();
         });
+    }
+    cancel() {
+        fetch("/abort", {
+            method: "DELETE",
+            headers: new Headers({ "content-type": "application/json" }),
+            body: JSON.stringify({ client_uuid: this.client_uuid }),
+        }).then(
+            () => {
+                this.stop();
+                this.progress.current_phase = "cancel";
+                this.progress.updateMessage();
+            },
+            () => {
+                console.log("Task couldn't be canceled");
+            }
+        );
     }
 }
 
@@ -507,7 +549,7 @@ function setUuid(uuid) {
 }
 
 function onTabChange() {
-    var isManualTab = window.location.hash == "#manualtab";
+    let isManualTab = window.location.hash == "#manualtab";
     $("easytab").disabled = isManualTab;
     $("manualtab").disabled = !isManualTab;
 
@@ -585,7 +627,7 @@ shortcutsInstance.createButtons();
 
 var clientUuid = localStorage.getItem("client_uuid");
 if (clientUuid) {
-    server.checkStatus(clientUuid, false);
+    server.checkStatus(clientUuid);
 }
 
 onTabChange();

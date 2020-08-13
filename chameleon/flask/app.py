@@ -4,7 +4,7 @@ import shlex
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Generator, List, Set, TextIO, Tuple
+from typing import Generator, Iterator, List, TextIO
 from uuid import uuid4, UUID
 from zipfile import ZipFile
 
@@ -14,6 +14,7 @@ import overpass
 import oyaml as yaml
 import pandas as pd
 from celery import Celery
+from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
 from flask import (
     Flask,
     Response,
@@ -23,8 +24,6 @@ from flask import (
     safe_join,
     send_file,
     send_from_directory,
-    stream_with_context,
-    url_for,
 )
 from werkzeug.exceptions import UnprocessableEntity
 
@@ -140,7 +139,7 @@ def result():
     )
 
 
-@celery.task(bind=True, name="chameleon.process_data")
+@celery.task(bind=True, name="chameleon.process_data", base=AbortableTask)
 def process_data(
     self, args: dict, deleted_ids=[],
 ):
@@ -204,6 +203,8 @@ def process_data(
     task_metadata["osm_api_max"] = len(deleted_ids)
     task_metadata["current_phase"] = "osm_api"
     for num, feature_id in enumerate(deleted_ids):
+        if self.is_aborted():
+            return
         task_metadata["osm_api_completed"] = num
         self.update_state(
             state="PROGRESS", meta=task_metadata,
@@ -327,6 +328,13 @@ def longtask_status(task_id):
                 )
 
     return Response(stream_events(), mimetype="text/event-stream")
+
+
+@app.route("/abort", methods=["DELETE"])
+def abort_task():
+    task_id = request.get_json().get("client_uuid")
+    AbortableAsyncResult(task_id).abort()
+    return "cancelled"
 
 
 @app.route("/download/<path:unique_id>")
