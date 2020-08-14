@@ -1,1 +1,1 @@
-from chameleon.flask.app import app
+from chameleon.flask.web import app
