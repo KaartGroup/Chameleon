@@ -131,7 +131,7 @@ def result():
     while args["output"] != Path(args["output"]).with_suffix("").name:
         args["output"] = Path(args["output"]).with_suffix("").name
 
-    task = process_data.apply_async(args=[args], task_id=args["client_uuid"])
+    task = celery_task.apply_async(args=[args], task_id=args["client_uuid"])
 
     return (
         jsonify({"client_uuid": task.id, "mode_count": len(args["modes"])}),
@@ -140,9 +140,31 @@ def result():
 
 
 @celery.task(bind=True, name="chameleon.process_data", base=AbortableTask)
+def celery_task(self, args: dict):
+    for update in process_data(**args):
+        if update["state"] == "SUCCESS":
+            return {"file_name": update["meta"]["file_name"]}
+        else:
+            self.update_state(state=update["state"], meta=update["meta"])
+            if self.is_aborted():
+                return
+
+
 def process_data(
-    self, args: dict, deleted_ids=[],
-):
+    client_uuid: str,
+    modes: List[str],
+    file_format: str,
+    startdate: datetime = None,
+    enddate: datetime = None,
+    country: str = "",
+    oldfile: str = None,
+    newfile: str = None,
+    high_deletions_ok=False,
+    grouping=False,
+    output: str = "chameleon",
+    filter_list: List[dict] = [],
+    **_,
+) -> Iterator[dict]:
     """
     task_metadata:
         current_mode
@@ -158,12 +180,12 @@ def process_data(
 
     error_list = []
 
-    user_dir = USER_FILES_BASE / args["client_uuid"]
+    user_dir = USER_FILES_BASE / client_uuid
     user_dir.mkdir(parents=True, exist_ok=True)
 
-    task_metadata = {"mode_count": len(args["modes"])}
+    task_metadata = {"mode_count": len(modes)}
 
-    easy_mode = all((args["country"], args["startdate"]))
+    easy_mode = all((country, startdate))
     if easy_mode:
         # Need to make files for the user
         overpass_start_time = datetime.now(timezone.utc)
@@ -176,14 +198,16 @@ def process_data(
                 ).isoformat(),
             }
         )
-        self.update_state(state="PROGRESS", meta=task_metadata)
+        yield {"state": "PROGRESS", "meta": task_metadata}
 
-        oldfile, newfile = overpass_getter(args)
-    elif all((args.get("oldfile"), args.get("newfile"))):
+        oldfile, newfile = overpass_getter(
+            modes, country, startdate, enddate, filter_list,
+        )
+    elif all((oldfile, newfile)):
         # BYOD mode
-        self.update_state(state="PROGRESS", meta=task_metadata)
-        oldfile = open(args["oldfile"], "r")
-        newfile = open(args["newfile"], "r")
+        yield {"state": "PROGRESS", "meta": task_metadata}
+        oldfile = open(oldfile, "r")
+        newfile = open(newfile, "r")
     else:
         # Client-side validation slipped up
         raise UnprocessableEntity
@@ -192,7 +216,7 @@ def process_data(
 
     if (
         not easy_mode
-        and not args["high_deletions_ok"]
+        and not high_deletions_ok
         and (deletion_percentage := high_deletions_checker(cdfs)) > 20
     ):
         raise HighDeletionPercentageError(round(deletion_percentage, 2))
@@ -203,12 +227,11 @@ def process_data(
     task_metadata["osm_api_max"] = len(deleted_ids)
     task_metadata["current_phase"] = "osm_api"
     for num, feature_id in enumerate(deleted_ids):
-        if self.is_aborted():
-            return
         task_metadata["osm_api_completed"] = num
-        self.update_state(
-            state="PROGRESS", meta=task_metadata,
-        )
+        yield {
+            "state": "PROGRESS",
+            "meta": task_metadata,
+        }
 
         element_attribs = cdfs.check_feature_on_api(
             feature_id, app_version=APP_VERSION
@@ -219,31 +242,38 @@ def process_data(
 
     task_metadata["osm_api_completed"] = task_metadata["osm_api_max"]
     task_metadata["current_phase"] = "modes"
-    self.update_state(
-        state="PROGRESS", meta=task_metadata,
-    )
+    yield {
+        "state": "PROGRESS",
+        "meta": task_metadata,
+    }
 
     cdfs.separate_special_dfs()
 
-    for num, mode in enumerate(args["modes"]):
+    for num, mode in enumerate(modes):
         # self.update_state(state="MODES", meta={"mode": mode})
         task_metadata["modes_completed"] = num
         task_metadata["current_mode"] = mode
-        self.update_state(
-            state="PROGRESS", meta=task_metadata,
-        )
+        yield {
+            "state": "PROGRESS",
+            "meta": task_metadata,
+        }
+
         try:
             result = ChameleonDataFrame(
-                cdfs.source_data, mode=mode, grouping=args["grouping"]
+                cdfs.source_data, mode=mode, grouping=grouping
             ).query_cdf()
         except KeyError:
             error_list.append(mode)
             continue
         cdfs.add(result)
 
-    file_name = write_output[args["file_format"]](cdfs, user_dir, args["output"])
+    task_metadata["file_name"] = write_output[file_format](
+        cdfs, user_dir, output
+    )
 
-    return {"file_name": file_name}
+    # return {"file_name": task_metadata["file_name"]}
+
+    yield {"state": "SUCCESS", "meta": task_metadata}
 
 
 @app.route("/longtask_status/<uuid:task_id>")
@@ -253,7 +283,7 @@ def longtask_status(task_id):
     """
     # Once the UUID has been validated, we want it as a string
     task_id = str(task_id)
-    task = process_data.AsyncResult(task_id)
+    task = celery_task.AsyncResult(task_id)
 
     def stream_events() -> Generator:
         if task.state == "PENDING":
@@ -450,11 +480,17 @@ def filter_processing(filters: List[str]) -> List[dict]:
     return filter_list
 
 
-def overpass_getter(args: dict) -> Iterator[TextIO]:
+def overpass_getter(
+    modes: list,
+    country: str,
+    startdate: datetime,
+    enddate: datetime,
+    filter_list: list,
+) -> Iterator[TextIO]:
     api = overpass.API(timeout=OVERPASS_TIMEOUT)
 
     formatted_tags = []
-    for i in args["filter_list"]:
+    for i in filter_list:
         if i["value"]:
             formatted = f'~"{"|".join(i["value"])}"'
         else:
@@ -465,7 +501,7 @@ def overpass_getter(args: dict) -> Iterator[TextIO]:
             )
 
     # Cast to set to eliminate any possible duplicates that squeaked through client-side validation
-    modes = set(args["modes"]) | {"name"}
+    modes = set(modes) | {"name"}
     csv_columns = [
         "::type",
         "::id",
@@ -476,12 +512,11 @@ def overpass_getter(args: dict) -> Iterator[TextIO]:
     ] + list(modes)
     response_format = f'csv({",".join(csv_columns)})'
 
-    overpass_query = (
-        f'area["ISO3166-1"="{args["country"]}"]->.searchArea;'
-        + ";".join(formatted_tags)
+    overpass_query = f'area["ISO3166-1"="{country}"]->.searchArea;' + ";".join(
+        formatted_tags
     )
 
-    for date in (args["startdate"], args["enddate"]):
+    for date in (startdate, enddate):
         date = date or ""
         response = api.get(
             overpass_query,

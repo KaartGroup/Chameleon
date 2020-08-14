@@ -239,10 +239,10 @@ class Progbar {
     }
 
     updateMessage() {
-        if (this.current_phase == "osm_api") {
-            this.cancelButton.disabled = false;
-        } else {
+        if (this.current_phase == "complete") {
             this.cancelButton.disabled = true;
+        } else {
+            this.cancelButton.disabled = false;
         }
         if (this.current_phase == "overpass") {
             overpassIntervalID = window.setInterval(() => {
@@ -480,10 +480,12 @@ class ChameleonServer {
             headers: new Headers({ "content-type": "application/json" }),
             body: JSON.stringify({ client_uuid: this.client_uuid }),
         }).then(
-            () => {
-                this.stop();
-                this.progress.current_phase = "cancel";
-                this.progress.updateMessage();
+            (response) => {
+                if (response.status == 200) {
+                    this.stop();
+                    this.progress.current_phase = "cancel";
+                    this.progress.updateMessage();
+                }
             },
             () => {
                 console.log("Task couldn't be canceled");
