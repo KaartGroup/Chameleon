@@ -35,10 +35,14 @@ from chameleon.core import (
 
 app = Flask(__name__)
 
-app.config["CELERY_BROKER_URL"] = "redis://localhost:6379/0"
-app.config["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/0"
+app.config["CELERY_BROKER_URL"] = "redis://"
+app.config["CELERY_RESULT_BACKEND"] = "db+postgresql://localhost:5432/celery"
 
-celery = Celery(app.name, broker=app.config["CELERY_BROKER_URL"])
+celery = Celery(
+    app.name,
+    backend=app.config["CELERY_RESULT_BACKEND"],
+    broker=app.config["CELERY_BROKER_URL"],
+)
 celery.conf.update(app.config)
 
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
@@ -142,12 +146,11 @@ def result():
 @celery.task(bind=True, name="chameleon.process_data", base=AbortableTask)
 def celery_task(self, args: dict):
     for update in process_data(**args):
+        if self.is_aborted():
+            return {}
         if update["state"] == "SUCCESS":
             return {"file_name": update["meta"]["file_name"]}
-        else:
-            self.update_state(state=update["state"], meta=update["meta"])
-            if self.is_aborted():
-                return
+        self.update_state(state=update["state"], meta=update["meta"])
 
 
 def process_data(
@@ -340,6 +343,7 @@ def longtask_status(task_id):
                         "file_name": file_name,
                     }
                 )
+                task.forget()
             elif hasattr(task.info, "deletion_percentage"):
                 # Task failed due to high deletion percentage and needs to be reconfirmed
                 yield message_task_update(
@@ -363,7 +367,7 @@ def longtask_status(task_id):
 @app.route("/abort", methods=["DELETE"])
 def abort_task():
     task_id = request.get_json().get("client_uuid")
-    AbortableAsyncResult(task_id).abort()
+    AbortableAsyncResult(id=task_id, app=celery).abort()
     return "cancelled"
 
 
