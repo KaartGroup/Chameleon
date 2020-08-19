@@ -239,7 +239,7 @@ class Progbar {
     }
 
     updateMessage() {
-        if (this.current_phase == "complete") {
+        if (["complete", "cancel"].includes(this.current_phase)) {
             this.cancelButton.disabled = true;
         } else {
             this.cancelButton.disabled = false;
