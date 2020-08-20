@@ -12,7 +12,7 @@ from zipfile import ZipFile
 import appdirs
 import gevent
 import overpass
-import oyaml as yaml
+import yaml
 import pandas as pd
 from celery import Celery
 from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
@@ -111,6 +111,7 @@ def result():
         "file_format": request.form["file_format"],
         "filter_list": filter_processing(request.form.getlist("filters")),
         "output": request.form.get("output") or "chameleon",
+        # Uses inbuilt UUID validation before converting back to string
         "client_uuid": str(request.form.get("client_uuid", uuid4(), UUID)),
         "grouping": request.form.get("grouping", False, bool),
         "high_deletions_ok": request.form.get("high_deletions_ok", type=bool),
