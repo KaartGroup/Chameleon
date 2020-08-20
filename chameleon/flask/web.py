@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import shlex
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -35,8 +36,23 @@ from chameleon.core import (
 
 app = Flask(__name__)
 
+backend_user_password = os.environ.get("CELERY_BACKEND_USER", "")
+if backend_user_password and (
+    pwd := os.environ.get("CELERY_BACKEND_PASSWORD", "")
+):
+    backend_user_password += f":{pwd}"
+if backend_user_password:
+    backend_user_password += "@"
+
+backend_url_port = os.environ.get("CELERY_BACKEND_URL", "")
+if port := os.environ.get("CELERY_BACKEND_PORT", ""):
+    backend_url_port += f":{port}"
+
+
+app.config[
+    "CELERY_RESULT_BACKEND"
+] = f"db+postgresql://{backend_user_password}{backend_url_port}/celery"
 app.config["CELERY_BROKER_URL"] = "redis://"
-app.config["CELERY_RESULT_BACKEND"] = "db+postgresql://localhost:5432/celery"
 
 celery = Celery(
     app.name,
