@@ -36,16 +36,14 @@ from chameleon.core import (
 
 app = Flask(__name__)
 
-backend_user_password = os.environ.get("CELERY_BACKEND_USER", "")
-if backend_user_password and (
-    pwd := os.environ.get("CELERY_BACKEND_PASSWORD", "")
-):
+backend_user_password = os.getenv("CELERY_BACKEND_USER", "")
+if backend_user_password and (pwd := os.getenv("CELERY_BACKEND_PASSWORD", "")):
     backend_user_password += f":{pwd}"
 if backend_user_password:
     backend_user_password += "@"
 
-backend_url_port = os.environ.get("CELERY_BACKEND_URL", "")
-if port := os.environ.get("CELERY_BACKEND_PORT", ""):
+backend_url_port = os.getenv("CELERY_BACKEND_URL", "")
+if port := os.getenv("CELERY_BACKEND_PORT", ""):
     backend_url_port += f":{port}"
 
 
