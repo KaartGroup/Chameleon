@@ -281,6 +281,7 @@ class Progbar {
     overpass_message() {
         this.message.innerText = `Querying Overpass, ${this.overpassRemaining} seconds until timeout`;
         this.progressbar.value = this.realValue;
+        this.progressbar.max = this.realMax;
         this.progressbar.innerText = `${this.overpassRemaining} seconds remain`;
     }
     osm_api_message() {

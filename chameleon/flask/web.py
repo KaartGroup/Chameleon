@@ -62,7 +62,7 @@ celery.conf.update(app.config)
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
 RESOURCES_DIR = Path("chameleon/resources")
 MODULES_DIR = Path("chameleon/flask/modules/")
-OVERPASS_TIMEOUT = 120
+OVERPASS_TIMEOUT = 180
 
 try:
     with (RESOURCES_DIR / "version.txt").open("r") as version_file:
