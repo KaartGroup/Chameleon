@@ -29,6 +29,7 @@ class ItemList {
         if (this.autoComplete) {
             this.loadTagAutocomplete();
         }
+        this.onTagListChange();
     }
     get asArray() {
         return Array.from(this.theList.options).map((x) => x.text);
@@ -336,6 +337,7 @@ class FileTypeSelector {
 
         this.fileExt = $("fileExt");
         this.extensionUpdate();
+        this.type = localStorage.getItem("file_format") ?? "excel";
     }
     get type() {
         return this.boxes.filter((e) => e.checked)[0].value;
@@ -362,6 +364,7 @@ class Shortcuts {
         this.counter = new Counter(JSON.parse(localStorage.getItem("counter")));
         this.loadedFavs = this.counter.asArray.slice(0, this.shortcutCount);
         this.fillFavs();
+        this.createButtons();
     }
     fillFavs() {
         let difference = this.shortcutCount - this.loadedFavs.length;
@@ -402,13 +405,15 @@ class Shortcuts {
 }
 
 class ChameleonServer {
-    client_uuid;
     evsource;
     progress;
     highDeletionsInstance;
     formSubmitted;
 
     constructor() {
+        if (this.uuid) {
+            this.checkStatus(this.uuid);
+        }
         this.progress = new Progbar();
         this.highDeletionsInstance = new HighDeletionsOK(this);
         $("cancelTask").addEventListener("click", () => this.cancel());
@@ -422,9 +427,8 @@ class ChameleonServer {
         })
             .then((response) => response.json())
             .then((jsonResponse) => {
-                this.client_uuid = jsonResponse["client_uuid"];
-                setUuid(this.client_uuid);
-                this.checkStatus(this.client_uuid);
+                this.uuid = jsonResponse["client_uuid"];
+                this.checkStatus(this.uuid);
             });
     }
     stop() {
@@ -479,7 +483,7 @@ class ChameleonServer {
         fetch("/abort", {
             method: "DELETE",
             headers: new Headers({ "content-type": "application/json" }),
-            body: JSON.stringify({ client_uuid: this.client_uuid }),
+            body: JSON.stringify({ client_uuid: this.uuid }),
         }).then(
             (response) => {
                 if (response.status == 200) {
@@ -492,6 +496,18 @@ class ChameleonServer {
                 console.log("Task couldn't be canceled");
             }
         );
+    }
+    set uuid(uuid) {
+        if (
+            uuid.match(
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+            )
+        ) {
+            localStorage.setItem("client_uuid", uuid);
+        }
+    }
+    get uuid() {
+        return localStorage.getItem("client_uuid");
     }
 }
 
@@ -541,16 +557,6 @@ function jsonReviver(key, value) {
         : value;
 }
 
-function setUuid(uuid) {
-    if (
-        uuid.match(
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-        )
-    ) {
-        localStorage.setItem("client_uuid", uuid);
-    }
-}
-
 function onTabChange() {
     let isManualTab = window.location.hash == "#manualtab";
     $("easytab").disabled = isManualTab;
@@ -571,7 +577,7 @@ function saveToLocalStorage() {
     localStorage.setItem("counter", JSON.stringify(shortcutsInstance.counter));
 }
 
-function onSubmit(event) {
+$("mainform").addEventListener("submit", (event) => {
     event.preventDefault();
     if (document.activeElement.id == "tagAddField") {
         tagListGroup.addFromAddField();
@@ -601,38 +607,26 @@ function onSubmit(event) {
 
         server.submit();
     }
-}
+});
 
 var overpassIntervalID;
 
 const locationInput = document.getElementsByName("location")[0];
+locationInput.value = localStorage.getItem("location");
+
 const startDateInput = document.getElementsByName("startdate")[0];
+startDateInput.value = localStorage.getItem("startdate");
+
 const endDateInput = document.getElementsByName("enddate")[0];
+endDateInput.value = localStorage.getItem("enddate");
+
 const outputInput = document.getElementsByName("output")[0];
 
 var server = new ChameleonServer();
-
 var filterListGroup = new FilterList("filter");
-
 var tagListGroup = new ItemList("tag", true);
-// Initial value on load
-tagListGroup.onTagListChange();
-
 var fileTypeInstance = new FileTypeSelector();
-fileTypeInstance.type = localStorage.getItem("file_format") ?? "excel";
-
-locationInput.value = localStorage.getItem("location");
-startDateInput.value = localStorage.getItem("startdate");
-endDateInput.value = localStorage.getItem("enddate");
-
 var shortcutsInstance = new Shortcuts(tagListGroup);
-shortcutsInstance.createButtons();
-
-var clientUuid = localStorage.getItem("client_uuid");
-if (clientUuid) {
-    server.checkStatus(clientUuid);
-}
 
 onTabChange();
 window.addEventListener("hashchange", onTabChange);
-$("mainform").addEventListener("submit", onSubmit);
