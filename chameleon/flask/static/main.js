@@ -240,32 +240,43 @@ class Progbar {
     }
 
     updateMessage() {
-        if (["complete", "cancel"].includes(this.current_phase)) {
-            this.cancelButton.disabled = true;
+        if (["complete", "cancel", "failure"].includes(this.current_phase)) {
+            this.finished_message();
         } else {
             this.cancelButton.disabled = false;
-        }
-        if (this.current_phase == "overpass") {
-            overpassIntervalID = window.setInterval(() => {
-                if (this.overpassRemaining <= 0) {
+
+            if (this.current_phase == "overpass") {
+                overpassIntervalID = window.setInterval(() => {
+                    if (this.overpassRemaining <= 0) {
+                        window.clearInterval(overpassIntervalID);
+                        this.current_phase = "failure";
+                        this.finished_message();
+                    } else {
+                        this.overpass_message();
+                    }
+                }, 1000);
+            } else {
+                if (overpassIntervalID) {
                     window.clearInterval(overpassIntervalID);
-                    this.failure_message();
-                } else {
-                    this.overpass_message();
                 }
-            }, 1000);
-        } else {
-            if (overpassIntervalID) {
-                window.clearInterval(overpassIntervalID);
+                this.progressDispatch[this.current_phase]();
             }
-            this.phaseDispatch[this.current_phase]();
         }
         if (!this.dialog.open) {
             this.dialog.showModal();
         }
     }
 
-    phaseDispatch = {
+    finished_message() {
+        this.cancelButton.disabled = true;
+        this.message.innerText = `${
+            this.finishedDispatch[this.current_phase]
+        } Refresh the page to start a new query.`;
+        this.progressbar.value = this.progressbar.max = 1;
+        this.progressbar.innerText = "";
+    }
+
+    progressDispatch = {
         init: () => {
             this.message.innerText = "Initiating…";
         },
@@ -275,8 +286,14 @@ class Progbar {
         // overpass: () => this.overpass_message(),
         osm_api: () => this.osm_api_message(),
         modes: () => this.modes_message(),
-        complete: () => this.complete_message(),
-        cancel: () => this.cancel_message(),
+        // complete: () => this.complete_message(),
+        // cancel: () => this.cancel_message(),
+    };
+
+    finishedDispatch = {
+        success: "Analysis complete!",
+        cancel: "Analysis canceled!",
+        failure: "Analysis failed!",
     };
 
     overpass_message() {
@@ -300,22 +317,6 @@ class Progbar {
         this.progressbar.value = this.realValue;
         this.progressbar.max = this.realMax;
         this.progressbar.innerText = `(${this.modes_completed}/${this.mode_count})`;
-    }
-    complete_message() {
-        this.message.innerText = "Analysis complete!";
-        this.progressbar.value = 1;
-        this.progressbar.max = 1;
-        this.progressbar.innerText = "100%";
-    }
-    failure_message() {
-        this.message.innerText = "Analysis failed!";
-        this.progressbar.value = this.progressbar.max = 1;
-        this.progressbar.innerText = "";
-    }
-    cancel_message() {
-        this.message.innerText = "Analysis canceled!";
-        this.progressbar.value = this.progressbar.max = 1;
-        this.progressbar.innerText = "";
     }
 }
 
