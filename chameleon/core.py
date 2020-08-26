@@ -349,71 +349,49 @@ class ChameleonDataFrameSet(set):
             return self.overpass_result_attribs[feature_id]
         else:
             feature_type, feature_id_num = split_id(feature_id)
-            try:
-                response = requests.get(
-                    "https://www.openstreetmap.org/api/0.6/"
-                    f"{feature_type}/{feature_id_num}/history.json",
-                    timeout=5,
-                    headers={
-                        "User-Agent": f"Kaart Chameleon{app_version}",
-                        "From": "dev@kaart.com",
-                    },
-                )
-                # Raises exceptions for non-successful status codes
-                response.raise_for_status()
-            except ConnectionError as e:
-                # Couldn't contact the server, could be client-side
-                logger.exception(e)
-                return {}
-            except requests.ReadTimeout as e:
-                logger.exception(e)
-                return {}
-            except requests.HTTPError:
-                if str(response.status_code) == "429":
-                    retry_after = response.headers.get("retry-after", "")
-                    logger.error(
-                        "The OSM server says you've made too many requests."
-                        "You can retry after %s seconds.",
-                        retry_after,
-                    )
-                    raise
+            response = requests.get(
+                "https://www.openstreetmap.org/api/0.6/"
+                f"{feature_type}/{feature_id_num}/history.json",
+                timeout=5,
+                headers={
+                    "User-Agent": f"Kaart Chameleon{app_version}",
+                    "From": "dev@kaart.com",
+                },
+            )
+            # Raises exceptions for non-successful status codes
+            response.raise_for_status()
+
+            loaded_response = response.json()
+            latest_version = loaded_response["elements"][-1]
+            element_attribs = {
+                "user_new": latest_version["user"],
+                "changeset_new": str(latest_version["changeset"]),
+                "version_new": str(latest_version["version"]),
+                "timestamp_new": latest_version["timestamp"],
+            }
+            if not latest_version.get("visible", True):
+                # The most recent way version has the way deleted
+                prior_version_num = latest_version["version"] - 1
+                try:
+                    prior_version = [
+                        i
+                        for i in loaded_response["elements"]
+                        if i["version"] == prior_version_num
+                    ][0]
+                except IndexError:
+                    # Prior version doesn't exist for some reason, possibly redaction
+                    pass
                 else:
-                    logger.error(
-                        "Server replied with a %s error", response.status_code
-                    )
-                return {}
+                    # Save last members of the deleted way
+                    # for later use in detecting splits/merges
+                    if feature_type == "way":
+                        self.deleted_way_members[feature_id] = prior_version[
+                            "nodes"
+                        ]
             else:
-                loaded_response = response.json()
-                latest_version = loaded_response["elements"][-1]
-                element_attribs = {
-                    "user_new": latest_version["user"],
-                    "changeset_new": str(latest_version["changeset"]),
-                    "version_new": str(latest_version["version"]),
-                    "timestamp_new": latest_version["timestamp"],
-                }
-                if not latest_version.get("visible", True):
-                    # The most recent way version has the way deleted
-                    prior_version_num = latest_version["version"] - 1
-                    try:
-                        prior_version = [
-                            i
-                            for i in loaded_response["elements"]
-                            if i["version"] == prior_version_num
-                        ][0]
-                    except IndexError:
-                        # Prior version doesn't exist for some reason, possibly redaction
-                        pass
-                    else:
-                        # Save last members of the deleted way
-                        # for later use in detecting splits/merges
-                        if feature_type == "way":
-                            self.deleted_way_members[feature_id] = prior_version[
-                                "nodes"
-                            ]
-                else:
-                    # The way was not deleted, just dropped from the latter dataset
-                    element_attribs.update({"action": "dropped"})
-                return element_attribs
+                # The way was not deleted, just dropped from the latter dataset
+                element_attribs.update({"action": "dropped"})
+            return element_attribs
 
     def write_excel(self, file_name: Union[Path, str]):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:

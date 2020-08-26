@@ -17,6 +17,8 @@ from pathlib import Path
 import oyaml as yaml
 import pandas as pd
 
+from requests import Timeout, HTTPError
+
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from PySide2 import QtCore, QtGui
@@ -359,6 +361,7 @@ class Worker(QObject):
 
         df = cdfs.source_data
 
+        empty_count = 0
         # TODO Iterate directly over dataframe rather than constructed list
         deleted_ids = list(df.loc[df["action"] == "deleted"].index)
         self.scale_with_api_items.emit(len(deleted_ids))
@@ -368,9 +371,31 @@ class Worker(QObject):
                 raise UserCancelledError
             self.increment_progbar_api.emit()
 
-            element_attribs = cdfs.check_feature_on_api(
-                feature_id, app_version=APP_VERSION
-            )
+            try:
+                element_attribs = cdfs.check_feature_on_api(
+                    feature_id, app_version=APP_VERSION
+                )
+            except (Timeout, ConnectionError) as e:
+                # Couldn't contact the server, could be client-side
+                logger.exception(e)
+                if empty_count > 20:
+                    break
+                empty_count += 1
+                continue
+            except HTTPError as e:
+                if str(e.response.status_code) == "429":
+                    retry_after = e.response.headers.get("retry-after", "")
+                    logger.error(
+                        "The OSM server says you've made too many requests."
+                        "You can retry after %s seconds.",
+                        retry_after,
+                    )
+                    raise
+                else:
+                    logger.error(
+                        "Server replied with a %s error", e.response.status_code
+                    )
+                return {}
 
             df.update(pd.DataFrame(element_attribs, index=[feature_id]))
 

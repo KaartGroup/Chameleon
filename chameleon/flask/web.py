@@ -14,8 +14,10 @@ import gevent
 import overpass
 import yaml
 import pandas as pd
+from requests import Timeout, HTTPError
 from celery import Celery
 from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import (
     Flask,
     Response,
@@ -61,8 +63,10 @@ celery.conf.update(app.config)
 
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
 RESOURCES_DIR = Path("chameleon/resources")
-MODULES_DIR = Path("chameleon/flask/modules/")
-OVERPASS_TIMEOUT = 180
+OVERPASS_TIMEOUT = (
+    180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
+)
+TASK_TIME_LIMIT = 7200
 
 try:
     with (RESOURCES_DIR / "version.txt").open("r") as version_file:
@@ -158,14 +162,22 @@ def result():
     )
 
 
-@celery.task(bind=True, name="chameleon.process_data", base=AbortableTask)
+@celery.task(
+    bind=True,
+    name="chameleon.process_data",
+    base=AbortableTask,
+    soft_time_limit=TASK_TIME_LIMIT,
+)
 def celery_task(self, args: dict):
-    for update in process_data(**args):
-        if self.is_aborted():
-            return {}
-        if update["state"] == "SUCCESS":
-            return {"file_name": update["meta"]["file_name"]}
-        self.update_state(state=update["state"], meta=update["meta"])
+    try:
+        for update in process_data(**args):
+            if self.is_aborted():
+                return {}
+            if update["state"] == "SUCCESS":
+                return {"file_name": update["meta"]["file_name"]}
+            self.update_state(state=update["state"], meta=update["meta"])
+    except SoftTimeLimitExceeded:
+        return {}
 
 
 def process_data(
@@ -244,18 +256,32 @@ def process_data(
     deleted_ids = list(df.loc[df["action"] == "deleted"].index)
     task_metadata["osm_api_max"] = len(deleted_ids)
     task_metadata["current_phase"] = "osm_api"
+    error_count = 0
     for num, feature_id in enumerate(deleted_ids):
         task_metadata["osm_api_completed"] = num
         yield {
             "state": "PROGRESS",
             "meta": task_metadata,
         }
-
-        element_attribs = cdfs.check_feature_on_api(
-            feature_id, app_version=APP_VERSION
-        )
-
-        df.update(pd.DataFrame(element_attribs, index=[feature_id]))
+        try:
+            element_attribs = cdfs.check_feature_on_api(
+                feature_id, app_version=APP_VERSION
+            )
+        except (Timeout, ConnectionError):
+            if error_count > 10:
+                # Too many timeouts, abandon online checker
+                task_metadata["osm_api_completed"] = task_metadata["osm_api_max"]
+                yield {
+                    "state": "PROGRESS",
+                    "meta": task_metadata,
+                }
+                break
+            error_count += 1
+        except HTTPError as e:
+            if str(e.response.status_code) == "429":
+                raise
+        else:
+            df.update(pd.DataFrame(element_attribs, index=[feature_id]))
         gevent.sleep(REQUEST_INTERVAL)
 
     task_metadata["osm_api_completed"] = task_metadata["osm_api_max"]
@@ -318,23 +344,26 @@ def longtask_status(task_id):
                 "SUCCESS",
                 "FAILURE",
             }:
-                response = {
-                    k: v
-                    for k, v in task.info.items()
-                    if k
-                    in {
-                        "current_mode",
-                        "current_phase",
-                        "mode_count",
-                        "modes_completed",
-                        "modes_max",
-                        "osm_api_completed",
-                        "osm_api_max",
-                        "overpass_start_time",
-                        "overpass_timeout_time",
-                        "result",
+                try:
+                    response = {
+                        k: v
+                        for k, v in task.info.items()
+                        if k
+                        in {
+                            "current_mode",
+                            "current_phase",
+                            "mode_count",
+                            "modes_completed",
+                            "modes_max",
+                            "osm_api_completed",
+                            "osm_api_max",
+                            "overpass_start_time",
+                            "overpass_timeout_time",
+                            "result",
+                        }
                     }
-                }
+                except AttributeError:
+                    response = {}
                 response["state"] = task.state
 
                 if response != prior_response:
