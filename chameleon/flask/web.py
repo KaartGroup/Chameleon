@@ -5,15 +5,15 @@ import shlex
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Generator, Iterator, List, TextIO
+from typing import Generator, Iterator, List, TextIO, Dict
 from uuid import uuid4, UUID
 from zipfile import ZipFile
 
 import appdirs
 import gevent
 import overpass
-import yaml
 import pandas as pd
+import yaml
 from requests import Timeout, HTTPError
 from celery import Celery
 from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
@@ -315,8 +315,6 @@ def process_data(
         cdfs, user_dir, output
     )
 
-    # return {"file_name": task_metadata["file_name"]}
-
     yield {"state": "SUCCESS", "meta": task_metadata}
 
 
@@ -410,7 +408,10 @@ def longtask_status(task_id):
 
 @app.route("/abort", methods=["DELETE"])
 def abort_task():
-    task_id = request.get_json().get("client_uuid")
+    """
+    Aborts the task with the given id
+    """
+    task_id = request.json.get("client_uuid")
     AbortableAsyncResult(id=task_id, app=celery).abort()
     return "cancelled"
 
@@ -498,7 +499,7 @@ mimetype = {
 }
 
 
-def filter_processing(filters: List[str]) -> List[dict]:
+def filter_processing(filters: List[str]) -> List[Dict[tuple, list]]:
     filter_list = []
     for filterstring in filters:
         filterstring, typestring = filterstring.rsplit(" (", 1)
@@ -577,10 +578,6 @@ def overpass_getter(
         cwriter.writerows(response)
         fp.seek(0)
         yield fp
-
-
-def message(message_type: str, value: int) -> str:
-    return f"event: {message_type}\ndata: {value}\n\n"
 
 
 def message_task_update(value: dict) -> str:
