@@ -1,0 +1,1320 @@
+@type	@id	name	@user	@timestamp	@version	highway	ref	int_ref	construction
+way	25878481	George Price Highway	Charlie_Plett	2019-06-15T04:48:56Z	33	primary			
+way	25878493	Hattieville Roundabout	tzsl	2017-12-03T05:01:28Z	9	primary			
+way	25878935	George Price Highway	Red_Ranger	2018-02-01T19:47:28Z	16	primary			
+way	25879249	Hummingbird Highway	Charlie_Plett	2019-07-28T17:55:36Z	31	primary			
+way	25879646	Philip Goldson Highway	GISMaiden	2019-03-26T15:41:35Z	21	primary			
+way	25976860	Philip Goldson Highway	Charlie_Plett	2019-05-23T21:52:35Z	18	primary			
+way	25976873		Charlie_Plett	2019-05-23T21:52:35Z	13	primary			
+way	25976881	Philip Goldson Highway	Charlie_Plett	2019-10-12T17:55:38Z	20	primary			
+way	25976888		Charlie_Plett	2019-05-23T21:52:36Z	11	primary			
+way	25976967	Philip Goldson Highway	Charlie_Plett	2019-10-12T17:55:38Z	16	primary			
+way	25976980	Freetown Road	BlueSombra	2015-10-19T22:45:26Z	7	primary			
+way	25976981	Freetown Street	Charlie_Plett	2018-01-14T19:52:47Z	4	primary			
+way	25976988	Freetown Road	BlueSombra	2015-10-19T22:45:25Z	16	primary			
+way	25976989	Barrack Road	Anoesis	2019-01-02T16:02:38Z	9	secondary			
+way	25977013	Cork Street	Red_Ranger	2018-01-25T20:27:52Z	12	secondary			
+way	25977028	Barrack Road	Red_Ranger	2018-01-25T20:08:18Z	14	primary			
+way	25977070	Queen Street	Red_Ranger	2018-01-25T20:27:52Z	15	tertiary			
+way	25977073	Marine Parade	Red_Ranger	2018-01-25T20:27:53Z	15	secondary			
+way	25977074		Red_Ranger	2018-01-25T21:48:51Z	8	secondary_link			
+way	25977080	Marine Parade	Red_Ranger	2018-01-25T20:27:53Z	12	secondary			
+way	25977084	Marine Parade	Charlie_Plett	2018-12-09T01:22:07Z	14	secondary			
+way	25977085	Marine Parade	Red_Ranger	2018-01-25T20:08:19Z	9	secondary			
+way	25977138	Marine Parade	Charlie_Plett	2018-12-09T01:22:07Z	13	secondary			
+way	25977202	Craig Street	Red_Ranger	2018-01-25T20:08:19Z	6	secondary			
+way	25977207	Craig Street	Red_Ranger	2018-01-25T20:08:19Z	9	secondary			
+way	25977230	Eve Street	Charlie_Plett	2018-01-14T18:47:54Z	12	tertiary			
+way	25977232	Eve Street	Charlie_Plett	2018-01-14T18:47:54Z	9	tertiary			
+way	25977234	Queen Street	Red_Ranger	2018-01-26T21:05:30Z	7	tertiary			
+way	25977247	Hutson Street	Red_Ranger	2018-01-26T21:05:30Z	10	tertiary			
+way	25977258	Barrack Road	Anoesis	2019-01-02T16:02:38Z	9	primary			
+way	25977277	Wilson Street	Red_Ranger	2018-01-25T21:46:49Z	18	tertiary			
+way	25977280	Barrack Road	Anoesis	2019-01-02T16:02:38Z	12	primary			
+way	25977286	New Road	BlueSombra	2015-10-16T19:41:23Z	9	tertiary			
+way	25977308	Vernon Street	garnaches	2019-01-24T17:34:39Z	11	secondary			
+way	25977311	Mosul Street	Charlie_Plett	2019-03-13T02:58:14Z	9	tertiary			
+way	25977312	Mapp Street	Charlie_Plett	2019-07-16T20:53:45Z	11	secondary			
+way	25977324	Queen Street	Red_Ranger	2018-01-25T20:08:19Z	6	secondary			
+way	25977588	Baymen Avenue	Red_Ranger	2018-01-25T21:46:49Z	13	secondary			
+way	25977593	Princess Margaret Drive	Red_Ranger	2018-01-25T19:27:41Z	35	primary			
+way	25977641	Princess Margaret Drive	Charlie_Plett	2019-05-23T21:52:35Z	30	primary			
+way	25981272	University Drive	Red_Ranger	2018-01-25T19:14:35Z	13	tertiary			
+way	25981311	Teacher Street	Red_Ranger	2018-01-25T18:46:28Z	9	tertiary			
+way	25981316	Coney Drive	Charlie_Plett	2019-03-10T00:56:54Z	23	secondary			
+way	25981384	Buttonwood Bay Boulevard	Charlie_Plett	2019-03-09T19:24:24Z	6	secondary			
+way	25981404	University Heights Boulevard (Durgeon Drive)	Red_Ranger	2018-01-25T18:46:28Z	18	tertiary			
+way	25981459	University Heights Boulevard (Durgeon Drive)	Red_Ranger	2018-01-25T18:46:29Z	11	tertiary			
+way	25981556	Sea Shore Drive	Red_Ranger	2018-01-25T21:41:41Z	8	tertiary			
+way	25981621		Red_Ranger	2018-01-25T20:08:19Z	6	tertiary			
+way	25981780	Independence Drive	Charlie_Plett	2019-10-12T17:55:38Z	9	tertiary			
+way	25981958	Central American Boulevard	tzsl	2018-05-09T15:58:58Z	10	primary			
+way	25981960	Central American Boulevard	Charlie_Plett	2018-01-16T02:05:18Z	8	primary			
+way	25981989	Central American Boulevard	Red_Ranger	2018-02-08T01:16:03Z	15	primary			
+way	25981991	Central American Boulevard	Red_Ranger	2018-01-24T00:40:17Z	16	primary			
+way	25982009	Central American Boulevard	Charlie_Plett	2018-01-16T03:20:38Z	9	primary			
+way	25982073	George Price Highway	Anoesis	2018-12-26T20:18:08Z	12	primary			
+way	25982081	Cemetery Road	Anoesis	2018-12-26T20:18:08Z	14	primary			
+way	25982084	George Price Highway	Red_Ranger	2018-01-24T00:52:12Z	11	primary			
+way	26235302	George Price Highway	Charlie_Plett	2019-07-18T00:55:53Z	19	primary			
+way	27109150	Old Northern Highway	Martijn Versluis	2020-01-21T17:48:29Z	12	tertiary			
+way	27109326		tubroos	2018-12-06T02:33:52Z	19	secondary			
+way	28195989	Independence Road	Charlie_Plett	2018-08-10T11:02:19Z	27	tertiary			
+way	28367385	West Canal	quetzal-cr	2018-04-16T15:22:50Z	27	tertiary			
+way	28367402	Cemetery Road	Anoesis	2019-01-02T17:00:20Z	19	secondary			
+way	28367418	Water Lane	Red_Ranger	2018-01-25T20:47:52Z	13	secondary			
+way	28367437	Baghdad Street	Charlie_Plett	2019-03-13T02:58:13Z	6	tertiary			
+way	28583325	Mahogany Street	Red_Ranger	2018-01-24T00:40:17Z	22	tertiary			
+way	28718520	Southern Highway	Red_Ranger	2018-01-23T21:22:33Z	79	primary			
+way	28718596	Columbia Road	Charlie_Plett	2019-02-11T02:41:56Z	29	tertiary			
+way	28718786	Cristo Rey Road	tubroos	2018-11-30T01:26:34Z	59	tertiary			
+way	28718812	A10	Red_Ranger	2018-01-23T21:05:07Z	9	tertiary			
+way	29369989	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	15	primary			
+way	29370067	Placencia Road	Charlie_Plett	2019-07-07T19:17:00Z	59	secondary			
+way	29370070		MintCondition	2017-03-08T00:14:28Z	8	tertiary			
+way	29370074		MintCondition	2017-03-08T00:14:28Z	9	tertiary			
+way	29370075	Church Street	Red_Ranger	2018-01-26T18:59:13Z	9	tertiary			
+way	29370076	Stanley Drive	Javan C	2019-05-07T05:12:52Z	16	tertiary			
+way	29370087	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	28	primary			
+way	29370162	Coastal Road	Charlie_Plett	2019-11-30T03:42:57Z	26	secondary			
+way	29370200	George Price Highway	Charlie_Plett	2019-11-24T03:20:16Z	28	primary			
+way	29371036	Philip Goldson Highway	Charlie_Plett	2019-06-15T04:48:56Z	13	primary			
+way	29371191	Boom Bridge	Charlie_Plett	2019-11-22T03:21:48Z	9	primary			
+way	29371192	Burrell Boom Cutoff	Charlie_Plett	2019-06-15T04:48:56Z	27	primary			
+way	29371232		Red_Ranger	2018-02-08T17:49:38Z	3	secondary			
+way	29371233	Vernon Street	BlueSombra	2015-10-14T16:07:50Z	19	secondary			
+way	29371234	Belchina Bridge	Anoesis	2019-01-02T17:00:20Z	6	secondary			
+way	29371235	Youth for the Future Drive	Anoesis	2019-01-02T17:00:20Z	5	secondary			
+way	29371236	Swing Bridge	Red_Ranger	2018-01-25T20:08:19Z	9	secondary			
+way	29371237	Queen Street	Red_Ranger	2018-01-25T20:08:20Z	6	secondary			
+way	29371453	D Line	Charlie_Plett	2019-06-09T18:49:04Z	31	tertiary			
+way	29371454		1T-money	2018-09-05T02:07:38Z	5	tertiary			
+way	29371455		gscholz	2019-06-17T06:05:15Z	32	tertiary			
+way	29371469		Charlie_Plett	2019-06-15T04:48:56Z	11	tertiary			
+way	29371549	San Jose Drive	Red_Ranger	2018-01-26T20:21:03Z	16	tertiary			
+way	29371550	Main Street	Anoesis	2019-01-03T17:29:13Z	16	secondary			
+way	29371575		Charlie_Plett	2017-11-11T18:26:28Z	12	tertiary			
+way	29371576	Bakers Street	Red_Ranger	2018-02-08T18:16:30Z	16	secondary			
+way	29372560	George Price Highway	ProjectThis	2016-03-31T21:42:05Z	5	primary			
+way	29373062		Red_Ranger	2018-02-01T19:47:28Z	6	primary			
+way	29373191	Philip Goldson Highway	Martijn Versluis	2020-01-21T17:48:29Z	20	primary			
+way	29418155	George Price Highway	Charlie_Plett	2019-10-19T19:24:33Z	35	primary			
+way	30669419	Queen Charlotte Street	Red_Ranger	2018-01-25T20:08:20Z	24	secondary			
+way	30669478		Red_Ranger	2018-02-08T17:50:41Z	6	secondary			
+way	30669481	Cemetery Road	Red_Ranger	2018-01-25T21:04:49Z	19	secondary			
+way	30669586	Neal's Penn Road	GISMaiden	2019-03-26T13:57:11Z	13	tertiary			
+way	30669696	Ceasar Ridge Road	Charlie_Plett	2018-09-14T23:57:18Z	17	secondary			
+way	30669714	Albert Street	quetzal-cr	2018-04-16T08:34:40Z	15	secondary			
+way	30669737	West Collet	mumblin	2019-02-18T17:39:26Z	9	tertiary			
+way	30669757		GISMaiden	2019-04-01T14:44:55Z	6	tertiary			
+way	30669758	Racoon Street	GISMaiden	2019-03-26T13:27:15Z	14	tertiary			
+way	30751890	North Front Street	Red_Ranger	2018-01-25T20:08:20Z	13	secondary			
+way	30751918	Douglas Jones Street	Anoesis	2019-01-02T17:00:20Z	12	secondary			
+way	30752086	East Canal	Always_Dreamin	2019-05-31T02:08:23Z	10	tertiary			
+way	30752183	Faber's Road	quetzal-cr	2018-04-16T15:22:51Z	31	tertiary			
+way	30752193	George Price Highway	Charlie_Plett	2019-06-15T04:48:56Z	6	primary			
+way	30752207	Woods Street	Red_Ranger	2018-01-25T21:21:33Z	7	tertiary			
+way	30752219	Johnson Street	Red_Ranger	2018-01-25T21:21:33Z	7	tertiary			
+way	30752273	Albert Hoy Avenue	Charlie_Plett	2019-03-09T19:24:25Z	25	tertiary			
+way	30752283	Lake Independence Boulevard	Charlie_Plett	2019-10-12T17:55:38Z	17	secondary			
+way	30752684	Western Avenue	BlueSombra	2015-10-15T16:02:21Z	9	tertiary			
+way	30753187	Fairweather Street	BlueSombra	2015-10-14T16:15:08Z	6	tertiary			
+way	30753188		GISMaiden	2019-04-01T16:13:45Z	6	tertiary			
+way	30753228	Iguana Street	GISMaiden	2019-04-01T14:12:27Z	17	tertiary			
+way	30753321	Central American Boulevard	Charlie_Plett	2019-12-01T04:23:07Z	22	secondary			
+way	30753322	Central American Boulevard	Charlie_Plett	2019-12-01T04:23:07Z	21	secondary			
+way	30753370	Racoon Street Extension	GISMaiden	2019-04-01T14:12:27Z	14	tertiary			
+way	30760252	Airport Road	mumblin	2019-04-10T18:49:38Z	18	tertiary			
+way	30777497	Fort Street	Red_Ranger	2018-02-08T17:28:27Z	10	secondary			
+way	30777523	Albert Street West	GISMaiden	2019-03-25T20:50:31Z	11	secondary			
+way	30777588	Ceasar Ridge Road	Red_Ranger	2018-01-25T20:08:21Z	3	secondary			
+way	30812967	Corozal Bypass	Anoesis	2019-01-02T21:27:02Z	24	secondary			
+way	30812972	Progresso - Copper Bank Road	Red_Ranger	2018-01-25T18:17:56Z	11	secondary			
+way	30812976	Orange Walk - Progresso Road	Jacobus21	2019-12-13T14:52:17Z	27	secondary			
+way	30813099	Old Northern Highway	Conservationist89	2018-01-23T23:20:20Z	13	tertiary			
+way	30837630	Constitution Drive	MyWayOrNoHighway	2017-07-10T20:27:55Z	15	secondary			
+way	30837728	Bliss Parade	Anoesis	2019-01-07T19:18:14Z	17	tertiary			
+way	30837736	North Ring Road	Charlie_Plett	2019-12-01T04:12:12Z	20	secondary			
+way	30837738	East Ring Road	Charlie_Plett	2019-12-01T04:12:12Z	13	secondary			
+way	38254551	Forest Drive	Charlie_Plett	2019-12-01T04:12:12Z	16	secondary			
+way	43756199	Blue Marlin Drive	Anoesis	2019-01-10T20:46:07Z	23	tertiary			
+way	43756203	Marage Road	Charlie_Plett	2019-10-12T17:55:38Z	19	tertiary			
+way	43756249		Charlie_Plett	2018-02-17T02:33:15Z	7	tertiary			
+way	43756259	Manta Ray Boulevard	Charlie_Plett	2018-02-17T02:33:15Z	9	tertiary			
+way	49313347	Coconut Drive	SergiNavas16	2019-12-09T21:50:41Z	12	tertiary			
+way	49313355	Angel Coral Street	Canyonsrcool	2015-09-27T04:29:37Z	5	tertiary			
+way	61148640	Tarpon Street	Canyonsrcool	2015-09-27T04:34:36Z	4	tertiary			
+way	61148641	Almond Street	SergiNavas16	2020-01-10T17:46:35Z	5	tertiary			
+way	71396206		Anoesis	2019-01-07T22:59:33Z	17	secondary			
+way	74194436		Cinderblock	2019-04-18T15:31:24Z	28	secondary			
+way	82623407		Slomox	2019-03-11T14:07:21Z	11	tertiary			
+way	85691349	Old Well Road	Jaime Burgos	2019-09-18T22:59:39Z	9	tertiary			
+way	85691367	Ediwn Parks Avenue	tzsl	2018-05-09T18:46:09Z	8	tertiary			
+way	85691368	Lord's Bank Road	happy-camper	2019-01-10T21:55:43Z	16	tertiary			
+way	91735077	Airport Road	mumblin	2019-04-09T17:06:24Z	5	tertiary			
+way	91735083	Airport Road	mumblin	2019-04-09T17:06:24Z	5	tertiary			
+way	91735085		mumblin	2019-04-09T17:07:00Z	4	tertiary_link			
+way	92470335	South Park Street	Red_Ranger	2018-01-26T19:07:25Z	6	tertiary			
+way	92470339	Taiwan Street	Charlie_Plett	2019-07-16T20:32:09Z	9	secondary			
+way	93098415		tzsl	2018-05-04T03:20:53Z	3	secondary			
+way	94428140		tzsl	2018-05-04T03:20:52Z	10	primary			
+way	94428185		AragonChristopherR17Z	2018-01-01T03:40:48Z	5	primary			
+way	95751463	Belize Road	Jaime Burgos	2016-12-07T16:37:27Z	7	primary			
+way	103158742		Red_Ranger	2018-02-08T18:34:55Z	10	primary_link			
+way	103158744		Red_Ranger	2018-01-26T19:33:54Z	7	tertiary			
+way	103161456		Charlie_Plett	2019-08-21T02:22:26Z	8	primary			
+way	103161463		Charlie_Plett	2019-07-28T17:55:36Z	12	primary			
+way	113513561	St. Thomas Street	BlueSombra	2015-10-19T21:00:11Z	7	secondary			
+way	113518223	Dolphin Street	BlueSombra	2015-10-14T16:15:07Z	4	tertiary			
+way	113520641	Iguana Street Extension	GISMaiden	2019-04-01T14:12:27Z	6	tertiary			
+way	113536646	Yarbourough Road	Anoesis	2019-01-02T18:31:44Z	10	secondary			
+way	113653025	Philip Goldson Highway	Charlie_Plett	2019-10-12T17:55:38Z	31	primary			
+way	113653033	Philip Goldson Highway	joeclmbr	2018-01-19T20:59:03Z	8	primary			
+way	113897870	Hummingbird Avenue	tzsl	2018-05-29T04:39:43Z	13	tertiary			
+way	113897876	Libertad Avenue	tzsl	2019-03-18T21:03:05Z	11	tertiary			
+way	113902744	Mountain View Boulevard	tzsl	2019-07-20T03:03:14Z	13	tertiary			
+way	113902754	South Ring Road	tzsl	2019-07-10T20:35:44Z	10	secondary			
+way	114970636	Route 20 East	Charlie_Plett	2019-06-14T03:29:08Z	21	tertiary			
+way	114970640	Iguana Creek Road	1T-money	2019-07-13T17:08:08Z	17	secondary			
+way	123365618	San Martin Avenue	Charlie_Plett	2018-09-01T15:53:15Z	11	tertiary			
+way	124769424	East Collet	mumblin	2019-02-18T17:43:47Z	5	tertiary			
+way	124770013	Magazine Road	Red_Ranger	2018-01-25T21:21:33Z	6	tertiary			
+way	130503738	Freetown Road	Charlie_Plett	2019-07-16T20:53:45Z	14	primary			
+way	130504459		Red_Ranger	2018-01-24T19:07:16Z	4	tertiary			
+way	130504460		Red_Ranger	2018-01-24T19:07:16Z	6	tertiary			
+way	130504461		RoadGeek_MD99	2011-09-19T01:55:03Z	1	tertiary			
+way	130504462		RoadGeek_MD99	2011-09-19T01:55:03Z	1	tertiary			
+way	130504468		tzsl	2018-05-04T03:20:53Z	11	primary			
+way	130504492		Red_Ranger	2018-01-23T19:34:15Z	4	primary			
+way	138275189	Queen Elizabeth II Boulevard	Red_Ranger	2018-01-26T18:23:32Z	8	tertiary			
+way	138275190	Queen Elizabeth II Boulevard	tzsl	2018-05-28T00:31:18Z	8	tertiary			
+way	150820110	Camp 23	1T-money	2018-11-18T18:00:16Z	8	tertiary			
+way	150820207	Guinea Grass Road	Anoesis	2019-01-07T21:55:04Z	22	tertiary			
+way	150988259	Springfield Road	1T-money	2018-09-11T21:53:50Z	26	tertiary			
+way	176876049	King Street	Kostik	2017-11-19T16:32:46Z	33	secondary			
+way	176876052		whereisthis	2019-10-29T23:20:39Z	13	secondary			
+way	176876053	Waights Avenue	Charlie_Plett	2019-08-05T03:03:48Z	28	tertiary			
+way	176876054	Salvador Fernandez Bridge	1T-money	2018-12-03T16:37:05Z	6	secondary			
+way	176876056	Collins Boulevard	Anoesis	2019-01-08T17:34:36Z	10	tertiary			
+way	176876058	Liberty Street	joeclmbr	2018-01-02T22:33:33Z	10	secondary			
+way	176876061		Charlie_Plett	2018-06-13T03:55:14Z	9	secondary			
+way	176876063	Santa Familia Road	Charlie_Plett	2019-02-05T01:36:06Z	29	secondary			
+way	176876064	Branch Mouth Road	Charlie_Plett	2019-08-05T03:03:48Z	15	tertiary			
+way	176876065		1T-money	2018-12-03T17:05:50Z	13	tertiary			
+way	176876068	Savannah Street	gscholz	2019-11-09T08:53:37Z	16	tertiary			
+way	176876069	Benque Viejo Road	Charlie_Plett	2019-06-04T01:51:29Z	18	tertiary			
+way	176876070	Cahal Pech Hill	Charlie_Plett	2019-06-29T17:03:26Z	10	tertiary			
+way	176877411	Northern Highway	dMoriarty	2016-03-08T23:10:10Z	6	primary			
+way	176877416		Red_Ranger	2018-01-25T18:08:11Z	6	secondary			
+way	176877424		Red_Ranger	2018-02-08T17:53:01Z	9	primary			
+way	181304202	Southern Highway	Red_Ranger	2018-01-23T22:05:44Z	9	primary			
+way	181397964	El Pilar Road	Charlie_Plett	2018-10-29T02:39:24Z	15	tertiary			
+way	182938725	Front Street	vespax	2015-09-25T21:34:13Z	6	tertiary			
+way	182938737	Main Street	Red_Ranger	2018-01-29T19:21:14Z	8	tertiary			
+way	182938739	Main Street	vespax	2015-09-25T21:50:00Z	10	tertiary			
+way	182938744		BlueSombra	2015-10-21T15:00:43Z	6	secondary			
+way	182947493	Southern Highway	Red_Ranger	2018-01-23T21:59:51Z	5	primary			
+way	182950938	San Felipe Road	1T-money	2018-09-08T20:08:53Z	17	tertiary			
+way	183788192	Barranco Road	1T-money	2018-09-11T18:09:15Z	14	tertiary			
+way	183788194	Barranco Road	1T-money	2018-09-08T20:08:52Z	9	tertiary			
+way	183789746	Laguna Road	1T-money	2018-09-11T18:12:00Z	8	tertiary			
+way	183792149	Barranco Road	1T-money	2018-09-08T20:06:34Z	7	tertiary			
+way	183792150	Barranco Road	Red_Ranger	2018-01-23T21:49:14Z	2	tertiary			
+way	185489275	Philip Goldson Highway	brogo	2019-02-17T09:26:23Z	26	primary			
+way	185489278	Philip Goldson Highway	Charlie_Plett	2019-10-26T01:15:05Z	9	primary			
+way	185489283		Red_Ranger	2018-01-26T19:25:46Z	9	tertiary			
+way	186559786	Queen Street	vespax	2015-09-25T21:34:11Z	3	tertiary			
+way	186572427	Blue Creek Road	BigKev97	2019-09-08T23:52:22Z	12	tertiary			
+way	186575358	Sittee River Road	quetzal-cr	2018-08-06T14:14:56Z	4	tertiary			
+way	186575366	Sittee River Road	quetzal-cr	2018-08-06T14:14:55Z	10	tertiary			
+way	186575375	Sittee River Road	Anoesis	2019-01-08T16:12:13Z	12	tertiary			
+way	186575609	South Road	tzsl	2019-07-08T00:02:32Z	17	tertiary			
+way	186575612		tzsl	2019-07-22T05:34:40Z	8	tertiary			
+way	186578699	Red Bank Road	Charlie_Plett	2019-06-22T03:25:15Z	15	tertiary			
+way	186579029		bdiscoe	2013-12-23T02:23:04Z	5	tertiary			
+way	186579140	Chiquibul Road	tubroos	2018-11-23T21:09:55Z	18	tertiary	A10		
+way	186579141		bdiscoe	2013-12-23T02:23:03Z	3	tertiary			
+way	186648179	A10	Red_Ranger	2018-01-23T21:06:16Z	5	tertiary			
+way	186648180	A10	Red_Ranger	2018-01-23T21:05:54Z	4	tertiary			
+way	186648181	Chiquibul Road	bdiscoe	2014-04-27T21:39:02Z	10	tertiary	A10		
+way	186648188	Chiquibul Road	bdiscoe	2014-04-27T21:39:03Z	14	tertiary	A10		
+way	186658057	Chiquibul Road	tubroos	2018-12-05T22:03:08Z	64	tertiary			
+way	186658067		Charlie_Plett	2019-02-05T01:36:06Z	34	tertiary			
+way	186697870	Iguana Creek Road	gscholz	2019-12-30T10:59:53Z	33	secondary			
+way	186697873	Iguana Creek Bridge	Charlie_Plett	2019-06-15T05:00:01Z	12	secondary			
+way	186708114	Joseph Andrews Drive	Charlie_Plett	2019-06-04T01:51:29Z	16	primary			
+way	186708226	Benque Viejo Road	Charlie_Plett	2019-06-04T01:51:29Z	11	primary			
+way	186708679		1T-money	2018-12-03T16:39:22Z	2	tertiary			
+way	186708771		Charlie_Plett	2019-06-29T17:03:26Z	5	tertiary			
+way	186708929		hannahbrenner	2019-11-06T00:17:07Z	6	tertiary			
+way	186709276		Jaime Burgos	2016-12-07T16:37:27Z	6	primary			
+way	186709277	Belize-Corozal Road	SergiNavas16	2019-11-19T00:24:36Z	23	primary			
+way	186709278		tzsl	2017-12-22T00:46:12Z	12	primary			
+way	186709279	Northern Highway Bypass	Charlie_Plett	2019-10-26T01:15:05Z	15	primary			
+way	186709280	Dump Site Road	Anoesis	2019-01-07T21:55:04Z	19	tertiary			
+way	186709282		Red_Ranger	2018-01-24T17:10:47Z	6	primary			
+way	186709283	Northern Highway	Red_Ranger	2018-01-24T17:10:47Z	7	primary			
+way	186709284	Northern Highway	Charlie_Plett	2019-10-26T01:15:05Z	15	primary			
+way	186709286		Red_Ranger	2018-01-24T17:10:47Z	6	primary			
+way	186709287		Red_Ranger	2018-01-24T17:10:47Z	6	primary			
+way	186709424	San Lorenzo Road	1T-money	2018-10-23T03:01:29Z	12	tertiary			
+way	187122497	New Road	tubroos	2014-04-29T23:58:19Z	20	secondary			
+way	187132094		1T-money	2019-01-15T20:08:15Z	10	tertiary			
+way	187249915		1T-money	2018-09-11T18:06:58Z	5	tertiary			
+way	187249918	San Miguel Road	Charlie_Plett	2019-12-26T18:14:30Z	10	tertiary			
+way	188008858	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	3	primary			
+way	188987505	San Antonio Road	Slomox	2019-02-21T13:36:56Z	6	secondary			
+way	188989502	Blue Creek Road	BigKev97	2019-09-08T23:52:22Z	4	tertiary			
+way	188989503	Aguacate Road	1T-money	2018-09-11T18:06:54Z	13	tertiary			
+way	188990475	Santa Teresa Road	1T-money	2018-09-08T20:06:32Z	5	tertiary			
+way	188991276		1T-money	2018-09-04T19:43:22Z	5	tertiary			
+way	188991277		1T-money	2018-09-04T19:43:22Z	6	tertiary			
+way	189108763		1T-money	2018-11-11T00:25:17Z	7	tertiary			
+way	189108768		Charlie_Plett	2019-04-17T01:25:20Z	9	tertiary			
+way	189786595	Camp 2	1T-money	2019-01-15T20:03:52Z	9	tertiary			
+way	191443779	Ecumenical Drive	tzsl	2019-06-03T02:10:26Z	7	tertiary			
+way	191443783		Red_Ranger	2018-01-26T18:59:13Z	3	tertiary			
+way	193606539	Main Street	Red_Ranger	2018-01-29T19:21:14Z	7	tertiary			
+way	193609821	Southern Highway	Red_Ranger	2018-01-23T21:40:07Z	30	primary			
+way	193609826	Southern Highway	BlueSombra	2015-10-21T22:08:42Z	4	primary			
+way	193694631		Red_Ranger	2018-01-23T21:40:07Z	4	primary_link			
+way	193697119	Pine Hill Road	Charlie_Plett	2019-02-11T02:41:54Z	12	tertiary			
+way	193698388	Southern Highway	Charlie_Plett	2019-12-30T18:30:29Z	20	primary			
+way	193698393	Southern Highway	ProjectThis	2016-03-31T21:42:07Z	4	primary			
+way	194237570	Albert Hoy Avenue	Charlie_Plett	2019-03-09T19:24:24Z	7	tertiary			
+way	194237588	Scissors Tail Street	Charlie_Plett	2018-02-17T02:33:15Z	8	tertiary			
+way	195224827		1T-money	2018-09-11T18:06:58Z	4	tertiary			
+way	195224829	Columbia Road	Charlie_Plett	2019-12-26T18:14:30Z	9	tertiary			
+way	195229448	Kendall Bridge	Red_Ranger	2018-01-23T21:20:50Z	5	primary			
+way	195229452	Southern Highway	Anoesis	2018-12-27T22:49:50Z	26	primary			
+way	195289308	Tower Hill Bridge	recinutah	2015-10-22T16:48:43Z	4	primary			
+way	195289309	Northern Highway	Charlie_Plett	2019-10-26T01:15:05Z	16	primary			
+way	196911236	San Antonio Road	1T-money	2018-09-09T17:48:48Z	6	secondary			
+way	196911240	San Antonio Road	1T-money	2018-09-09T17:48:48Z	6	secondary			
+way	196913466	Southern Highway	Canyonsrcool	2015-09-26T05:07:18Z	2	primary			
+way	196913470	Southern Highway	Red_Ranger	2018-01-23T21:34:05Z	9	primary			
+way	196919193	Hercules Street	Charlie_Plett	2018-08-10T11:02:18Z	7	tertiary			
+way	198634848	Chiquibul Road	Charlie_Plett	2018-07-04T00:55:58Z	8	tertiary	A10		
+way	198634849	A10	Charlie_Plett	2019-03-25T03:18:12Z	4	tertiary			
+way	198643077	Chiquibul Road	tubroos	2018-11-23T21:13:15Z	8	tertiary			
+way	198643078	A10	Red_Ranger	2018-01-23T21:04:49Z	3	tertiary			
+way	198660329	Chiquibul Road	Charlie_Plett	2019-04-18T05:26:22Z	13	tertiary	A10		
+way	198660330	A10 / Chiquibul Road	Charlie_Plett	2019-03-25T03:18:12Z	6	tertiary			
+way	198675678	Agripino Cawich Bridge	Red_Ranger	2018-02-08T00:25:25Z	8	tertiary			
+way	198675683	Young Bank Road	Charlie_Plett	2019-08-13T02:50:15Z	12	tertiary			
+way	198694380	Spanish Town Street	Charlie_Plett	2019-10-19T19:24:33Z	6	tertiary			
+way	200806472		BlueSombra	2015-11-02T18:15:06Z	2	secondary			
+way	200806473	North Street	BlueSombra	2015-10-21T17:48:17Z	4	secondary			
+way	201225794		1T-money	2018-09-11T21:53:51Z	6	tertiary			
+way	202995450		Red_Ranger	2018-01-26T18:20:37Z	5	tertiary			
+way	203039239	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	8	primary			
+way	203039240	Caves Branch Bridge	Charlie_Plett	2019-08-21T02:22:26Z	6	primary			
+way	203039241	Hummingbird Highway	Charlie_Plett	2020-01-19T20:56:28Z	15	primary			
+way	203039242	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	5	primary			
+way	203039429	George Price Highway	Jacobus21	2019-11-20T13:57:29Z	53	primary			
+way	203305632	George Price Highway	mtspinelli	2015-10-20T17:20:39Z	5	primary			
+way	203310650	More Tomorrow Road	BigKev97	2019-09-09T00:07:07Z	9	tertiary			
+way	203400474		Red_Ranger	2018-01-26T18:20:37Z	3	tertiary			
+way	203403725	Arenal Road	1T-money	2018-09-10T20:12:55Z	9	tertiary			
+way	204852356	Altamira Road	Mr_Atlas	2019-07-19T20:07:09Z	12	tertiary			
+way	204852390		the_lerics	2019-07-19T19:26:29Z	13	tertiary			
+way	204852468		recinutah	2015-10-29T19:09:11Z	7	tertiary			
+way	205529232		Charlie_Plett	2019-08-19T03:44:33Z	13	tertiary			
+way	205547085	Northern Highway	Anoesis	2019-01-03T17:05:13Z	4	primary			
+way	205547086	Northern Highway	Red_Ranger	2018-01-23T20:54:04Z	3	primary			
+way	205547087	Northern Highway	Red_Ranger	2018-01-23T20:57:27Z	4	primary			
+way	205547088	Philip Goldson Highway	Anoesis	2019-01-03T16:02:18Z	20	primary			
+way	205547146	Liberty Avenue	Red_Ranger	2018-01-26T20:21:03Z	13	tertiary			
+way	205547153	Liberty Avenue	Red_Ranger	2018-01-26T20:21:04Z	12	tertiary			
+way	205547156		Red_Ranger	2018-01-25T18:12:06Z	10	primary			
+way	205547164		Red_Ranger	2018-01-25T18:08:11Z	6	secondary			
+way	205547168	Lyle Street	Red_Ranger	2018-01-26T20:21:04Z	9	tertiary			
+way	205547174	Palmar Boundary Road	Red_Ranger	2018-01-26T20:21:04Z	19	tertiary			
+way	205547181	San Antonio Road	Anoesis	2019-01-03T17:29:14Z	20	secondary			
+way	205547186	Chan Pine Ridge Road	1T-money	2018-11-18T18:38:12Z	19	tertiary			
+way	205547191	Progresso Road	Red_Ranger	2018-01-25T18:14:51Z	11	secondary			
+way	205553616		1T-money	2019-01-14T20:34:55Z	6	tertiary			
+way	206463634	San Antonio Road	1T-money	2018-09-09T17:48:48Z	8	secondary			
+way	206463637	San Antonio Road	1T-money	2018-09-09T17:48:48Z	12	secondary			
+way	206463643	San Antonio Road	1T-money	2018-09-09T17:48:48Z	4	secondary			
+way	206847203	Loma Luz Boulevard	Charlie_Plett	2019-08-05T03:03:48Z	15	primary			
+way	206851169	Loma Luz Boulevard	Charlie_Plett	2019-08-05T03:03:48Z	11	primary			
+way	206859335	Chunox - Sarteneja Road	Jacobus21	2019-12-13T14:52:17Z	11	tertiary			
+way	206862804		1T-money	2018-09-09T21:37:33Z	3	tertiary			
+way	206902104	A10 / Chiquibul Road	whb	2019-03-16T11:14:18Z	21	tertiary			
+way	206903559	Chiquibul Road	gscholz	2020-01-05T09:17:46Z	14	tertiary			
+way	207051387	George Price Highway	Charlie_Plett	2019-12-01T04:12:12Z	22	primary			
+way	207603074	Wooden Bridge Road	gscholz	2019-11-09T08:53:37Z	10	secondary			
+way	207603075	Wooden Bridge	tzsl	2019-08-13T02:45:30Z	13	secondary			
+way	207603076	George Price Highway	joeclmbr	2018-01-02T22:22:38Z	8	secondary			
+way	207603077	Hawkesworth Bridge	tzsl	2019-08-13T02:44:50Z	13	secondary			
+way	207605645		Charlie_Plett	2019-11-17T03:14:25Z	6	tertiary			
+way	207605646	Crooked Tree Causeway	Charlie_Plett	2019-11-17T03:14:25Z	7	tertiary			
+way	207605647		Charlie_Plett	2019-11-17T03:14:25Z	7	tertiary			
+way	207609690		Red_Ranger	2018-02-01T19:14:58Z	3	secondary			
+way	207609691		1T-money	2019-01-15T20:01:52Z	11	tertiary			
+way	209338062	Consejo Road	Mr_Atlas	2019-07-12T20:15:22Z	26	tertiary			
+way	210156351	Agua Viva Road	BigKev97	2019-09-09T00:05:28Z	10	tertiary			
+way	211569998	Burrell Boom Cutoff	Red_Ranger	2018-09-19T18:57:33Z	9	primary			
+way	215847698	George Price Highway	Charlie_Plett	2019-06-04T01:51:29Z	25	primary			
+way	215848747		Charlie_Plett	2020-01-24T16:17:01Z	9	tertiary			
+way	215848761	Pegasus Street	Charlie_Plett	2019-06-29T17:03:26Z	7	tertiary			
+way	215848762	Figueroa Street	peaceloveandcats	2019-10-30T00:12:51Z	7	tertiary			
+way	215880940		Anoesis	2019-01-08T17:26:31Z	5	tertiary			
+way	215880945		Charlie_Plett	2019-06-29T17:03:26Z	4	tertiary			
+way	215880950	Constallation Boulevard	game_of_maps	2019-11-06T00:15:15Z	6	tertiary			
+way	217878974	Southern Highway	GeoCrazy	2016-03-25T22:22:49Z	2	primary			
+way	217878975	Southern Highway	Red_Ranger	2018-01-23T21:51:19Z	5	primary			
+way	217879011	Southern Highway	Red_Ranger	2018-01-23T21:56:14Z	5	primary			
+way	217879012	Southern Highway	brogo	2018-12-04T11:47:16Z	13	primary			
+way	218914965	Negroman Road	rigrat	2019-10-08T11:50:05Z	14	tertiary			
+way	219418306		Canyonsrcool	2015-09-27T15:26:52Z	5	tertiary			
+way	219418307	Laguna Drive	garnaches	2016-11-16T22:22:14Z	7	tertiary			
+way	219425959		Charlie_Plett	2018-08-25T19:18:28Z	12	primary			
+way	221665169		Cinderblock	2019-04-18T20:19:58Z	9	tertiary			
+way	221665171		Anoesis	2019-01-10T20:46:08Z	5	tertiary			
+way	222057668		Charlie_Plett	2018-11-14T00:20:00Z	4	tertiary			
+way	222057670		Charlie_Plett	2018-11-14T00:20:00Z	3	tertiary			
+way	223119539	Barrier Reef Drive	Dimitri_Junker	2018-03-17T15:12:54Z	4	tertiary			
+way	223119543	Caribeña Street	Canyonsrcool	2015-09-27T04:34:36Z	4	tertiary			
+way	223119544	Caribeña Street	BlueSombra	2015-10-27T16:59:11Z	5	tertiary			
+way	223119554	Pescador Drive	Canyonsrcool	2015-09-27T04:18:29Z	3	tertiary			
+way	223119555	Pescador Drive	BlueSombra	2015-10-27T17:12:03Z	4	tertiary			
+way	223119556	Seagrape Drive	SergiNavas16	2019-12-09T21:50:41Z	13	tertiary			
+way	223119559	Tarpon Street	Canyonsrcool	2015-09-27T04:34:36Z	2	tertiary			
+way	223119560	Tarpon Street	Canyonsrcool	2015-09-27T04:34:36Z	3	tertiary			
+way	223119564	Pescador Drive	Canyonsrcool	2015-09-27T04:23:20Z	3	tertiary_link			
+way	223119576	Coconut Drive	garnaches	2016-11-16T22:29:40Z	4	tertiary			
+way	223119592		Canyonsrcool	2015-09-27T04:59:52Z	3	tertiary			
+way	223464789	Philip Goldson Highway	1T-money	2019-03-24T15:50:28Z	7	primary			
+way	225371754	Bullet Tree Road	1T-money	2019-04-06T18:09:09Z	20	secondary			
+way	225523961	Bethias Lane	Red_Ranger	2018-01-26T20:21:05Z	8	tertiary			
+way	225524719	Riverside Street	Red_Ranger	2018-01-26T20:21:05Z	5	tertiary			
+way	225526508	Route 35 West	Charlie_Plett	2019-06-06T04:39:23Z	24	tertiary			
+way	225526943	Line 1	Slomox	2019-03-11T14:36:03Z	9	tertiary			
+way	226450012	Silver Creek Bridge	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	226450013	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	9	primary			
+way	228482557		1T-money	2018-09-03T21:04:56Z	6	tertiary			
+way	228482558		1T-money	2018-09-11T15:18:53Z	9	tertiary			
+way	238788926	A10 / Chiquibul Road	Charlie_Plett	2019-11-21T01:18:08Z	15	tertiary			
+way	238788927	A10 / Chiquibul Road	1T-money	2018-09-10T20:41:14Z	3	tertiary			
+way	239015909		1T-money	2019-01-14T03:29:47Z	5	tertiary			
+way	239016076	Fourth Avenue	joserrg12	2018-10-07T17:06:05Z	11	tertiary			
+way	239020262	Santa Rita Hill	Charlie_Plett	2019-10-26T01:15:05Z	22	secondary			
+way	239020314		1T-money	2019-04-07T15:27:15Z	29	secondary			
+way	239020476		garnaches	2019-01-10T20:06:30Z	10	tertiary			
+way	239020584		recinutah	2015-10-29T20:05:28Z	6	tertiary			
+way	239022027		Anoesis	2019-01-02T22:11:34Z	4	tertiary			
+way	240212333		tubroos	2013-10-02T00:59:44Z	1	tertiary_link			
+way	240286978	A10 / Chiquibul Road	Red_Ranger	2018-01-23T21:06:51Z	2	tertiary			
+way	240286979	Chiquibul Road	tubroos	2018-12-31T20:15:18Z	7	tertiary	A10		
+way	240722952	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	17	primary			
+way	240722953		Charlie_Plett	2019-07-28T17:55:36Z	4	primary			
+way	240722954		Charlie_Plett	2019-07-28T17:55:36Z	5	primary			
+way	240722955		Charlie_Plett	2019-07-28T17:55:36Z	4	primary			
+way	240722956	Constitution Drive	Charlie_Plett	2019-12-01T04:12:12Z	21	secondary			
+way	240722957	Constitution Drive	Charlie_Plett	2019-08-21T02:22:26Z	5	secondary			
+way	240847242		tubroos	2018-11-20T17:16:02Z	11	tertiary			
+way	240952594	Roaring Creek Bridge	rigrat	2018-10-18T14:55:42Z	6	primary			
+way	241661474	Chiquibul Road	1T-money	2019-04-10T22:52:12Z	9	tertiary			
+way	241722531	A10 / Chiquibul Road	whb	2019-03-16T11:14:19Z	6	tertiary			
+way	245012713		Red_Ranger	2018-01-23T21:07:55Z	2	tertiary			
+way	245012714	Chiquibul Road	tubroos	2019-01-01T23:04:41Z	12	tertiary			
+way	245155697	Clarissa Falls Road	Charlie_Plett	2019-08-06T18:27:24Z	5	tertiary			
+way	246515571	Cristo Rey Road	Red_Ranger	2018-01-23T21:03:58Z	2	tertiary			
+way	246515573	San Antonio Road	tubroos	2019-01-14T21:29:50Z	31	tertiary			
+way	249799532	Almond Street	SergiNavas16	2020-01-10T17:46:35Z	3	tertiary			
+way	251276715	Southern Highway	Charlie_Plett	2019-07-02T01:47:47Z	6	primary			
+way	251276882	Southern Highway	Charlie_Plett	2019-07-02T01:47:47Z	14	primary			
+way	251276883	South Stann Creek Bridge	ProjectThis	2016-03-31T21:42:06Z	4	primary			
+way	251379201	Monkey River Road	Charlie_Plett	2019-03-09T02:51:37Z	8	tertiary			
+way	251380081		MyWayOrNoHighway	2017-07-10T20:08:35Z	3	tertiary			
+way	251403212	Swasey Bridge	Charlie_Plett	2018-10-25T01:31:45Z	4	primary			
+way	251403213	Southern Highway	Red_Ranger	2018-01-23T21:32:17Z	13	primary			
+way	251404322	Trio Road	BigKev97	2019-09-08T23:54:48Z	14	tertiary			
+way	251404458	Bladen Bridge	ProjectThis	2016-03-31T21:42:05Z	2	primary			
+way	251404459	Southern Highway	Red_Ranger	2018-01-23T21:32:17Z	13	primary			
+way	251410202		Charlie_Plett	2019-07-30T01:32:23Z	4	primary_link			
+way	251410203	Southern Highway	Charlie_Plett	2019-07-30T01:32:23Z	3	primary			
+way	251530617	Georgetown - Maya Mopan Road	Charlie_Plett	2019-12-30T18:30:29Z	15	tertiary			
+way	251533769	Cowpen Bypass Road	Charlie_Plett	2019-07-30T18:25:09Z	8	tertiary			
+way	251547912		1T-money	2018-11-18T18:34:26Z	6	tertiary			
+way	251548720		1T-money	2018-11-18T18:29:54Z	3	tertiary			
+way	251652522	Bee Lane	Charlie_Plett	2019-06-14T03:29:08Z	9	tertiary			
+way	251872081	Santa Teresa Road	1T-money	2018-09-12T21:05:06Z	6	tertiary			
+way	251872082	Santa Teresa Road	Red_Ranger	2018-01-23T21:48:43Z	2	tertiary			
+way	253189329		1T-money	2019-07-13T17:27:42Z	8	tertiary			
+way	254215332	New Road	Red_Ranger	2018-01-23T22:07:13Z	2	secondary			
+way	254215336	New Road	Wilson Kezada	2018-06-25T05:42:21Z	5	secondary			
+way	254215477	New Road	Red_Ranger	2018-01-23T22:07:13Z	2	secondary			
+way	254215478	New Road	Aurimas Fišeras	2014-06-22T15:35:30Z	3	secondary			
+way	256663788	Mollejon Road	1T-money	2018-09-11T16:49:32Z	7	tertiary			
+way	256896591		1T-money	2018-08-26T21:45:44Z	4	tertiary			
+way	259780266	Seagrape Drive	BlueSombra	2015-10-28T18:50:14Z	8	tertiary			
+way	262565278	Price Centre Road	tzsl	2019-03-18T21:03:05Z	7	tertiary			
+way	262568951	George Price Boulevard	tzsl	2019-04-14T01:12:35Z	14	tertiary			
+way	262568963	George Price Boulevard	Ludwin Najera	2019-08-03T22:49:41Z	17	tertiary			
+way	262568966	George Price Boulevard	WarGeo	2019-03-27T08:22:46Z	11	tertiary			
+way	262967807		the_lerics	2019-07-12T19:17:42Z	9	tertiary			
+way	266153211	Southern Highway	ProjectThis	2016-03-31T21:42:07Z	2	primary			
+way	266153212	Southern Highway	Red_Ranger	2018-01-23T21:23:41Z	6	primary			
+way	266153333	Southern Highway	Red_Ranger	2018-01-23T21:23:42Z	10	primary			
+way	266153334	Southern Highway	ProjectThis	2016-03-31T21:42:06Z	2	primary			
+way	266156096	Southern Highway	ProjectThis	2016-03-31T21:42:06Z	2	primary			
+way	266156097	Southern Highway	Jacobus21	2019-04-05T16:19:34Z	11	primary			
+way	266245221	Southern Highway	Red_Ranger	2018-01-23T21:22:34Z	6	primary			
+way	266245223	Southern Highway	ProjectThis	2016-03-31T21:42:07Z	2	primary			
+way	266972006	College Road	Red_Ranger	2018-01-26T19:25:46Z	8	tertiary			
+way	266972008		Anoesis	2019-01-03T21:01:41Z	6	tertiary			
+way	267066154	Southern Highway	Red_Ranger	2018-01-23T21:32:17Z	4	primary			
+way	267066155	Southern Highway	ProjectThis	2016-03-31T21:42:06Z	2	primary			
+way	267278898	Blue Creek Road	BigKev97	2019-09-08T23:52:22Z	4	tertiary			
+way	267278899	Blue Creek Road	BigKev97	2019-09-08T23:52:22Z	3	tertiary			
+way	269170848	Seagrape Drive	lishkin	2015-10-27T23:32:28Z	4	tertiary			
+way	272949120		BlueSombra	2015-11-02T17:51:43Z	5	tertiary			
+way	272949122	Havana Street	tzsl	2018-02-12T17:50:41Z	10	tertiary			
+way	274056434	D Line	1T-money	2018-09-05T15:59:37Z	8	tertiary			
+way	274150770		Red_Ranger	2018-02-08T17:53:01Z	6	primary			
+way	274150771		Red_Ranger	2018-02-08T17:53:01Z	8	secondary			
+way	274150772		Charlie_Plett	2019-10-26T01:15:05Z	6	primary			
+way	274150773		Red_Ranger	2018-02-08T17:53:01Z	7	secondary			
+way	279042003	George Price Drive	recinutah	2015-10-27T21:49:55Z	3	primary			
+way	279042004	George Price Drive	Red_Ranger	2018-02-08T19:06:24Z	5	primary			
+way	279042011	Orange Street	Red_Ranger	2018-01-25T21:04:50Z	6	secondary			
+way	279042016	Regent Street West	Red_Ranger	2018-01-25T20:47:52Z	4	secondary			
+way	279042036		GISMaiden	2019-04-02T13:39:51Z	4	tertiary			
+way	279042064	Vernon Street	BlueSombra	2015-10-14T15:57:09Z	2	secondary			
+way	279042065	Vernon Street	BlueSombra	2015-10-14T15:57:10Z	5	secondary			
+way	279042066	Water Lane	Red_Ranger	2018-01-25T20:47:52Z	3	secondary			
+way	279042067	Water Lane	Red_Ranger	2018-01-25T20:47:52Z	6	secondary			
+way	295557596	Route 120	Charlie_Plett	2019-10-28T00:18:54Z	8	tertiary			
+way	295557602	Route 120	Charlie_Plett	2019-10-28T00:18:54Z	8	tertiary	120		
+way	317749792	Camp 54	1T-money	2019-01-15T20:08:15Z	8	tertiary			
+way	320699664		1T-money	2018-09-12T02:42:23Z	3	tertiary			
+way	320704438	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	22	secondary			
+way	320704439	Sibun River Bridge	Charlie_Plett	2019-11-17T03:48:52Z	6	secondary			
+way	320704622	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	17	primary			
+way	320704642	Dry Creek Bridge	Charlie_Plett	2019-11-22T03:21:48Z	5	primary			
+way	320704875	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	320704876	Hummingbird Highway	Charlie_Plett	2019-08-20T04:02:00Z	8	primary			
+way	320704877	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	320704879	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	15	primary			
+way	321660617	Orange Street	Red_Ranger	2018-01-25T21:04:50Z	4	secondary			
+way	338800444		1T-money	2019-07-13T17:34:21Z	10	tertiary			
+way	338800452		1T-money	2019-01-14T20:37:00Z	4	tertiary			
+way	338800462		1T-money	2019-01-14T20:37:00Z	5	tertiary			
+way	355831341	Buena Vista Street	Charlie_Plett	2019-07-18T00:55:53Z	17	secondary			
+way	355831342	Buena Vista Street	joeclmbr	2018-01-02T22:35:31Z	5	secondary			
+way	359244282	Hudson Street	salix01	2016-02-22T20:33:39Z	3	secondary			
+way	359244283	Burns Avenue	Charlie_Plett	2017-05-14T00:56:14Z	7	tertiary			
+way	364383309		tubroos	2019-01-08T15:40:33Z	10	tertiary			
+way	364383310		tubroos	2019-01-08T15:19:24Z	10	tertiary			
+way	364383311		1T-money	2018-09-05T02:14:27Z	7	tertiary			
+way	364384763	Farmers Express Road	Slomox	2019-03-11T14:07:21Z	8	tertiary			
+way	365395861	Chetumal Street	Charlie_Plett	2019-03-10T19:01:48Z	9	secondary			
+way	365399067		1T-money	2018-11-18T17:53:05Z	5	tertiary			
+way	365402679	Seagrape Drive	lishkin	2015-10-27T23:32:27Z	6	tertiary			
+way	365402680	Seagrape Drive	lishkin	2015-10-27T23:32:27Z	3	tertiary			
+way	365405320		Charlie_Plett	2018-11-14T00:20:01Z	8	tertiary			
+way	365571658		1T-money	2018-11-18T18:34:27Z	4	tertiary			
+way	365574853		Charlie_Plett	2019-11-17T03:14:25Z	4	tertiary			
+way	365576738		1T-money	2018-09-05T15:40:29Z	5	tertiary			
+way	367901961		Red_Ranger	2018-02-08T17:53:01Z	5	primary			
+way	367901965		Red_Ranger	2018-02-08T17:53:01Z	6	secondary			
+way	367901969		Red_Ranger	2018-02-08T17:53:02Z	7	secondary			
+way	371899512	Faber's Road	Red_Ranger	2018-01-24T21:21:49Z	9	tertiary			
+way	371899513	Central American Boulevard	Anoesis	2019-01-02T17:13:08Z	8	secondary			
+way	371899514	Vernon Street	Always_Dreamin	2019-05-21T02:35:14Z	7	secondary			
+way	371899515	Central American Boulevard	Charlie_Plett	2018-01-16T03:20:38Z	5	primary			
+way	371899516	Mahogany Street	Anoesis	2019-01-02T17:48:52Z	7	tertiary			
+way	371899517	Coney Drive	Charlie_Plett	2019-03-10T03:25:13Z	8	secondary			
+way	371899518	Philip Goldson Highway	Charlie_Plett	2019-03-10T00:56:52Z	12	primary			
+way	371899556	Perez Road	Anoesis	2019-01-10T20:46:10Z	9	tertiary			
+way	371968450	Fairweather Street	MintCondition	2017-03-08T00:27:25Z	4	tertiary			
+way	371973779	Cork Street	Red_Ranger	2018-01-25T21:48:51Z	5	tertiary			
+way	371978277	North Front Street	Red_Ranger	2018-01-25T20:27:55Z	6	secondary			
+way	371978278	North Front Street	Always_Dreamin	2019-05-31T02:08:25Z	6	secondary			
+way	371988549	Princess Margaret Drive	Anoesis	2019-01-02T16:02:39Z	6	primary			
+way	372056483	Ambrocio Street	Anoesis	2019-01-03T17:05:14Z	7	tertiary			
+way	372056484	Palmar Road	erickdeoliveiraleal	2019-05-28T03:22:14Z	11	tertiary			
+way	372056488	Guadalupe Street	Red_Ranger	2018-01-26T20:21:05Z	8	tertiary			
+way	372056493	Queen Victoria Avenue	Red_Ranger	2018-02-08T18:16:30Z	11	primary			
+way	372056494		Red_Ranger	2018-01-25T18:08:12Z	4	secondary			
+way	372056505	Otro Benque Road	Anoesis	2019-01-03T17:05:14Z	7	primary			
+way	372078867	19 De Marzo Avenue	Red_Ranger	2018-01-26T20:21:06Z	4	tertiary			
+way	372102742	Otro Benque Road	Jaime Burgos	2016-12-07T16:37:25Z	5	primary			
+way	372108414	Philip Goldson Highway	Charlie_Plett	2019-10-26T01:15:05Z	25	primary			
+way	372108415	Philip Goldson Highway	Charlie_Plett	2019-10-26T01:15:05Z	7	primary			
+way	372117568	Philip Goldson Highway	Charlie_Plett	2019-10-26T01:15:05Z	5	primary			
+way	372127813		c_fram	2016-10-14T11:34:53Z	6	tertiary			
+way	372135479		Charlie_Plett	2018-09-26T00:58:07Z	7	tertiary			
+way	372139481	Burrell Boom Cutoff	Charlie_Plett	2019-06-15T04:48:56Z	9	primary			
+way	372208503	Cemetery Rd	tzsl	2019-08-12T21:09:19Z	10	tertiary			
+way	372212105		Charlie_Plett	2019-06-29T17:03:26Z	5	tertiary			
+way	372225501	San Martin Avenue	Charlie_Plett	2018-09-01T15:53:15Z	5	tertiary			
+way	372271664	George Price Avenue	joeclmbr	2018-01-02T22:33:34Z	2	secondary			
+way	372271667	Burns Avenue	Charlie_Plett	2017-05-14T00:56:14Z	3	tertiary			
+way	372275102	King Street	Red_Ranger	2018-01-23T21:02:54Z	7	secondary			
+way	372282736	Beetle Juice Street	Charlie_Plett	2019-06-29T17:03:26Z	6	tertiary			
+way	372289805	Hummingbird Highway	Charlie_Plett	2020-01-05T03:19:27Z	10	construction			
+way	372289806	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	construction			
+way	372289808	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	6	primary			
+way	372290080	Hummingbird Highway	Charlie_Plett	2019-08-20T04:02:00Z	5	primary			
+way	372290081	Hummingbird Highway	tzsl	2019-12-07T01:53:14Z	7	primary			
+way	372290083	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	372290084	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	3	primary			
+way	372290085	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	10	primary			
+way	372290086	Hummingbird Highway	Charlie_Plett	2019-11-22T03:21:48Z	8	primary			
+way	372290087	Hummingbird Highway	tzsl	2019-09-04T20:08:39Z	23	primary			
+way	372290088	Hummingbird Highway	tzsl	2019-10-22T00:40:07Z	6	primary			
+way	372290089	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	11	primary			
+way	372290090	Hummingbird Highway	tzsl	2019-12-07T01:53:14Z	7	primary			
+way	372290492	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	9	primary			
+way	372290493	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	8	primary			
+way	372290501	Southern Highway	Charlie_Plett	2019-08-21T02:22:26Z	7	primary			
+way	372290502	Southern Highway	Anoesis	2018-12-27T22:49:51Z	4	primary			
+way	372290863	Southern Highway	Anoesis	2018-12-27T22:49:51Z	2	primary			
+way	372290865	Southern Highway	Anoesis	2018-12-27T22:49:51Z	4	primary			
+way	372290866	Southern Highway	Anoesis	2018-12-27T22:49:51Z	2	primary			
+way	372290867	Southern Highway	vespax	2015-09-25T02:20:38Z	1	primary			
+way	372290868	Southern Highway	Anoesis	2018-12-27T22:49:51Z	2	primary			
+way	372291168	Placencia Road	Charlie_Plett	2019-07-02T01:47:47Z	8	secondary			
+way	372291693	Placencia Road	Red_Ranger	2018-02-08T00:50:23Z	5	secondary			
+way	372291695	Placencia Road	Charlie_Plett	2019-07-02T02:27:45Z	6	secondary			
+way	372291696	Placencia Road	Charlie_Plett	2019-07-02T02:27:45Z	6	secondary			
+way	372291697	Placencia Road	Charlie_Plett	2019-07-06T19:59:19Z	9	secondary			
+way	372293031	Placencia Road	Charlie_Plett	2019-07-07T19:17:00Z	21	secondary			
+way	372361181	Southern Highway	Charlie_Plett	2019-07-13T18:23:19Z	9	primary			
+way	372363273	Southern Highway	Charlie_Plett	2019-07-30T01:32:23Z	11	primary			
+way	372367511	Independence Road	Anoesis	2019-08-08T20:50:19Z	7	tertiary			
+way	372385926	Southern Highway	Red_Ranger	2018-01-23T21:34:05Z	3	primary			
+way	372385927	Southern Highway	Charlie_Plett	2020-01-05T02:47:18Z	4	primary			
+way	372385929	Southern Highway	Red_Ranger	2018-01-23T21:32:18Z	3	primary			
+way	372385930	Independence Road	Anoesis	2019-08-08T20:50:19Z	5	tertiary			
+way	372385931	Southern Highway	Charlie_Plett	2019-12-30T18:30:29Z	4	primary			
+way	372385932	Southern Highway	Charlie_Plett	2020-01-05T02:47:18Z	5	primary			
+way	372390952	Southern Highway	Red_Ranger	2018-01-23T21:51:20Z	2	primary			
+way	372390955	Southern Highway	Red_Ranger	2018-01-23T21:51:20Z	3	primary			
+way	372398140	Southern Highway	Red_Ranger	2018-01-23T21:59:04Z	3	primary			
+way	372400526	Jose Marie Nuñez Street	BlueSombra	2015-10-21T20:33:01Z	4	tertiary			
+way	372400528	Prince Street	Red_Ranger	2018-01-29T19:21:15Z	4	tertiary			
+way	372412561	Commerce Street	joserrg12	2018-10-07T17:42:50Z	8	tertiary			
+way	372412565	George Price Drive	tzsl	2018-05-13T20:54:22Z	8	primary			
+way	372412568	St. Vincent Street	tzsl	2018-02-12T17:46:21Z	7	tertiary			
+way	372513830	Road North	BlueSombra	2015-10-26T22:58:40Z	6	tertiary			
+way	372544239	Sandpiper Street	Canyonsrcool	2015-09-27T04:23:20Z	2	tertiary			
+way	372544242	Pescador Drive	Canyonsrcool	2015-09-27T04:23:20Z	2	tertiary			
+way	372544557	Angel Coral Street	Canyonsrcool	2015-09-27T04:29:36Z	1	tertiary			
+way	372544560	Angel Coral Street	Canyonsrcool	2015-09-27T04:29:36Z	1	tertiary			
+way	372599629	Road North	Red_Ranger	2018-01-29T18:59:25Z	2	tertiary			
+way	372599630	Road North	Red_Ranger	2018-01-29T18:59:25Z	2	tertiary			
+way	373852531	3rd Street South	Red_Ranger	2018-01-26T19:25:46Z	7	tertiary			
+way	373852532	Fourth Avenue	joserrg12	2018-10-07T17:06:04Z	7	tertiary			
+way	373852722	George Price Highway	Red_Ranger	2018-09-19T18:29:12Z	7	primary			
+way	373852723	Flag Roundabout	Charlie_Plett	2019-07-28T17:55:36Z	5	primary			
+way	375152772	George Price Highway	Charlie_Plett	2019-03-10T19:01:48Z	5	primary			
+way	375152774		Charlie_Plett	2019-03-10T19:01:48Z	6	primary			
+way	375152775		Anoesis	2019-04-02T21:34:21Z	9	primary_link			
+way	375152776	George Price Highway	Charlie_Plett	2019-12-01T04:12:12Z	7	primary			
+way	375152779	George Price Highway	Charlie_Plett	2019-12-01T04:12:12Z	16	primary			
+way	375152780		Charlie_Plett	2019-03-10T19:01:48Z	6	primary			
+way	375152781		Red_Ranger	2018-01-24T21:21:50Z	5	tertiary			
+way	375152782	Faber's Road	Red_Ranger	2018-01-24T21:21:50Z	5	tertiary			
+way	375230192	Faber's Road	Charlie_Plett	2019-12-01T04:23:07Z	8	tertiary			
+way	375240855	Iguana Street	GISMaiden	2019-04-01T14:12:28Z	4	tertiary			
+way	375243120	West Canal	mumblin	2019-02-18T17:43:47Z	2	tertiary			
+way	375244623	East Canal	mumblin	2019-02-18T17:43:47Z	7	tertiary			
+way	375245877	East Canal	mumblin	2019-02-18T17:43:47Z	5	tertiary			
+way	375251723	East Collet	mumblin	2019-02-18T17:43:47Z	7	tertiary			
+way	375251725	East Collet	mumblin	2019-02-18T17:43:47Z	6	tertiary			
+way	375279304	Racoon Street	BlueSombra	2015-10-14T19:46:05Z	1	tertiary			
+way	375289104	Western Avenue	BlueSombra	2015-10-15T20:50:21Z	4	tertiary			
+way	375313573		Charlie_Plett	2019-03-09T19:24:23Z	5	primary_link			
+way	375399305		Red_Ranger	2018-01-25T20:08:22Z	4	tertiary			
+way	375406275	Central American Boulevard	Red_Ranger	2018-01-24T00:40:17Z	5	primary			
+way	375406276	Central American Boulevard	Red_Ranger	2018-01-24T00:40:17Z	4	primary			
+way	375406279	Mahogany Street	Red_Ranger	2018-01-24T00:40:17Z	6	tertiary			
+way	375406280	Mahogany Street	BlueSombra	2015-10-15T20:31:55Z	3	tertiary			
+way	375433983	West Canal	quetzal-cr	2018-04-16T15:22:53Z	2	tertiary			
+way	375443068	Mahogany Street	Charlie_Plett	2018-01-16T02:05:20Z	2	tertiary			
+way	375468786	Orange Street	Red_Ranger	2018-01-25T21:04:50Z	6	secondary			
+way	375554308	North Front Street	Dimitri_Junker	2018-03-17T15:12:54Z	5	secondary			
+way	375555432	Fort Street	Red_Ranger	2018-01-25T20:27:55Z	6	secondary			
+way	375555433	Marine Parade	Red_Ranger	2018-01-25T20:27:55Z	4	secondary			
+way	375964430	Freetown Road	BlueSombra	2015-10-19T22:45:25Z	2	primary			
+way	375964431	St. Thomas Street	Charlie_Plett	2018-01-14T19:52:43Z	4	secondary			
+way	375964432	Freetown Road	Charlie_Plett	2019-05-23T21:52:35Z	6	primary			
+way	375964433	Freetown Road	RoadMapsYou	2016-05-09T17:45:41Z	5	primary			
+way	375969214	Princess Margaret Drive	Red_Ranger	2018-01-25T19:14:36Z	8	primary			
+way	375969215	Princess Margaret Drive	Red_Ranger	2018-01-25T19:14:36Z	4	primary			
+way	375969216	Princess Margaret Drive	Charlie_Plett	2018-01-14T19:52:44Z	4	primary			
+way	375969219	Princess Margaret Drive	Charlie_Plett	2019-03-10T00:56:55Z	5	primary			
+way	375969220	St. Thomas Street	garnaches	2016-11-21T16:34:40Z	2	secondary			
+way	375969221	Princess Margaret Drive	Red_Ranger	2018-01-25T19:27:41Z	5	primary			
+way	375969222	Princess Margaret Drive	Charlie_Plett	2018-01-14T19:52:44Z	4	primary			
+way	376015294	Baymen Avenue	Anoesis	2019-01-02T17:00:21Z	5	secondary			
+way	376015295	Kelly Street	Red_Ranger	2018-01-25T21:46:50Z	3	secondary			
+way	376015296	Wilson Street	Anoesis	2019-01-02T17:00:21Z	2	secondary			
+way	376015520	Victoria Street	Anoesis	2019-01-02T16:02:39Z	4	tertiary			
+way	376020351	Chetumal Street	Charlie_Plett	2019-12-01T04:12:12Z	12	secondary			
+way	376093382	Philip Goldson Highway	Charlie_Plett	2019-12-01T04:12:12Z	7	primary			
+way	376113859	Sea Shore Drive	Red_Ranger	2018-01-25T21:41:42Z	3	tertiary			
+way	376114814	Blue Marlin Drive	Charlie_Plett	2018-02-17T02:33:15Z	4	tertiary			
+way	376114817	Blue Marlin Drive	Anoesis	2019-01-10T20:46:10Z	2	tertiary			
+way	376119146	George Price Highway	Charlie_Plett	2019-08-05T03:03:48Z	19	primary			
+way	376119147	George Price Highway	Charlie_Plett	2018-05-25T01:30:12Z	3	primary			
+way	376125506	Princess Margaret Drive	Red_Ranger	2018-01-25T19:02:03Z	4	primary			
+way	376125507	Princess Margaret Drive	Red_Ranger	2018-01-25T19:14:36Z	4	primary			
+way	376125508	Princess Margaret Drive	Charlie_Plett	2018-01-14T19:52:45Z	4	primary			
+way	376143446	Coney Drive	Red_Ranger	2018-01-25T19:02:04Z	4	secondary			
+way	376152249		Red_Ranger	2018-02-08T18:46:51Z	5	primary_link			
+way	376153679	Blue Marlin Avenue	Red_Ranger	2018-01-25T18:46:29Z	3	tertiary			
+way	376154928	Blue Marlin Avenue	Red_Ranger	2018-01-25T21:41:42Z	5	tertiary			
+way	376154929	Blue Marlin Avenue	Red_Ranger	2018-01-25T21:41:42Z	4	tertiary			
+way	376272847	Burrell Boom Cutoff	Charlie_Plett	2019-06-15T04:48:56Z	9	primary			
+way	376272848		Red_Ranger	2018-09-19T18:57:34Z	5	primary_link			
+way	376272849		Red_Ranger	2018-09-19T18:57:34Z	5	primary_link			
+way	376275130		recinutah	2015-10-29T19:08:50Z	3	tertiary			
+way	376278700	North Street	BlueSombra	2015-10-21T17:48:16Z	1	secondary			
+way	376300283	Prince Street	Red_Ranger	2018-01-29T19:21:15Z	3	tertiary			
+way	376405232	Philip Goldson Highway	Anoesis	2019-01-02T14:50:35Z	6	primary			
+way	376405251	Northern Highway	recinutah	2015-10-22T16:48:43Z	2	primary			
+way	376409999	San Jose Drive	Anoesis	2019-01-03T17:05:14Z	4	tertiary			
+way	376410542	Joseph Andrews Drive	Charlie_Plett	2019-08-05T03:03:48Z	8	primary			
+way	376426099		Red_Ranger	2018-01-26T20:21:06Z	8	tertiary			
+way	376451741		Red_Ranger	2018-01-26T20:21:06Z	4	tertiary_link			
+way	376465932	Guadalupe Street	Red_Ranger	2018-01-24T18:01:33Z	7	tertiary			
+way	376470618	Belize Corozal Road	Red_Ranger	2018-02-08T18:16:30Z	6	primary			
+way	376470801	Queen Victoria Avenue	Red_Ranger	2018-02-08T18:16:30Z	9	primary			
+way	376470802	Otro Benque Road	Jaime Burgos	2016-12-23T20:01:13Z	5	primary			
+way	376471530	Queen Victoria Avenue	Red_Ranger	2018-01-23T22:43:52Z	4	primary			
+way	376472568	Seagrape Drive	vespax	2015-10-22T22:58:31Z	1	tertiary			
+way	376477295	Guadalupe Street	Red_Ranger	2018-01-26T20:21:06Z	7	tertiary			
+way	376477296	Guadalupe Street	Red_Ranger	2018-01-26T20:21:06Z	7	tertiary			
+way	376591878	San Martin Avenue	Charlie_Plett	2018-09-01T15:53:15Z	4	tertiary			
+way	376591879	San Martin Avenue	WarGeo	2019-03-26T09:32:44Z	6	tertiary			
+way	376592632	Otro Benque Road	Anoesis	2019-01-03T17:05:14Z	4	primary			
+way	376592633		tzsl	2018-04-24T14:04:49Z	5	primary			
+way	376592634	Otro Benque Road	Jaime Burgos	2016-12-07T16:37:25Z	3	primary			
+way	376592636		tzsl	2018-04-24T14:05:40Z	8	primary			
+way	376592637	Otro Benque Road	Anoesis	2019-01-03T17:05:14Z	4	primary			
+way	376592638	Otro Benque Road	Anoesis	2019-01-03T17:05:15Z	3	primary			
+way	376592639		Jaime Burgos	2016-12-07T16:37:26Z	5	primary			
+way	376592640		Jaime Burgos	2016-12-07T16:37:26Z	3	primary			
+way	376592641		1T-money	2018-10-23T03:01:30Z	6	tertiary			
+way	376592642		1T-money	2018-10-23T03:01:30Z	5	tertiary			
+way	376705365	Philip Goldson Highway	Charlie_Plett	2019-10-26T01:15:05Z	26	primary			
+way	376735374	San Martin Avenue	tzsl	2019-03-18T21:03:05Z	6	tertiary			
+way	376982936	Philip Goldson Highway	Charlie_Plett	2019-10-26T01:15:05Z	6	primary			
+way	376985044		RoadMapsYou	2016-05-09T17:41:37Z	3	primary			
+way	376985046	Philip Goldson Highway	andrewwiseman	2019-07-26T19:17:27Z	9	primary			
+way	376985050		Red_Ranger	2018-02-01T19:18:33Z	4	primary			
+way	376985053		Red_Ranger	2018-02-01T19:18:33Z	5	tertiary			
+way	376985061		Red_Ranger	2018-01-23T20:06:00Z	5	primary_link			
+way	377009192		Red_Ranger	2018-02-01T19:18:33Z	4	primary_link			
+way	377019580	Fourth Avenue	joserrg12	2018-10-07T17:06:04Z	4	tertiary			
+way	377050550	Philip Goldson Highway	geoJenn	2019-12-11T00:49:39Z	10	primary			
+way	377050895	Philip Goldson Highway	Charlie_Plett	2017-07-30T19:24:56Z	4	primary			
+way	377051821		Charlie_Plett	2019-10-26T01:15:05Z	4	primary			
+way	377062624	Road North	BlueSombra	2015-10-26T22:36:05Z	1	tertiary			
+way	377064815	Road North	BlueSombra	2015-10-26T23:33:36Z	2	tertiary			
+way	377069003		Charlie_Plett	2019-03-10T03:25:13Z	2	tertiary			
+way	377069005	Road North	BlueSombra	2015-10-26T23:33:36Z	1	tertiary			
+way	377069006	Road North	Charlie_Plett	2019-03-10T03:25:13Z	2	tertiary			
+way	377182628		pseudathi	2017-12-05T06:40:45Z	3	tertiary			
+way	377182629		pseudathi	2017-12-05T06:40:45Z	3	tertiary			
+way	377192569		1T-money	2018-11-18T18:49:29Z	4	tertiary_link			
+way	377304568	Loma Luz Boulevard	Charlie_Plett	2019-08-05T03:03:48Z	8	primary			
+way	377304569	George Price Highway	Charlie_Plett	2019-07-18T00:55:53Z	6	secondary			
+way	377304571		Charlie_Plett	2019-08-05T03:03:48Z	5	primary			
+way	377304572		Charlie_Plett	2019-08-05T03:03:48Z	5	primary			
+way	377304574		Charlie_Plett	2019-08-05T03:03:48Z	6	secondary			
+way	377305491	Placencia Road	Charlie_Plett	2019-07-02T02:27:45Z	6	secondary			
+way	377312463	Independence Road	Anoesis	2019-08-08T20:50:19Z	7	tertiary			
+way	377353540	Placencia Road	Charlie_Plett	2019-07-07T19:17:00Z	7	secondary			
+way	377372552	Placencia Road	Charlie_Plett	2019-07-07T19:17:00Z	11	secondary			
+way	377388823	Placencia Road	Charlie_Plett	2019-07-07T19:17:00Z	6	secondary			
+way	377491388	Placencia Road	Charlie_Plett	2019-07-13T17:33:19Z	10	secondary			
+way	377508294	George Price Highway	Charlie_Plett	2019-07-18T00:55:53Z	4	primary			
+way	377508295	George Price Highway	Charlie_Plett	2019-07-18T00:55:53Z	9	primary			
+way	377508296	George Price Highway	Charlie_Plett	2019-07-18T00:55:53Z	3	primary			
+way	377524689		mumblin	2019-01-22T17:54:29Z	3	tertiary			
+way	377525821		Red_Ranger	2018-02-01T19:18:33Z	3	tertiary			
+way	378027716	Joseph Andrews Drive	Charlie_Plett	2019-08-05T03:03:48Z	7	primary			
+way	378051640	Savannah Street	tzsl	2019-08-13T02:48:22Z	5	secondary			
+way	382025972	Santa Familia Road	1T-money	2018-12-03T16:37:06Z	16	secondary			
+way	382136127	Bullet Tree Road	Charlie_Plett	2019-02-05T01:36:06Z	4	secondary			
+way	382136129	Bullet Tree Road	1T-money	2018-12-03T16:37:05Z	3	secondary			
+way	382136131	Bullet Tree Road	1T-money	2018-12-03T16:37:05Z	2	secondary			
+way	382136132	Bullet Tree Road	1T-money	2018-12-03T16:37:05Z	3	secondary			
+way	390881839	Camp 50	1T-money	2018-09-03T20:53:49Z	5	tertiary			
+way	390882730	Camp 52	1T-money	2018-09-03T20:53:49Z	3	tertiary			
+way	390883343	Camp 10	1T-money	2019-01-15T20:01:52Z	7	tertiary			
+way	390884815	Camp 1	Anoesis	2019-01-07T21:55:04Z	5	tertiary			
+way	390884819		Red_Ranger	2018-02-01T19:52:57Z	5	tertiary			
+way	404011227	Mexico Creek Bridge	Charlie_Plett	2019-11-22T01:57:23Z	2	primary			
+way	404011229	Philip Goldson Highway	Martijn Versluis	2020-01-21T18:12:40Z	11	primary			
+way	404313973	Main Street	maxerickson	2018-02-07T03:41:49Z	7	secondary			
+way	407060614	Philip Goldson Highway	Charlie_Plett	2019-10-26T01:15:05Z	5	primary			
+way	407314548	San Jose Drive	Anoesis	2019-01-09T23:11:28Z	3	tertiary			
+way	414492871		1T-money	2019-01-14T03:27:32Z	14	secondary			
+way	416556696	Hummingbird Highway	Charlie_Plett	2019-07-28T17:55:36Z	10	primary			
+way	416688374	Progresso - Copper Bank Road	Red_Ranger	2018-01-25T18:17:56Z	3	secondary			
+way	416688933		Red_Ranger	2018-02-01T19:18:34Z	2	primary			
+way	416690511	Central American Boulevard	Red_Ranger	2018-01-25T20:08:22Z	2	secondary			
+way	416690520	Central American Boulevard	Red_Ranger	2018-01-25T20:08:22Z	2	secondary			
+way	416690530	Taiwan Street	Charlie_Plett	2019-07-16T20:32:09Z	5	secondary			
+way	416718438	Main Street	maxerickson	2018-02-07T03:41:49Z	2	secondary			
+way	416731930		Anoesis	2019-01-10T20:46:10Z	4	primary_link			
+way	419685652	Burrell Boom Cutoff	Red_Ranger	2018-09-19T20:12:18Z	8	primary			
+way	419685653	Hector Creek Bridge	Charlie_Plett	2017-07-01T01:00:58Z	2	primary			
+way	419685654	George Price Highway	Charlie_Plett	2019-06-15T04:48:56Z	5	primary			
+way	419685655	George Price Highway	Charlie_Plett	2019-06-15T04:48:56Z	4	primary			
+way	419725392	Otro Benque Road	Anoesis	2019-01-03T17:05:15Z	8	primary			
+way	419725394	Northern Highway	Jaime Burgos	2016-05-20T15:42:07Z	1	primary			
+way	419725396	Northern Highway	Charlie_Plett	2019-10-26T01:15:05Z	3	primary_link			
+way	423427037	Guadalupe Street	Red_Ranger	2018-01-26T20:21:07Z	6	tertiary			
+way	423901167	Slaughter House Lane	Red_Ranger	2018-01-26T20:21:07Z	5	tertiary			
+way	423902339	Tate Street	Red_Ranger	2018-01-26T20:21:07Z	3	tertiary			
+way	436304433	San Antonio Road	1T-money	2019-07-13T17:36:45Z	11	secondary			
+way	447756322	Santa Rita Hill	pseudathi	2017-12-06T02:46:25Z	4	secondary			
+way	448550408		3agleOne	2019-04-08T22:01:14Z	7	tertiary			
+way	449420412		Cinderblock	2019-04-18T19:17:40Z	5	tertiary			
+way	449779321	Hummingbird Highway	Charlie_Plett	2020-01-05T03:19:27Z	5	construction			
+way	449779324	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	450032820	Center Road	Charlie_Plett	2019-06-15T02:10:54Z	15	tertiary			
+way	450032821	Center Road	Jacobus21	2019-11-19T21:58:40Z	10	tertiary			
+way	450032822	Center Road	Charlie_Plett	2019-06-14T03:29:08Z	12	tertiary			
+way	450032823	Center Road	Charlie_Plett	2019-08-05T03:12:41Z	8	tertiary			
+way	451977757	Baghdad Street	Red_Ranger	2018-01-25T20:47:52Z	2	secondary			
+way	452159234	Riverside Road	Charlie_Plett	2019-10-28T18:03:43Z	10	tertiary			
+way	452164414	Bee Lane	Charlie_Plett	2019-06-14T03:29:08Z	8	tertiary			
+way	453628803	Bee Lane	MyWayOrNoHighway	2017-07-10T20:23:22Z	2	tertiary			
+way	453628804	Bee Lane	Charlie_Plett	2019-06-15T02:10:54Z	6	tertiary			
+way	453867345	Emerald Trail	Charlie_Plett	2018-11-11T02:09:56Z	8	tertiary			
+way	454044446	Route 35 West	Charlie_Plett	2019-11-14T01:40:40Z	7	tertiary			
+way	454070258	Fonseca Street	Red_Ranger	2018-01-26T20:21:07Z	4	tertiary			
+way	454082457	19 De Marzo Avenue	Red_Ranger	2018-01-26T20:21:07Z	3	tertiary			
+way	455816629		Red_Ranger	2018-09-19T18:04:11Z	2	secondary			
+way	455816630		Red_Ranger	2018-09-19T18:04:11Z	5	secondary_link			
+way	455816631		Red_Ranger	2018-09-19T18:04:11Z	3	secondary_link			
+way	455816632		tzsl	2018-05-29T04:04:28Z	2	tertiary			
+way	455816633	Bliss Parade	garnaches	2016-11-25T21:06:30Z	1	tertiary			
+way	455816634		Red_Ranger	2018-01-26T17:22:58Z	2	secondary_link			
+way	456683957	Line 0	1T-money	2018-09-05T15:59:37Z	7	tertiary			
+way	477802222		Charlie_Plett	2018-08-25T19:31:58Z	6	primary			
+way	477802223		tzsl	2018-05-04T03:20:52Z	2	primary			
+way	479830588	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	479830589	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	19	primary			
+way	481122113	George Price Highway	Charlie_Plett	2017-03-23T01:38:17Z	2	primary			
+way	481126536	George Price Highway	Charlie_Plett	2019-07-18T00:55:53Z	5	secondary			
+way	482125507		Charlie_Plett	2017-03-23T01:38:13Z	1	primary			
+way	482125508	George Price Highway	Charlie_Plett	2020-01-24T16:17:01Z	17	primary			
+way	482125509		Charlie_Plett	2019-06-29T17:03:26Z	4	tertiary			
+way	482125510	Cahal Pech Hill Road	Charlie_Plett	2019-06-29T17:03:26Z	6	tertiary			
+way	482125511	Buena Vista Street	Charlie_Plett	2019-07-18T00:55:53Z	3	secondary			
+way	482125512	Buena Vista Street	Charlie_Plett	2019-07-18T00:55:53Z	3	secondary			
+way	482125513		Charlie_Plett	2017-07-28T03:57:30Z	2	primary			
+way	482125514	Benque Viejo Road	Charlie_Plett	2017-07-28T03:57:30Z	2	primary			
+way	482126160	Burns Avenue	joeclmbr	2018-01-02T22:46:04Z	3	tertiary			
+way	482126161		Red_Ranger	2018-01-23T21:02:55Z	3	tertiary			
+way	482362070	George Price Highway	Charlie_Plett	2017-06-17T22:27:37Z	3	primary			
+way	482362072	George Price Highway	Charlie_Plett	2019-07-18T00:55:53Z	4	secondary			
+way	484050143	Benque Viejo Road	joeclmbr	2018-01-02T22:22:39Z	2	primary			
+way	486264108		Red_Ranger	2018-01-26T17:37:52Z	3	secondary			
+way	486264109		Charlie_Plett	2017-04-12T02:42:06Z	1	secondary			
+way	486264111		Charlie_Plett	2017-04-12T02:42:06Z	1	secondary			
+way	486264112		Red_Ranger	2018-01-26T17:37:52Z	2	secondary			
+way	486264116	Queen Elizabeth II Boulevard	WarGeo	2019-03-27T09:00:48Z	5	tertiary			
+way	486264117		Red_Ranger	2018-01-26T17:37:53Z	5	tertiary			
+way	486264118		Red_Ranger	2018-01-26T17:37:53Z	5	tertiary			
+way	486264119		Red_Ranger	2018-01-26T17:37:53Z	2	secondary			
+way	488160967		1T-money	2018-09-08T20:07:48Z	5	tertiary			
+way	488160968		1T-money	2018-09-12T20:32:53Z	8	tertiary			
+way	488160972		1T-money	2018-09-12T20:32:53Z	9	tertiary			
+way	488160975		1T-money	2018-09-08T20:07:49Z	5	tertiary			
+way	488160976		1T-money	2018-09-08T20:07:48Z	5	tertiary			
+way	488160978		1T-money	2018-09-08T20:07:49Z	5	tertiary			
+way	488160984	Santa Teresa Road	1T-money	2018-09-08T20:06:32Z	2	tertiary			
+way	488160985	Santa Teresa Road	Red_Ranger	2018-01-23T21:48:58Z	2	tertiary			
+way	488160986		1T-money	2018-09-08T20:06:32Z	2	tertiary			
+way	488160989		1T-money	2018-09-08T20:06:32Z	4	tertiary			
+way	488160990		1T-money	2018-09-04T19:43:23Z	3	tertiary			
+way	489686909		1T-money	2019-01-15T20:04:41Z	10	tertiary			
+way	489686911	Camp 12	1T-money	2019-01-15T20:03:52Z	5	tertiary			
+way	489687832	Camp 51	1T-money	2018-09-05T15:40:29Z	2	tertiary			
+way	489687833	Camp 11	1T-money	2019-01-15T20:01:52Z	6	tertiary			
+way	489687863	Camp 13	Anoesis	2019-01-10T21:14:10Z	6	tertiary			
+way	492172802	George Price Highway	Charlie_Plett	2019-08-06T04:17:41Z	5	primary			
+way	493151062	Center Road	Charlie_Plett	2019-08-05T03:12:41Z	7	tertiary			
+way	497025976	Beaver Dam Bridge	Charlie_Plett	2017-09-23T18:53:46Z	2	primary			
+way	497025980	George Price Highway	Charlie_Plett	2020-01-22T03:17:07Z	15	primary			
+way	501182543		1T-money	2018-11-18T18:09:59Z	3	tertiary			
+way	501196342		1T-money	2018-11-18T18:29:53Z	4	tertiary			
+way	501197984	Camp 38	1T-money	2018-11-18T18:29:54Z	3	tertiary			
+way	504445776		Charlie_Plett	2019-06-15T04:48:56Z	4	primary			
+way	504862062		Red_Ranger	2018-01-25T20:08:23Z	4	secondary_link			
+way	506547754		MyWayOrNoHighway	2017-07-10T20:08:34Z	1	tertiary			
+way	506547755		MyWayOrNoHighway	2017-07-10T20:08:34Z	1	tertiary			
+way	506552262	Route 60	1T-money	2018-09-05T15:59:35Z	3	tertiary			
+way	507812516		erickdeoliveiraleal	2019-05-28T03:22:25Z	3	tertiary			
+way	510917199	St. Joseph Andrews Drive	Charlie_Plett	2019-08-05T03:03:48Z	5	primary			
+way	516211010	Regent Street	quetzal-cr	2018-04-16T08:34:42Z	4	secondary			
+way	518112043	Eve Street	Red_Ranger	2018-01-25T20:08:23Z	4	secondary			
+way	518129355	Wilson Street	Anoesis	2019-01-02T17:00:21Z	3	tertiary			
+way	518897341	George Price Highway	Charlie_Plett	2019-09-23T20:32:04Z	6	primary			
+way	519424561	Eve Street	Red_Ranger	2018-01-25T20:08:23Z	4	secondary			
+way	534681267	Chetumal Street	Charlie_Plett	2019-10-12T17:55:38Z	2	secondary			
+way	534681269	Chetumal Street	Charlie_Plett	2019-12-01T04:12:12Z	5	secondary			
+way	534681272	Lake Independence Boulevard	Charlie_Plett	2019-03-10T19:01:49Z	5	secondary			
+way	535691242	Camp 24	1T-money	2018-11-18T17:45:52Z	2	tertiary			
+way	535692410	Camp 27	1T-money	2018-11-18T18:09:58Z	4	tertiary			
+way	535693074		1T-money	2018-11-18T18:09:59Z	3	tertiary			
+way	535705027		Red_Ranger	2018-01-25T18:03:33Z	3	secondary			
+way	536721390		JBSr	2019-11-05T01:34:12Z	4	secondary			
+way	536721391		Red_Ranger	2018-01-26T17:22:58Z	2	secondary_link			
+way	536721392		Red_Ranger	2018-01-26T17:22:58Z	2	secondary_link			
+way	544269680	Philip Goldson Highway	Charlie_Plett	2019-10-12T17:55:38Z	5	primary			
+way	544269681	Buttonwood Bay Boulevard	Charlie_Plett	2019-03-09T19:24:24Z	3	secondary			
+way	544269836		Charlie_Plett	2019-05-23T21:52:36Z	5	primary			
+way	545526234		1T-money	2018-09-05T15:59:38Z	5	tertiary			
+way	547544342		tzsl	2017-12-18T02:14:43Z	1	primary			
+way	547544994	St. Joseph Andrews Drive	Charlie_Plett	2019-08-05T03:03:48Z	6	primary			
+way	547544995	Macal Bridge	Charlie_Plett	2019-08-05T03:03:48Z	6	primary			
+way	550469178	South Road	Charlie_Plett	2018-08-05T01:47:12Z	3	tertiary			
+way	552495416		Red_Ranger	2018-01-25T20:08:23Z	2	secondary_link			
+way	552495419	Craig Street	Red_Ranger	2018-01-25T20:08:23Z	3	secondary			
+way	552495420	Craig Street	Red_Ranger	2018-01-25T20:08:23Z	3	secondary			
+way	552495424	Hutson Street	Red_Ranger	2018-01-26T21:05:30Z	2	tertiary			
+way	552495434		Red_Ranger	2018-02-01T19:24:18Z	2	secondary_link			
+way	553105608		Red_Ranger	2018-01-25T20:08:23Z	3	secondary			
+way	553105609		Red_Ranger	2018-01-25T20:08:24Z	3	secondary			
+way	553105610		Red_Ranger	2018-01-25T20:08:24Z	2	secondary			
+way	553105611		Red_Ranger	2018-01-25T20:08:24Z	2	secondary			
+way	553105612		Red_Ranger	2018-01-25T20:08:24Z	2	secondary			
+way	553105616		Red_Ranger	2018-01-25T20:08:24Z	2	secondary			
+way	553105617		Red_Ranger	2018-01-25T20:08:24Z	3	secondary_link			
+way	553105618		Red_Ranger	2018-01-25T20:08:24Z	3	secondary_link			
+way	553105619		Red_Ranger	2018-01-25T20:08:24Z	3	secondary_link			
+way	553105621		Red_Ranger	2018-01-25T20:08:24Z	3	secondary_link			
+way	553105623		Red_Ranger	2018-01-25T20:27:56Z	3	secondary_link			
+way	553105624		Red_Ranger	2018-01-25T20:27:56Z	2	secondary_link			
+way	553105625		Red_Ranger	2018-01-25T20:27:56Z	2	secondary_link			
+way	553105626		Red_Ranger	2018-01-25T20:27:56Z	2	secondary_link			
+way	553113452		Red_Ranger	2018-01-25T19:27:42Z	2	primary_link			
+way	553113454		Red_Ranger	2018-01-25T19:27:42Z	2	primary_link			
+way	553113456		Red_Ranger	2018-01-25T21:46:50Z	3	secondary			
+way	553113458		Red_Ranger	2018-01-25T19:14:36Z	2	primary_link			
+way	553113459	Princess Margaret Drive	Red_Ranger	2018-01-25T19:02:04Z	2	primary			
+way	553113460	University Drive	Red_Ranger	2018-01-25T21:41:43Z	3	tertiary			
+way	553113462	Princess Margaret Drive	Red_Ranger	2018-01-25T19:02:04Z	2	primary			
+way	553113463	Princess Margaret Drive	Red_Ranger	2018-01-25T19:02:04Z	2	primary			
+way	553113464	Coney Drive	Red_Ranger	2018-01-25T19:02:04Z	2	secondary			
+way	553113465		Anoesis	2019-01-10T20:46:12Z	2	primary_link			
+way	553303182	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	8	primary			
+way	553386731	Belcan Bridge	Charlie_Plett	2018-01-16T02:05:16Z	1	primary			
+way	553386732	Central American Boulevard	Anoesis	2018-12-26T20:18:09Z	2	primary			
+way	553386733	Belcan Bridge	Charlie_Plett	2018-01-16T02:05:17Z	1	primary			
+way	553386734	Central American Boulevard	Charlie_Plett	2018-01-16T02:05:17Z	1	primary			
+way	553386736		Red_Ranger	2018-01-24T00:40:18Z	2	primary			
+way	553394309		Red_Ranger	2018-01-25T21:04:51Z	3	secondary			
+way	554334631	Airport Road	mumblin	2019-04-09T17:06:24Z	3	tertiary			
+way	555261146		tzsl	2018-05-04T03:20:53Z	3	primary			
+way	555261147		tzsl	2018-05-04T03:20:52Z	3	primary			
+way	555261148		Charlie_Plett	2018-08-25T19:18:28Z	4	primary			
+way	555264509		Charlie_Plett	2018-08-25T19:31:58Z	3	primary			
+way	555264510		tzsl	2018-05-04T03:20:52Z	2	primary			
+way	555264511		Charlie_Plett	2018-08-25T19:31:58Z	3	primary			
+way	555264512		tzsl	2018-05-04T03:20:53Z	4	primary			
+way	555264513		tzsl	2018-05-04T03:20:53Z	4	primary			
+way	555264514		Charlie_Plett	2018-08-25T19:26:09Z	2	primary			
+way	555264515		tzsl	2018-05-04T03:20:52Z	2	primary			
+way	555264516		Red_Ranger	2018-01-23T19:34:16Z	2	primary			
+way	555264519		Red_Ranger	2018-01-23T18:54:41Z	1	primary			
+way	555264520		tzsl	2018-05-04T03:20:52Z	2	primary			
+way	555268796		tzsl	2018-05-04T03:20:53Z	4	primary			
+way	555268797		tzsl	2018-05-04T03:20:53Z	3	primary			
+way	555268800		Red_Ranger	2018-01-23T19:18:14Z	1	primary			
+way	555268801		Red_Ranger	2018-01-23T19:18:14Z	1	primary			
+way	555268802		Charlie_Plett	2018-08-25T19:18:28Z	3	primary			
+way	555271343		tzsl	2018-05-04T03:20:53Z	2	primary			
+way	555272417		Red_Ranger	2018-01-23T19:40:15Z	1	primary_link			
+way	555272418		Red_Ranger	2018-01-23T19:40:15Z	1	primary_link			
+way	555278362	George Price Highway	Charlie_Plett	2019-08-06T04:17:41Z	5	primary			
+way	555282778		Red_Ranger	2018-01-23T20:27:47Z	1	tertiary			
+way	555282779		Red_Ranger	2018-01-23T20:27:48Z	1	tertiary			
+way	555294852		Charlie_Plett	2019-07-30T01:32:23Z	2	primary_link			
+way	555294853	Independence Road	Anoesis	2019-08-08T20:50:19Z	4	tertiary			
+way	555294854		Anoesis	2019-08-08T20:50:19Z	5	tertiary			
+way	555294855	Southern Highway	Red_Ranger	2018-01-23T21:29:17Z	1	primary			
+way	555296648	Southern Highway	Red_Ranger	2018-01-23T21:40:06Z	1	primary			
+way	555296649		Red_Ranger	2018-01-23T21:40:06Z	1	primary_link			
+way	555296650	Southern Highway	Red_Ranger	2018-01-23T21:40:06Z	1	primary			
+way	555321485	Yarbourough Road	GISMaiden	2019-03-25T20:50:31Z	5	secondary			
+way	555483707	4th Avenue	Red_Ranger	2018-01-24T19:10:23Z	2	tertiary			
+way	555570269		Red_Ranger	2018-02-08T00:25:26Z	5	tertiary			
+way	555792009	Pueblo Nuevo Road	tubroos	2018-12-06T02:19:47Z	2	secondary			
+way	555797201		Red_Ranger	2018-01-25T20:08:24Z	2	tertiary			
+way	555798963		Red_Ranger	2018-02-08T18:47:19Z	2	primary_link			
+way	555830675	West Collet	mumblin	2019-02-18T17:44:28Z	3	tertiary			
+way	555830676	East Collet	mumblin	2019-02-18T17:43:48Z	2	tertiary			
+way	555833602	Blue Marlin Avenue	Red_Ranger	2018-01-25T21:41:38Z	1	tertiary			
+way	555833604	Blue Marlin Avenue	Red_Ranger	2018-01-25T21:41:38Z	1	tertiary			
+way	555842713		Charlie_Plett	2019-01-26T20:22:06Z	4	tertiary			
+way	555851202		dieterdreist	2019-05-16T22:52:20Z	3	secondary			
+way	555859413		1T-money	2018-09-05T02:14:27Z	2	tertiary			
+way	555859416		tubroos	2018-11-24T22:25:50Z	4	tertiary			
+way	555859417		Jacobus21	2019-12-04T21:35:55Z	3	tertiary			
+way	555859419		1T-money	2018-09-05T02:14:27Z	2	tertiary			
+way	555860144	Iguana Creek Road	Charlie_Plett	2018-12-07T02:19:38Z	3	secondary			
+way	556062431		Red_Ranger	2018-01-26T18:20:33Z	1	tertiary			
+way	556063652	George Price Highway	Charlie_Plett	2019-07-28T17:55:36Z	3	primary			
+way	556063653	George Price Highway	Charlie_Plett	2019-03-09T20:09:52Z	4	primary			
+way	556063654	Hummingbird Highway	Charlie_Plett	2019-07-28T17:55:36Z	4	primary			
+way	556063655	Hummingbird Highway	Charlie_Plett	2019-07-28T17:55:36Z	4	primary			
+way	556063656	George Price Highway	Charlie_Plett	2019-03-09T20:09:52Z	3	primary			
+way	556063657	George Price Highway	Charlie_Plett	2019-07-28T17:55:36Z	4	primary			
+way	556072554	Pen Road	Amonite1025	2019-08-08T19:52:59Z	3	tertiary			
+way	556077673	3rd Street South	Red_Ranger	2018-01-26T19:38:13Z	2	tertiary			
+way	556091640	San Andres Street	Red_Ranger	2018-01-26T20:21:03Z	1	tertiary			
+way	556095506		Red_Ranger	2018-01-26T20:34:24Z	1	tertiary			
+way	556095507		Red_Ranger	2018-01-26T20:34:24Z	1	tertiary			
+way	556106445	Gabourel Lane	Red_Ranger	2018-01-26T21:05:29Z	1	tertiary			
+way	556122216	Route 60	1T-money	2018-09-11T23:12:28Z	4	tertiary			
+way	556122217	Route 70	Charlie_Plett	2019-06-07T03:36:30Z	6	tertiary			
+way	556122219	First Road	1T-money	2018-09-05T15:59:37Z	3	tertiary			
+way	556140935		Charlie_Plett	2019-06-29T17:03:26Z	3	tertiary			
+way	556140937		Charlie_Plett	2019-06-29T17:03:26Z	3	tertiary			
+way	556141726	Waights Avenue	Red_Ranger	2018-01-27T00:09:27Z	1	tertiary			
+way	556806003		1T-money	2019-01-12T20:46:39Z	3	tertiary			
+way	556806004	Rio Grande Avenue	tzsl	2019-03-18T21:03:06Z	5	tertiary			
+way	556809273	Savannah Street	Charlie_Plett	2019-08-05T03:03:48Z	6	tertiary			
+way	556819845	Road North	Red_Ranger	2018-01-29T18:59:22Z	1	tertiary			
+way	556822074	Blue Creek Road	BigKev97	2019-09-08T23:52:22Z	4	tertiary			
+way	556823161	Front Street	Red_Ranger	2018-01-29T19:21:14Z	1	tertiary			
+way	557738854	Loma Luz Boulevard	Charlie_Plett	2019-06-04T01:51:29Z	2	primary			
+way	557742036	George Price Highway	Charlie_Plett	2019-06-15T04:48:56Z	3	primary			
+way	557742038	Burrell Boom Cutoff	Red_Ranger	2018-09-19T20:12:19Z	6	primary			
+way	559563691		Charlie_Plett	2019-08-06T04:17:41Z	5	primary			
+way	559825589	Belize Corozal Road	Red_Ranger	2018-02-08T18:16:29Z	1	primary			
+way	559825592	Belize Corozal Road	Red_Ranger	2018-02-08T18:16:29Z	1	primary			
+way	559846755	Havana Street	Red_Ranger	2018-02-08T19:04:56Z	1	tertiary			
+way	559846758	Havana Street	Red_Ranger	2018-02-08T19:04:56Z	1	tertiary			
+way	559847170	George Price Drive	tzsl	2018-09-05T16:59:39Z	2	primary_link			
+way	559847173	George Price Drive	tzsl	2018-09-05T16:59:39Z	2	primary_link			
+way	560108230	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	5	primary			
+way	560108231	Hummingbird Highway	tzsl	2018-02-09T16:00:02Z	1	primary			
+way	560108232	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	560108233	Hummingbird Highway	tzsl	2018-02-09T16:00:02Z	1	primary			
+way	560108234	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	560108235	Hummingbird Highway	Jacobus21	2019-11-18T17:11:27Z	3	primary			
+way	560184606	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	560184608	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	3	primary			
+way	560184609	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	3	primary			
+way	560184610	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	560184611	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	560185308	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	3	primary			
+way	560185309	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	560185310	Hummingbird Highway	Charlie_Plett	2019-08-20T04:02:00Z	5	primary			
+way	560185312	Hummingbird Highway	Charlie_Plett	2019-08-20T04:02:00Z	5	primary			
+way	560189628	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	3	primary			
+way	560189629	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	560189630	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	560189632	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	4	primary			
+way	560778294	St. Vincent Street	tzsl	2018-02-12T17:46:21Z	1	tertiary			
+way	560779025		tzsl	2018-02-12T17:50:41Z	1	tertiary			
+way	567557241	Southern Highway	Charlie_Plett	2019-03-10T03:25:16Z	2	primary			
+way	570459429	Guacamallo Bridge	Charlie_Plett	2019-11-21T01:18:08Z	4	tertiary			
+way	571467700	Manatee Highway	1T-money	2018-09-04T19:24:31Z	2	secondary			
+way	571467701	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	8	secondary			
+way	574148501	Mullins River Bridge	Charlie_Plett	2019-11-17T03:14:25Z	3	secondary			
+way	574148505	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	9	secondary			
+way	583120162	Placencia Road	quetzal-cr	2018-04-24T06:48:57Z	1	secondary			
+way	583120163	Placencia Road	Charlie_Plett	2019-07-13T17:33:19Z	2	secondary			
+way	583120168	Placencia Road	quetzal-cr	2018-04-24T06:48:58Z	1	secondary			
+way	583120169	Placencia Road	Charlie_Plett	2019-07-13T17:33:19Z	5	secondary			
+way	585547683		tzsl	2018-05-04T03:20:51Z	1	primary			
+way	590907292		Red_Ranger	2018-09-19T20:21:58Z	4	primary_link			
+way	590907293		Red_Ranger	2018-09-19T20:21:58Z	4	primary_link			
+way	590907310	Manatee Highway	1T-money	2018-09-04T19:24:31Z	2	secondary			
+way	591705468		tzsl	2018-05-29T04:39:42Z	1	tertiary_link			
+way	591706612		Red_Ranger	2018-09-19T18:04:11Z	2	secondary			
+way	599996900	Santa Familia Road	1T-money	2018-12-03T16:37:06Z	2	secondary			
+way	599996901	Santa Familia Road	Charlie_Plett	2019-10-28T00:18:54Z	9	secondary			
+way	602799258	Mollejon Road	1T-money	2018-11-06T15:28:13Z	7	tertiary			
+way	613967493		1T-money	2018-09-05T15:59:36Z	2	tertiary_link			
+way	613968280		Charlie_Plett	2019-01-26T23:40:57Z	4	tertiary			
+way	613968281		Charlie_Plett	2018-08-04T02:59:27Z	1	tertiary			
+way	614141534	Hopkins Road	tzsl	2019-07-24T17:21:30Z	3	tertiary			
+way	615425944	San Antonio Road	1T-money	2018-09-09T17:48:48Z	5	secondary			
+way	615656559	San Antonio Road	1T-money	2018-09-09T17:48:49Z	3	secondary			
+way	615656560	San Antonio Road	Slomox	2019-02-21T13:36:55Z	5	secondary			
+way	615656561	San Antonio Road	1T-money	2018-11-11T00:15:06Z	5	secondary			
+way	615792150	Independence Road	Anoesis	2019-08-08T20:50:19Z	3	tertiary			
+way	619247505		Anoesis	2018-12-19T20:52:36Z	8	tertiary			
+way	619872939		Charlie_Plett	2018-08-25T19:18:27Z	1	primary			
+way	620527031	Arenal Road	1T-money	2018-09-12T01:48:54Z	5	tertiary			
+way	620719218		Charlie_Plett	2019-06-15T04:48:56Z	6	tertiary			
+way	622460148	Nim Li Punit Street	1T-money	2019-04-28T14:52:01Z	4	tertiary			
+way	622473365	Camp 50	1T-money	2018-09-03T20:53:49Z	1	tertiary			
+way	622474586		1T-money	2018-09-08T20:06:33Z	4	tertiary			
+way	622845171		1T-money	2018-09-11T18:09:15Z	2	tertiary			
+way	622926563		1T-money	2018-09-05T02:07:38Z	1	tertiary			
+way	622926564	Line 3	Charlie_Plett	2019-01-26T23:40:57Z	3	tertiary			
+way	623128413	Camp 18	1T-money	2019-01-15T20:01:52Z	3	tertiary			
+way	623128982	Camp 53	1T-money	2018-09-05T15:40:29Z	1	tertiary			
+way	624124118		1T-money	2018-09-08T20:07:49Z	2	tertiary			
+way	624125452		1T-money	2018-09-11T17:09:11Z	3	tertiary			
+way	624165006		Evandering	2019-03-23T00:53:33Z	2	tertiary			
+way	624258971		1T-money	2018-09-11T18:09:15Z	6	tertiary			
+way	624258975		1T-money	2018-09-09T19:25:33Z	4	tertiary			
+way	624472939	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	2	secondary			
+way	624773919		1T-money	2018-09-12T20:32:53Z	2	tertiary			
+way	624854236		1T-money	2018-09-11T22:01:03Z	1	tertiary			
+way	624855727		erickdeoliveiraleal	2019-05-28T03:22:30Z	7	tertiary			
+way	624988774	Mollejon Road	gscholz	2019-11-05T05:45:03Z	6	tertiary			
+way	625607083		Anoesis	2019-01-10T20:46:12Z	2	tertiary			
+way	625607084		Anoesis	2019-01-10T20:46:13Z	2	tertiary			
+way	625620998		1T-money	2019-01-14T20:37:00Z	3	tertiary			
+way	626231649		1T-money	2018-09-17T15:48:09Z	1	tertiary			
+way	626231782		1T-money	2018-09-17T15:50:09Z	1	tertiary_link			
+way	626719054		Red_Ranger	2018-09-19T18:04:11Z	1	secondary			
+way	626722460	Hummingbird Highway	Charlie_Plett	2019-07-28T17:55:36Z	3	primary			
+way	626722461	Hummingbird Highway	Charlie_Plett	2019-07-28T17:55:36Z	2	primary			
+way	626722462	Forest Drive	Red_Ranger	2018-09-19T18:23:15Z	1	secondary			
+way	626722463	Forest Drive	Charlie_Plett	2019-03-09T20:09:52Z	2	secondary			
+way	626722464		Charlie_Plett	2019-07-28T17:55:36Z	2	primary			
+way	626728591	Burrell Boom Cutoff	Red_Ranger	2018-09-19T18:57:33Z	1	primary			
+way	631627472	First Avenue	joserrg12	2018-10-07T17:06:03Z	1	tertiary			
+way	642983872	San Antonio Road	1T-money	2018-11-11T00:09:32Z	1	secondary			
+way	646037394	Camp 28	1T-money	2018-11-18T18:09:59Z	2	tertiary			
+way	646045922	Camp 31	1T-money	2018-11-18T18:09:58Z	1	tertiary			
+way	646050951		1T-money	2018-11-18T18:29:52Z	1	tertiary			
+way	646050956		1T-money	2018-11-18T18:29:52Z	1	tertiary			
+way	646050963		1T-money	2018-11-18T18:34:27Z	2	tertiary			
+way	652018182	Santa Familia Road	1T-money	2018-12-03T16:37:05Z	1	secondary			
+way	652018184	Santa Familia Road	1T-money	2018-12-03T16:37:05Z	1	secondary			
+way	652019316	Crenshaw Street	1T-money	2018-12-03T16:39:21Z	1	tertiary			
+way	653293077		Charlie_Plett	2018-12-07T02:19:34Z	1	tertiary_link			
+way	658885890	San Antonio Road	1T-money	2019-04-10T22:56:17Z	3	secondary			
+way	658893903	Philip Goldson Highway	Anoesis	2019-01-03T15:56:20Z	2	primary			
+way	661286466	Camp 1	Anoesis	2019-01-07T21:55:01Z	1	tertiary			
+way	661286479	Dump Site Road	Anoesis	2019-01-07T21:55:01Z	1	tertiary			
+way	661286481	Dump Site Road	Anoesis	2019-01-07T21:55:02Z	1	tertiary			
+way	661481912	Sittee River Road	Anoesis	2019-01-08T16:12:12Z	1	tertiary			
+way	662198680	Old Iguana Creek Road	Anoesis	2019-01-10T20:46:07Z	1	tertiary			
+way	662198681		Anoesis	2019-01-10T20:46:07Z	1	tertiary			
+way	662204488	Camp 13	Anoesis	2019-01-10T21:14:06Z	1	tertiary			
+way	662204489	Camp 13	Anoesis	2019-01-10T21:14:06Z	1	tertiary			
+way	662204492		1T-money	2019-01-15T20:03:52Z	2	tertiary			
+way	663284841	Douglas Road	Cinderblock	2019-04-23T19:27:46Z	5	tertiary			
+way	663611039		1T-money	2019-01-15T20:01:52Z	1	tertiary			
+way	663611040		1T-money	2019-01-15T20:01:52Z	1	tertiary			
+way	671985801		Slomox	2019-02-21T09:49:34Z	1	tertiary			
+way	672023743	San Antonio Road	Slomox	2019-02-21T13:36:51Z	1	secondary			
+way	672023748	San Antonio Road	Slomox	2019-02-21T13:36:52Z	1	secondary			
+way	672023772		Slomox	2019-02-21T13:36:53Z	1	tertiary			
+way	672717840	George Price Highway	Charlie_Plett	2020-01-19T18:30:12Z	6	primary			
+way	672717841	George Price Highway	tzsl	2019-09-02T16:25:39Z	2	primary			
+way	672717842	George Price Highway	Charlie_Plett	2019-02-24T19:08:35Z	1	primary			
+way	672717843	George Price Highway	happy-camper	2019-04-03T16:52:26Z	2	primary			
+way	672717845	George Price Highway	happy-camper	2019-04-03T16:52:26Z	2	primary			
+way	672717846	George Price Highway	happy-camper	2019-04-03T16:52:26Z	2	primary			
+way	672717861	Airport Link Road (under construction)	Anoesis	2019-04-02T22:04:03Z	2	construction			primary
+way	672717862	Airport Link Road (under construction)	Anoesis	2019-04-02T22:04:03Z	2	construction			primary
+way	672717863	Airport Link Road (under construction)	Anoesis	2019-04-02T22:06:21Z	5	construction			primary
+way	672717864		tzsl	2019-09-02T16:21:27Z	2	primary			
+way	672717865	Airport Road	mumblin	2019-04-10T18:59:16Z	4	primary			
+way	672717866		Charlie_Plett	2019-02-24T19:08:36Z	1	tertiary			
+way	672717867		Charlie_Plett	2019-02-24T19:08:36Z	1	tertiary			
+way	672717868		Charlie_Plett	2019-02-24T19:08:36Z	1	primary			
+way	672717869		Charlie_Plett	2019-02-24T19:08:36Z	1	primary			
+way	672717870	Airport Link Road (under construction)	Anoesis	2019-04-02T22:04:04Z	2	construction			primary
+way	672717871	Airport Link Road (under construction)	Anoesis	2019-04-02T22:04:04Z	2	construction			primary
+way	672717872	Airport Link Road (under construction)	Anoesis	2019-04-02T22:04:04Z	2	construction			primary
+way	672717873	Airport Link Road (under construction)	Anoesis	2019-04-02T22:04:04Z	4	construction			primary
+way	675687503	Philip Goldson Highway	Charlie_Plett	2019-10-12T17:55:38Z	5	primary			
+way	675687542		Anoesis	2019-04-02T22:04:04Z	2	secondary_link			
+way	675698270	Roaring Creek Bridge	Charlie_Plett	2019-07-28T17:55:36Z	3	construction			
+way	675698271	(under construction)	Charlie_Plett	2019-08-12T02:10:08Z	4	construction			
+way	675698273	Clock Roundabout	Charlie_Plett	2019-07-28T17:55:36Z	3	primary			
+way	675698280		Charlie_Plett	2019-07-28T17:55:36Z	2	primary			
+way	675729242		Charlie_Plett	2019-05-23T21:52:37Z	4	primary			
+way	675729243	Philip Goldson Highway	Charlie_Plett	2019-05-23T21:52:37Z	4	primary			
+way	675729244	Philip Goldson Highway	Charlie_Plett	2019-05-23T21:52:36Z	4	primary			
+way	675729245	Philip Goldson Highway	Charlie_Plett	2019-10-12T17:55:38Z	4	primary			
+way	675729248	Philip Goldson Highway	Charlie_Plett	2019-05-23T21:52:37Z	3	primary			
+way	675729249	Philip Goldson Highway	Charlie_Plett	2019-05-23T21:52:37Z	4	primary			
+way	675729250	Philip Goldson Highway	Charlie_Plett	2019-05-23T21:52:37Z	3	primary			
+way	675736758	Philip Goldson Highway	Charlie_Plett	2019-05-23T21:52:38Z	3	primary			
+way	675736759		Charlie_Plett	2019-03-10T00:56:46Z	1	primary			
+way	675736760	Philip Goldson Highway	Anoesis	2019-04-02T21:34:22Z	2	primary			
+way	675861915		Charlie_Plett	2019-12-01T04:12:12Z	2	primary			
+way	675861916		Charlie_Plett	2019-03-10T19:01:46Z	1	secondary			
+way	676028918		Slomox	2019-03-11T14:07:17Z	1	tertiary			
+way	676028920	Farmers Express Road	Jacobus21	2019-04-01T20:21:26Z	2	tertiary			
+way	676028921	Farmers Express Road	Slomox	2019-03-11T14:07:18Z	1	tertiary			
+way	676034649	Line 1	Charlie_Plett	2019-10-28T00:18:54Z	2	tertiary			
+way	676034650	Line 1	Slomox	2019-03-11T14:36:00Z	1	tertiary			
+way	676056815		Lex Borrero	2019-10-03T01:35:12Z	3	tertiary			
+way	676056816	Sebastien Bridge	Charlie_Plett	2019-11-22T03:21:48Z	2	tertiary			
+way	676442062	Mosul Street	Charlie_Plett	2019-03-13T02:58:09Z	1	tertiary			
+way	676790299	Manatee River Bridge	Charlie_Plett	2019-11-17T03:14:25Z	2	secondary			
+way	676790300	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	3	secondary			
+way	677700532	George Price Highway	Charlie_Plett	2019-08-10T23:27:08Z	3	primary			
+way	677700533	George Price Highway	Charlie_Plett	2019-10-19T19:24:33Z	8	primary			
+way	679160421	A10	Charlie_Plett	2019-03-25T03:18:05Z	1	tertiary			
+way	679160422	A10 / Chiquibul Road	Charlie_Plett	2019-03-25T03:18:05Z	1	tertiary			
+way	680915149		GISMaiden	2019-04-01T14:44:55Z	1	tertiary			
+way	680915150		GISMaiden	2019-04-01T14:44:55Z	1	tertiary			
+way	680927387		GISMaiden	2019-04-01T16:02:42Z	1	tertiary			
+way	680927388		GISMaiden	2019-04-02T13:39:51Z	2	tertiary			
+way	681172783	Neal's Penn Road Extension	GISMaiden	2019-04-02T15:36:45Z	1	tertiary			
+way	682734189		mumblin	2019-04-09T17:06:24Z	1	tertiary_link			
+way	682795305		Charlie_Plett	2019-04-10T00:40:05Z	1	tertiary			
+way	682795371		Charlie_Plett	2019-04-10T00:40:08Z	1	tertiary			
+way	682971694		mumblin	2019-04-10T18:59:16Z	1	primary_link			
+way	682971695		mumblin	2019-04-10T18:59:16Z	1	primary_link			
+way	694412194	Loma Luz Boulevard	Charlie_Plett	2019-08-05T03:03:48Z	2	primary			
+way	694412195	Loma Luz Boulevard	Charlie_Plett	2019-08-05T03:03:48Z	2	primary			
+way	694412196		Charlie_Plett	2019-08-05T03:03:48Z	2	primary			
+way	694412198		Charlie_Plett	2019-08-05T03:03:48Z	3	primary			
+way	694927879	Center Road	Charlie_Plett	2019-06-08T04:44:40Z	2	tertiary			
+way	694927880	Route 20 East	Charlie_Plett	2019-06-14T03:29:08Z	2	tertiary			
+way	694927881	Center Road	Charlie_Plett	2019-06-06T04:39:23Z	1	tertiary			
+way	694927882	Center Road	Charlie_Plett	2019-06-06T04:39:23Z	1	tertiary			
+way	694927883	Center Road	Charlie_Plett	2019-11-21T18:14:57Z	4	tertiary			
+way	694927884	Center Road	Charlie_Plett	2019-08-07T23:43:28Z	5	tertiary			
+way	694927913	Center Road	Charlie_Plett	2019-06-06T04:39:23Z	1	tertiary			
+way	694927914	Route 30 East	Charlie_Plett	2019-11-21T18:26:04Z	5	tertiary			
+way	694927915	Center Road	Charlie_Plett	2019-06-06T04:39:23Z	1	tertiary			
+way	694927916	Center Road	Charlie_Plett	2019-06-06T04:39:23Z	1	tertiary			
+way	695749498	Center Road	Charlie_Plett	2019-06-15T02:10:54Z	3	tertiary			
+way	695749502	Center Road	Charlie_Plett	2019-06-07T23:45:24Z	1	tertiary			
+way	695749503	Center Road	IraqTee	2019-10-31T16:42:11Z	3	tertiary			
+way	695749505	Center Road	Charlie_Plett	2019-06-07T23:45:24Z	1	tertiary			
+way	696008917	Line 3	jharpster	2019-08-29T20:50:14Z	2	tertiary			
+way	696015910	Hummingbird Highway	Charlie_Plett	2020-01-05T03:05:44Z	4	primary			
+way	696015911	Hummingbird Highway	Charlie_Plett	2019-11-22T03:21:48Z	3	primary			
+way	697253523	Bee Lane	Charlie_Plett	2019-06-15T02:10:54Z	1	tertiary			
+way	697266769	Burrell Boom Cutoff	Charlie_Plett	2019-10-19T19:24:33Z	2	primary			
+way	697266770	Burrell Boom Cutoff	Charlie_Plett	2019-06-15T04:48:56Z	1	primary			
+way	697266776	Burrell Boom Cutoff	Charlie_Plett	2019-06-15T04:48:56Z	1	primary			
+way	697629315	Southern Highway	Charlie_Plett	2019-07-31T03:17:06Z	4	primary			
+way	697629317	Southern Highway	Charlie_Plett	2019-06-16T19:46:35Z	1	primary			
+way	697629326	Independence Road	Anoesis	2019-08-08T20:50:19Z	2	tertiary			
+way	697629328	Independence Road	Anoesis	2019-08-08T20:50:19Z	2	tertiary			
+way	697629342	Southern Highway	Charlie_Plett	2019-06-16T19:46:35Z	1	primary			
+way	697629343	Southern Highway	Charlie_Plett	2019-06-16T19:46:35Z	1	primary			
+way	699019304	Red Bank Road	Charlie_Plett	2019-06-22T03:25:15Z	1	tertiary			
+way	699019305	Red Bank Road	Charlie_Plett	2019-06-22T03:25:15Z	1	tertiary			
+way	700980895		Charlie_Plett	2019-07-02T01:47:47Z	1	secondary			
+way	700980896		Charlie_Plett	2019-07-02T01:47:47Z	1	secondary			
+way	700980897		Charlie_Plett	2019-07-02T01:47:47Z	1	primary			
+way	700980898		Charlie_Plett	2019-07-02T01:47:47Z	1	primary			
+way	700980899		Charlie_Plett	2019-07-02T01:47:47Z	1	primary			
+way	700980900		Charlie_Plett	2019-07-02T01:47:47Z	1	primary			
+way	700980914	Placencia Road	Charlie_Plett	2019-07-02T01:47:47Z	1	secondary			
+way	700980915	Placencia Road	Charlie_Plett	2019-07-02T01:47:47Z	1	secondary			
+way	700980916	Placencia Road	Charlie_Plett	2019-07-02T01:47:47Z	1	secondary			
+way	700980917		Charlie_Plett	2019-07-02T01:47:47Z	1	secondary_link			
+way	700980919	Placencia Road	Charlie_Plett	2019-07-02T01:47:47Z	1	secondary			
+way	704187519	Southern Highway	Charlie_Plett	2019-12-30T18:30:29Z	2	primary			
+way	704187520	Southern Highway	Charlie_Plett	2019-07-13T18:23:19Z	1	primary			
+way	704981971	Freetown Road	Charlie_Plett	2019-07-16T20:53:45Z	1	primary			
+way	705299902	George Price Highway	Charlie_Plett	2019-08-05T03:03:48Z	2	secondary			
+way	705299903		Charlie_Plett	2019-07-18T00:55:53Z	1	secondary			
+way	705299904		Charlie_Plett	2019-08-05T03:03:48Z	2	primary			
+way	705299905		Charlie_Plett	2019-08-05T03:03:48Z	2	primary			
+way	705299906	Loma Luz Boulevard	Charlie_Plett	2019-08-05T03:03:48Z	2	primary			
+way	705299907	Loma Luz Boulevard	Charlie_Plett	2019-08-05T03:03:48Z	2	primary			
+way	706283307		tzsl	2019-07-24T17:21:30Z	2	tertiary			
+way	708297011	George Price Highway	Charlie_Plett	2019-07-28T17:55:36Z	1	primary			
+way	708297012		Charlie_Plett	2019-07-28T17:55:36Z	1	construction			
+way	708682577	Southern Highway	Charlie_Plett	2019-07-30T01:32:23Z	1	primary			
+way	710778062	Joseph Andrews Drive	Charlie_Plett	2019-08-05T03:03:48Z	1	primary			
+way	710778063	Waights Avenue	Charlie_Plett	2019-08-05T03:03:48Z	1	tertiary			
+way	710778064	Savannah Street	Charlie_Plett	2019-08-05T03:03:48Z	1	tertiary			
+way	712899835	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	712899836	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	713162458	Cemetery Rd	gscholz	2019-10-29T05:50:45Z	2	tertiary			
+way	713162459	Cemetery Rd	tzsl	2019-08-12T21:09:19Z	1	tertiary			
+way	715630158	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	715630159	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	715632779	Hummingbird Highway	Charlie_Plett	2019-08-20T04:02:00Z	1	primary			
+way	715632780	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	2	primary			
+way	715632781	Hummingbird Highway	Charlie_Plett	2019-08-20T04:02:00Z	1	primary			
+way	715632782	Hummingbird Highway	Charlie_Plett	2019-08-20T04:02:00Z	1	primary			
+way	715632783	Hummingbird Highway	tzsl	2019-08-26T00:05:09Z	2	primary			
+way	715632784		Charlie_Plett	2019-08-20T04:02:00Z	1	construction			
+way	716002788	Hummingbird Highway	Charlie_Plett	2020-01-05T03:05:44Z	2	primary			
+way	716002789	Hummingbird Highway	Charlie_Plett	2020-01-05T03:19:27Z	3	primary			
+way	716002790	Detour	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002791	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	construction			
+way	716002792	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002793	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002794	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002795	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002796	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002797	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002798	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	716002799	Hummingbird Highway	Charlie_Plett	2019-08-21T02:22:26Z	1	primary			
+way	725997017	Contribo Street	Jaime Burgos	2019-09-18T22:59:39Z	1	tertiary			
+way	733945553	Lake Independence Boulevard	Charlie_Plett	2019-10-12T17:55:38Z	1	secondary			
+way	733945554		Charlie_Plett	2019-10-12T17:55:38Z	1	secondary			
+way	733945555		Charlie_Plett	2019-10-12T17:55:38Z	1	secondary			
+way	738694171		tzsl	2019-12-02T18:39:12Z	2	primary			
+way	738694172		Charlie_Plett	2019-10-26T01:15:05Z	1	primary_link			
+way	738694173	Northern Highway	Charlie_Plett	2019-10-26T01:15:05Z	1	primary_link			
+way	738694174		Charlie_Plett	2019-10-26T01:15:05Z	1	primary_link			
+way	738694175		Charlie_Plett	2019-10-26T01:15:05Z	1	primary_link			
+way	738694176		Charlie_Plett	2019-10-26T01:15:05Z	1	primary_link			
+way	738694177		Charlie_Plett	2019-10-26T01:15:05Z	1	primary_link			
+way	739455262	Santa Familia Road	Jacobus21	2019-11-19T21:58:40Z	3	secondary			
+way	745059765		Charlie_Plett	2019-11-13T19:28:47Z	1	tertiary			
+way	745059766		Charlie_Plett	2019-11-13T19:28:47Z	1	tertiary			
+way	745059767		Charlie_Plett	2019-11-13T19:28:47Z	1	tertiary			
+way	745059768		Charlie_Plett	2019-11-13T19:28:47Z	1	tertiary			
+way	745059769		Charlie_Plett	2019-11-13T19:28:47Z	1	tertiary			
+way	745059770		Charlie_Plett	2019-11-13T19:28:47Z	1	tertiary			
+way	746277904		Charlie_Plett	2019-11-17T03:14:25Z	1	tertiary			
+way	746277907	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	2	secondary			
+way	746277908	Soldier Creek Bridge	Charlie_Plett	2019-11-17T03:14:25Z	1	secondary			
+way	746277909	Quamina Creek Bridge	Charlie_Plett	2019-11-17T03:14:25Z	1	secondary			
+way	746277910	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	2	secondary			
+way	746280231	Cornhouse Creek Bridge	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280232	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280235	Jenkins Creek Bridge	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280236	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280241	Mangrove Creek Bridge	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280242	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280244	Dead Man's Creek Bridge	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280245	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280247	Nelly Creek Bridge	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	746280248	Coastal Road	Charlie_Plett	2019-11-17T03:48:52Z	1	secondary			
+way	747139995	Santa Familia Road	Jacobus21	2019-11-19T21:58:40Z	1	secondary			
+way	747139996	Santa Familia Road	Jacobus21	2019-11-27T20:02:19Z	2	secondary			
+way	747463994	Paddy Creek Bridge #2	Charlie_Plett	2019-11-21T01:18:08Z	1	tertiary			
+way	747463995	A10 / Chiquibul Road	Charlie_Plett	2019-11-21T01:18:08Z	1	tertiary			
+way	747463996	Mollejon Tributary Bridge	Charlie_Plett	2019-11-21T01:18:08Z	1	tertiary			
+way	747463997	A10 / Chiquibul Road	Charlie_Plett	2019-11-21T01:18:08Z	1	tertiary			
+way	747463998	A10 / Chiquibul Road	Charlie_Plett	2019-11-21T01:18:08Z	1	tertiary			
+way	747463999	Mollejon Bridge	Charlie_Plett	2019-11-21T01:18:08Z	1	tertiary			
+way	747965470		Charlie_Plett	2019-11-22T03:21:48Z	1	construction			
+way	747965471		Charlie_Plett	2019-11-22T03:21:48Z	1	construction			
+way	751199103	North Ring Road	Charlie_Plett	2019-12-01T04:12:12Z	1	secondary			
+way	751199104		Charlie_Plett	2019-12-01T04:12:12Z	1	secondary			
+way	751199106	George Price Highway	Charlie_Plett	2020-01-23T01:46:47Z	2	primary			
+way	751199122		Charlie_Plett	2019-12-01T04:12:12Z	1	primary			
+way	751199123		Charlie_Plett	2019-12-01T04:12:12Z	1	primary			
+way	751199124		Charlie_Plett	2019-12-01T04:12:12Z	1	primary			
+way	751199125	George Price Highway	Charlie_Plett	2019-12-01T04:12:12Z	1	primary			
+way	751199126		Charlie_Plett	2019-12-01T04:12:12Z	1	secondary			
+way	758765272	Silver Creek Road	Charlie_Plett	2019-12-26T18:14:30Z	1	tertiary			
+way	759654860	Georgetown - Maya Mopan Road	Charlie_Plett	2019-12-30T18:30:29Z	1	tertiary			
+way	759654861	Georgetown - Maya Mopan Road	Charlie_Plett	2019-12-30T18:30:29Z	1	tertiary			
+way	760876507	Hummingbird Highway	Charlie_Plett	2020-01-05T03:19:27Z	1	primary			
+way	761125374	Caracol Road	Charlie_Plett	2020-01-06T02:21:53Z	1	tertiary			
+way	761759733	Hummingbird Highway	tzsl	2020-01-08T15:32:15Z	1	construction			
+relation	9808360	Center Avenue	Charlie_Plett	2019-11-13T19:28:47Z	3		0		
+relation	10223520	Route 120	Charlie_Plett	2019-10-28T00:18:54Z	1		120		
