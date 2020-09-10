@@ -12,7 +12,7 @@ from chameleon import core
 
 @pytest.fixture
 def files():
-    files = {"oldfile": Path("test/old.csv"), "newfile": Path("test/new.csv")}
+    files = {"old": Path("test/old.csv"), "new": Path("test/new.csv")}
     return files
 
 

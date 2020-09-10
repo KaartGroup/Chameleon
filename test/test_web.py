@@ -29,7 +29,7 @@ def test_longtask_status(client, uuid):
 @pytest.mark.parametrize(
     "newinput,result",
     [
-        ("test/BLZ_HPR_2020_02_03.csv", True),
+        ("test/BLZ_MTPST_2020_02_03.csv", True),
         ("test/BLZ_allroads_2020_02_27.csv", False),
     ],
 )

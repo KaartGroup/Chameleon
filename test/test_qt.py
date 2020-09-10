@@ -10,7 +10,8 @@ from PySide2.QtCore import Qt
 from PySide2.QtTest import QTest
 from PySide2.QtWidgets import QMessageBox
 
-from chameleon import qt, core
+from chameleon import core
+from chameleon.qt import qt
 
 # TEST_FOLDER = Path("test")
 
@@ -74,7 +75,7 @@ def test_history_writer(
     history_path = tmp_path / "history/history.yaml"
     # history_path = qt.HISTORY_LOCATION
     tmp_path.mkdir(exist_ok=True, parents=True)
-    monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
+    monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
     gold_dict = {
         "use_api": use_api,
         "file_format": file_format,
@@ -111,7 +112,7 @@ def test_high_deletions_checker(
 # @pytest.mark.parametrize(
 #     "role,returned", [(QMessageBox.YesRole, True), (QMessageBox.NoRole, False)]
 # )
-# def test_overwrite_confirm(mainapp, worker, worker_files, role, returned):
+# def test_overwrite_confirm(mainapp, worker, role, returned):
 #     # TODO Need to simulate click on confirmation dialog
 #     worker.overwrite_confirm(worker_files["output"])
 #     messagebox = mainapp.activeModalWidget()
@@ -170,12 +171,11 @@ def favorite_location():
 def mainapp(monkeypatch, favorite_location, worker_files, tmp_path, request):
     if request.param is None:
         # Empty file
-        monkeypatch.setattr(main, "COUNTER_LOCATION", tmp_path / "counter.yaml")
+        monkeypatch.setattr(qt, "COUNTER_LOCATION", tmp_path / "counter.yaml")
     else:
-        monkeypatch.setattr(main, "COUNTER_LOCATION", favorite_location)
-    monkeypatch.setattr(main.MainApp, "file_fields", worker_files)
-    app = main.MainApp()
-    return app
+        monkeypatch.setattr(qt, "COUNTER_LOCATION", favorite_location)
+    monkeypatch.setattr(qt.MainApp, "file_fields", worker_files)
+    return qt.MainApp()
 
 
 @pytest.mark.parametrize(
@@ -268,8 +268,8 @@ def test_no_settings_files(monkeypatch, tmp_path, worker_files):
     """
     history_path = tmp_path / "history.yaml"
     counter_path = tmp_path / "counter.yaml"
-    monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
-    monkeypatch.setattr(main, "COUNTER_LOCATION", counter_path)
+    monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
+    monkeypatch.setattr(qt, "COUNTER_LOCATION", counter_path)
     mainapp = qt.MainApp()
 
     mainapp.text_fields = worker_files
