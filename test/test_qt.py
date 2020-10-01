@@ -33,7 +33,7 @@ worker_files = {
 
 
 @pytest.fixture
-def worker(mainapp, worker_files):
+def worker(mainapp):
     return qt.Worker(mainapp)
 
 
@@ -278,16 +278,18 @@ def test_fav_btn_populate(mainapp, favorite_location):
     assert mainapp.popTag5.text() == "addr:housenumber"
 
 
-def test_fav_btn_click(mainapp, qtbot):
+def test_fav_btn_click(mainapp, qtbot, favorite_location):
     """
     Verifies favorite button function and reception
     of favorite values by the QListWidget.
     """
-    mainapp.fav_btn_populate()
+    mainapp.fav_btn_populate(favorite_location)
+    qtbot.wait(500)
     assert mainapp.listWidget.count() == 0
     assert mainapp.popTag1.text() == "name"
     qtbot.mouseClick(mainapp.popTag1, Qt.LeftButton)
     qtbot.wait(500)
+
     assert len(mainapp.listWidget.findItems("name", Qt.MatchExactly)) > 0
 
 
@@ -306,16 +308,19 @@ def test_expand_user(mainapp, qtbot):
     assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
 
 
-def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
+def test_no_settings_files(mainapp, monkeypatch, tmp_path):
     """
     Test running chameleon without existing counter.yaml/settings.yaml
     """
+
+    def text_fields():
+        return worker_files
+
     history_path = tmp_path / "history.yaml"
     counter_path = tmp_path / "counter.yaml"
     monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
     monkeypatch.setattr(qt, "COUNTER_LOCATION", counter_path)
-
-    mainapp.text_fields = worker_files
+    monkeypatch.setattr(mainapp, "text_fields", text_fields)
 
     mainapp.run_query()
 
