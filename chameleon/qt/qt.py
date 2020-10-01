@@ -843,7 +843,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         destination = sender.box_control
         # Gets first non-empty value in order
         file_dir = str(
-            [
+            next(
                 e
                 for e in (
                     destination.text().strip(),
@@ -852,7 +852,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                     Path.home() / "Downloads",
                 )
                 if e
-            ][0]
+            )
         )
         file_name = QFileDialog.getOpenFileName(
             self,
@@ -871,14 +871,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         # If no previous location, default to Documents folder
         output_file_dir = str(
-            [
+            next(
                 e
                 for e in (
                     os.path.dirname(self.outputFileNameBox.text().strip()),
                     Path.home() / "Documents",
                 )
                 if e
-            ][0]
+            )
         )
         output_file_name = QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir

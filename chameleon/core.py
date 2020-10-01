@@ -373,11 +373,11 @@ class ChameleonDataFrameSet(set):
                 # The most recent way version has the way deleted
                 prior_version_num = latest_version["version"] - 1
                 try:
-                    prior_version = [
+                    prior_version = next(
                         i
                         for i in loaded_response["elements"]
                         if i["version"] == prior_version_num
-                    ][0]
+                    )
                 except IndexError:
                     # Prior version doesn't exist for some reason, possibly redaction
                     pass
