@@ -14,7 +14,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-import oyaml as yaml
+import yaml
 import pandas as pd
 
 from requests import Timeout, HTTPError

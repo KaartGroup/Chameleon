@@ -599,7 +599,7 @@
   <customwidget>
    <class>QLineEditDragDrop</class>
    <extends>QLineEdit</extends>
-   <header>chameleon.qlineeditdragdrop</header>
+   <header>chameleon.qt.qlineeditdragdrop</header>
   </customwidget>
  </customwidgets>
  <tabstops>
