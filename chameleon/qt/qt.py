@@ -32,6 +32,7 @@ from PySide2.QtWidgets import (
     QMessageBox,
     QProgressDialog,
     QPushButton,
+    QRadioButton,
 )
 
 # Import generated UI file
@@ -512,6 +513,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     clear_search_box = Signal()
 
     QMB_MAP = {QMessageBox.Yes: True, QMessageBox.No: False}
+    EXTENSION_MAP = {
+        "excel": ".xlsx",
+        "geojson": ".geojson",
+        "csv": r"_{mode}.csv",
+    }
 
     def __init__(self, parent=None):
         """
@@ -573,13 +579,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.history_loader()
 
         # List all of our buttons to populate so we can iterate through them
-        self.fav_btn = [
+        self.fav_btn = (
             self.popTag1,
             self.popTag2,
             self.popTag3,
             self.popTag4,
             self.popTag5,
-        ]
+        )
 
         # Populate the buttons defined above
         self.fav_btn_populate()
@@ -666,8 +672,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
 
         # OSM tag resource file, construct list from file
-        autocomplete_source = RESOURCES_DIR / "OSMtag.txt"
-        with autocomplete_source.open() as read_file:
+        with (RESOURCES_DIR / "OSMtag.txt").open() as read_file:
             tags = read_file.read().splitlines()
 
         # Needs to have tags reference a resource file of OSM tags
@@ -901,12 +906,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.repaint()
 
     def suffix_updater(self):
-        if self.excelRadio.isChecked():
-            self.fileSuffix.setText(".xlsx")
-        elif self.geojsonRadio.isChecked():
-            self.fileSuffix.setText(".geojson")
-        else:
-            self.fileSuffix.setText(r"_{mode}.csv")
+        self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
         self.repaint()
 
     def on_editing_finished(self):
@@ -959,13 +959,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     @property
     def file_format(self) -> str:
-        if self.excelRadio.isChecked():
-            file_format = "excel"
-        elif self.geojsonRadio.isChecked():
-            file_format = "geojson"
-        else:
-            file_format = "csv"
-        return file_format
+        checked_box = next(
+            e
+            for e in self.fileFormatGroup.children()
+            if isinstance(e, QRadioButton)
+        )
+        return {
+            self.excelRadio: "excel",
+            self.geojsonRadio: "geojson",
+            self.csvRadio: "csv",
+        }[checked_box]
 
     @property
     def modes(self) -> set:
