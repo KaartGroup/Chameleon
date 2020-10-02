@@ -5,16 +5,12 @@ from pathlib import Path
 
 import yaml
 import pytest
-from PySide2 import QtWidgets
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QMessageBox
 
 from chameleon import core
 from chameleon.qt import qt
 
 # TEST_FOLDER = Path("test")
-
-# app = QtWidgets.QApplication(["."])
 
 
 # @pytest.fixture
@@ -51,18 +47,10 @@ def mainapp(
     request,
     qtbot,
 ):
-    def dummy(arg1, arg2):
-        pass
-
-    # if request.param is None:
-    # Empty file
-    # monkeypatch.setattr(qt, "COUNTER_LOCATION", tmp_path / "counter.yaml")
-    # tmp_path.mkdir()
-    # else:
     monkeypatch.setattr(qt, "COUNTER_LOCATION", favorite_location)
     monkeypatch.setattr(qt.MainApp, "file_fields", worker_files)
     monkeypatch.setattr(
-        qt.MainApp, "closeEvent", dummy
+        qt.MainApp, "closeEvent", lambda *args: None
     )  # Disable the confirmation dialog while testing
     app = qt.MainApp()
     app.show()
@@ -156,43 +144,11 @@ def test_high_deletions_checker(
     )
 
 
-# @pytest.mark.parametrize(
-#     "role,returned", [(QMessageBox.YesRole, True), (QMessageBox.NoRole, False)]
-# )
-# def test_overwrite_confirm(mainapp, worker, role, returned):
-#     # TODO Need to simulate click on confirmation dialog
-#     worker.overwrite_confirm(worker_files["output"])
-#     messagebox = mainapp.activeModalWidget()
-#     the_button = next(
-#         button
-#         for button in messagebox.buttons()
-#         if messagebox.buttonRole(button) == role
-#     )
-#     QTest.mouseClick(the_button)
-#     assert worker.response is returned
+@pytest.mark.parametrize("returned", [True, False])
+def test_overwrite_confirm(mainapp, worker, returned, qtbot, monkeypatch):
+    monkeypatch.setattr(worker, "user_confirm", lambda *args: returned)
 
-
-# @pytest.mark.parametrize(
-#     "role,returned", [(QMessageBox.YesRole, True), (QMessageBox.NoRole, False)]
-# )
-# def test_overwrite_confirm(
-#     qtbot,
-#     mainapp,
-#     # worker_files,
-#     role,
-#     returned,
-# ):
-#     # mainapp.show()
-#     qtbot.addWidget(mainapp)
-#     messagebox = mainapp.activeModalWidget()
-#     the_button = next(
-#         button
-#         for button in messagebox.buttons()
-#         if messagebox.buttonRole(button) == role
-#     )
-#     qtbot.mouseClick(the_button)
-
-#     assert worker.response is returned
+    assert worker.overwrite_confirm(worker_files["output"]) is returned
 
 
 # def test_check_api_deletions(worker, cdf_set):
