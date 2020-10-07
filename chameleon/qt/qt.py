@@ -14,10 +14,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-import yaml
 import pandas as pd
-
-from requests import Timeout, HTTPError
+import yaml
 
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
@@ -34,6 +32,7 @@ from PySide2.QtWidgets import (
     QPushButton,
     QRadioButton,
 )
+from requests import HTTPError, Timeout
 
 # Import generated UI file
 from chameleon.core import (
