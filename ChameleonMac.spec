@@ -3,19 +3,23 @@
 block_cipher = None
 
 added_files = [
-    ("resources/OSMtag.txt", "."),
-    ("resources/chameleon.png", "."),
+    ("chameleon/resources/chameleon.png", "."),
+    ("chameleon/resources/extracolumns.yaml", "."),
+    ("chameleon/resources/OSMtag.txt", "."),
     ("resources/version.txt", "."),
-    ("resources/extracolumns.yaml", "."),
 ]
 
 
 a = Analysis(
-    ["chameleon/main.py"],
+    ["chameleon/qt/qt.py"],
     pathex=[],
     binaries=[],
     datas=added_files,
-    hiddenimports=["pandas._libs.tslibs.timedeltas", "pytest",],
+    hiddenimports=[
+        "chameleon.qt.design",
+        "pandas._libs.tslibs.timedeltas",
+        "pytest",
+    ],
     hookspath=[],
     runtime_hooks=[],
     excludes=["ptvsd",],
@@ -36,7 +40,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon="resources/chameleon.icns",
+    icon="chameleon/resources/chameleon.icns",
 )
 coll = COLLECT(
     exe,
@@ -50,7 +54,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name="Chameleon.app",
-    icon="resources/chameleon.icns",
+    icon="chameleon/resources/chameleon.icns",
     bundle_identifier=None,
     info_plist={"NSHighResolutionCapable": "True",},
 )

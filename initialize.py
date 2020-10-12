@@ -18,7 +18,7 @@ else:
     print("version.txt written")
 
 subprocess.check_call(
-    ["pyside2-uic", "chameleon/qt/design.ui", "-o", "chameleon/qt/`design.py"]
+    ["pyside2-uic", "chameleon/qt/design.ui", "-o", "chameleon/qt/design.py"]
 )
 print("pyuic complete")
 
