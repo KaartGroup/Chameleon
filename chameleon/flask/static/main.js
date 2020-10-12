@@ -240,7 +240,7 @@ class Progbar {
     }
 
     updateMessage() {
-        if (["complete", "cancel", "failure"].includes(this.current_phase)) {
+        if (["success", "cancel", "failure"].includes(this.current_phase)) {
             this.finished_message();
         } else {
             this.cancelButton.disabled = false;
@@ -447,7 +447,7 @@ class ChameleonServer {
                 //     this.progress.dialog.showModal();
                 // }
                 console.log("Closing SSE connection");
-                this.progress.current_phase = "complete";
+                this.progress.current_phase = "success";
                 this.progress.updateMessage();
                 this.stop();
                 window.location.pathname = `/download/${taskStatus["uuid"]}/${taskStatus["file_name"]}`;
