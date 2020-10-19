@@ -39,6 +39,7 @@ from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     clean_for_presentation,
+    clean_for_analysis,
 )
 from chameleon.qt import design
 
@@ -226,6 +227,7 @@ class Worker(QObject):
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", mode)
                 self.mode_start.emit(mode)
+                mode = clean_for_analysis(mode)
                 try:
                     result = ChameleonDataFrame(
                         cdf_set.source_data,
@@ -253,10 +255,9 @@ class Worker(QObject):
                 dialog_icon = "critical"
                 if len(self.error_list) == 1:
                     headline = "<p>A tag could not be queried</p>"
-                    summary = self.error_list[0]
                 else:
                     headline = "<p>Tags could not be queried</p>"
-                    summary = "\n".join(self.error_list)
+                summary = "\n".join(self.error_list)
                 if self.successful_items:
                     headline = "<p>Some tags could not be queried</p>"
                     summary += "\nThe following tags completed successfully:\n"
@@ -292,7 +293,7 @@ class Worker(QObject):
     def load_extra_columns(self) -> dict:
         try:
             with (RESOURCES_DIR / "extracolumns.yaml").open("r") as f:
-                extra_columns = yaml.safe_load(f.read())
+                extra_columns = yaml.safe_load(f)
         except OSError:
             logger.info("No extra columns loaded.")
             extra_columns = {"notes": None}
@@ -729,7 +730,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         else:
             logger.debug("counter.yaml history: %s.", (self.tag_count))
 
-        fav_list = list(self.tag_count)
+        fav_list = sorted(self.tag_count, key=self.tag_count.get, reverse=True)
 
         if len(fav_list) < len(self.fav_btn):
             # If we run out of favorites, start adding non-redundant default tags
@@ -748,9 +749,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 :def_count
             ]
         # Loop through the buttons and apply our ordered tag values
-        for index, btn in enumerate(self.fav_btn):
+        for btn, text in zip(self.fav_btn, fav_list):
             # The fav_btn and set_lists should have a 1:1 correspondence
-            btn.setText(fav_list[index])
+            btn.setText(text)
 
     def add_tag(self):
         """
@@ -770,19 +771,18 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Count commas as a delimiter and don't include in the tags
         splitter.whitespace += ","
         splitter.whitespace_split = True
-        label_list = sorted(splitter)
-        for i, label in enumerate(label_list):
+        for count, label in enumerate(sorted(splitter)):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
-            existing_item = self.listWidget.findItems(
-                label, QtCore.Qt.MatchExactly
+            existing_item = next(
+                iter(self.listWidget.findItems(label, QtCore.Qt.MatchExactly)),
+                None,
             )
             if existing_item:
                 # Clear the prior selection on the first iteration only
-                if i == 0:
+                if count == 0:
                     self.listWidget.selectionModel().clear()
-                # existing_item should never have more than 1 member
-                existing_item[0].setSelected(True)
+                existing_item.setSelected(True)
                 logger.warning("%s is already in the list.", label)
             else:
                 self.listWidget.addItem(label)
@@ -972,7 +972,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     @property
     def modes(self) -> set:
         return {
-            i.text().replace(":", "_")
+            i.text()
             for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
         }
 
