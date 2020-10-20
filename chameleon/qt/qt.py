@@ -961,7 +961,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         checked_box = next(
             e
             for e in self.fileFormatGroup.children()
-            if isinstance(e, QRadioButton)
+            if isinstance(e, QRadioButton) and e.isChecked()
         )
         return {
             self.excelRadio: "excel",
