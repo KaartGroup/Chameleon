@@ -1180,11 +1180,18 @@ class ChameleonProgressDialog(QProgressDialog):
     # TODO Redefine properties in terms of major and minor increments,
     # use getters and setters if it helps
     def __init__(self, length: int, use_api=False, use_overpass=False):
+        self.current_mode = 0
         self.current_item = 0
         self.item_count = None
         self.mode = None
+        self.mode_count = None
+        self.modes_completed = 0
         self.length = length
         self.use_api = use_api
+        self.osm_api_completed = 0
+        self.osm_api_max = None
+        self.overpass_start_time = None
+        self.overpass_timeout_time = None
         # Tracks how many actual modes have been completed, independent of scaling
         self.mode_progress = 0
 
@@ -1207,6 +1214,47 @@ class ChameleonProgressDialog(QProgressDialog):
             | QtCore.Qt.WindowTitleHint
             | QtCore.Qt.CustomizeWindowHint
         )
+
+    @property
+    def real_max(self) -> int:
+        return (
+            self.overpass_timeout * self.using_overpass
+            + self.osm_api_max
+            + self.mode_count * 10
+        )
+
+    @property
+    def real_value(self) -> int:
+        return (
+            self.overpass_timeout * self.using_overpass
+            + self.osm_api_completed
+            + self.modes_completed * 10
+        )
+
+    @property
+    def using_overpass(self) -> bool:
+        return (
+            self.overpass_start_time is not None
+            and self.overpass_timeout_time is not None
+        )
+
+    @property
+    def overpass_elapsed(self) -> int:
+        try:
+            return (
+                self.overpass_timeout_time - datetime.now().astimezone()
+            ).seconds
+        except (NameError, TypeError):
+            return 0
+
+    @property
+    def overpass_timeout(self) -> int:
+        try:
+            return (
+                self.overpass_timeout_time - self.overpass_start_time
+            ).seconds
+        except (NameError, TypeError):
+            return 0
 
     def count_mode(self, mode: str):
         """
