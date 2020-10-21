@@ -247,7 +247,7 @@ class Worker(QObject):
         else:
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
-            cancelled_list = self.modes.difference(
+            cancelled_list = self.modes - (
                 set(self.error_list) | set(self.successful_items.keys())
             )
             dialog_icon = "information"
