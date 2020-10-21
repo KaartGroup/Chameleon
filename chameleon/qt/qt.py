@@ -39,7 +39,6 @@ from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     clean_for_presentation,
-    clean_for_analysis,
 )
 from chameleon.qt import design
 
@@ -227,7 +226,6 @@ class Worker(QObject):
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", mode)
                 self.mode_start.emit(mode)
-                mode = clean_for_analysis(mode)
                 try:
                     result = ChameleonDataFrame(
                         cdf_set.source_data,
@@ -410,7 +408,7 @@ class Worker(QObject):
         """
         for result in dataframe_set:
             file_name = Path(
-                f"{self.files['output']}_{result.chameleon_mode}.csv"
+                f"{self.files['output']}_{result.chameleon_mode_cleaned}.csv"
             )
             logger.info("Writing %s", file_name)
             try:

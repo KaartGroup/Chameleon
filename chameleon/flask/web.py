@@ -451,7 +451,7 @@ def write_csv(dataframe_set, base_dir, output):
 
     with ZipFile(zip_path, "w") as myzip, TemporaryDirectory() as tempdir:
         for result in dataframe_set:
-            file_name = f"{output}_{result.chameleon_mode}.csv"
+            file_name = f"{output}_{result.chameleon_mode_cleaned}.csv"
             temp_path = Path(tempdir) / file_name
             with temp_path.open("w") as output_file:
                 result.to_csv(output_file, sep="\t", index=True)

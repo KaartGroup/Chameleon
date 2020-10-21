@@ -61,6 +61,13 @@ class ChameleonDataFrame(pd.DataFrame):
     def __hash__(self):
         return hash(self.chameleon_mode)
 
+    @property
+    def chameleon_mode_cleaned(self) -> str:
+        """
+        Removes special characters from column and file names
+        """
+        return self.chameleon_mode.replace("@", "").replace(":", "_")
+
     def query_cdf(self) -> ChameleonDataFrame:
         """
         Takes a dataframe that has already been merged from two input files
@@ -69,8 +76,8 @@ class ChameleonDataFrame(pd.DataFrame):
         if self.chameleon_mode not in SPECIAL_MODES:
             intermediate_df = self.loc[
                 (
-                    self[f"{self.chameleon_mode}_old"].fillna("")
-                    != self[f"{self.chameleon_mode}_new"].fillna("")
+                    self[f"{self.chameleon_mode_cleaned}_old"].fillna("")
+                    != self[f"{self.chameleon_mode_cleaned}_new"].fillna("")
                 )
             ]
         else:
@@ -128,11 +135,11 @@ class ChameleonDataFrame(pd.DataFrame):
         if (
             self.chameleon_mode not in SPECIAL_MODES
         ):  # Skips the new and deleted DFs
-            self[f"old_{self.chameleon_mode}"] = intermediate_df[
-                f"{self.chameleon_mode}_old"
+            self[f"old_{self.chameleon_mode_cleaned}"] = intermediate_df[
+                f"{self.chameleon_mode_cleaned}_old"
             ]
-            self[f"new_{self.chameleon_mode}"] = intermediate_df[
-                f"{self.chameleon_mode}_new"
+            self[f"new_{self.chameleon_mode_cleaned}"] = intermediate_df[
+                f"{self.chameleon_mode_cleaned}_new"
             ]
 
         self["action"] = intermediate_df["action"]
@@ -176,8 +183,8 @@ class ChameleonDataFrame(pd.DataFrame):
         # Create the new dataframe
         grouped_df = self.groupby(
             [
-                f"old_{self.chameleon_mode}",
-                f"new_{self.chameleon_mode}",
+                f"old_{self.chameleon_mode_cleaned}",
+                f"new_{self.chameleon_mode_cleaned}",
                 "action",
             ],
             as_index=False,
@@ -203,8 +210,8 @@ class ChameleonDataFrame(pd.DataFrame):
         if self.chameleon_mode != "highway":
             new_column_order += ["highway"]
         new_column_order += [
-            f"old_{self.chameleon_mode}",
-            f"new_{self.chameleon_mode}",
+            f"old_{self.chameleon_mode_cleaned}",
+            f"new_{self.chameleon_mode_cleaned}",
             "action",
         ]
         grouped_df = grouped_df[new_column_order]
@@ -264,7 +271,11 @@ class ChameleonDataFrameSet(set):
         self.merge_files()
 
     def __getitem__(self, key) -> ChameleonDataFrame:
-        return next(i for i in self if i.chameleon_mode == key)
+        return next(
+            i
+            for i in self
+            if i.chameleon_mode == key or i.chameleon_mode_cleaned == key
+        )
 
     def merge_files(self) -> ChameleonDataFrameSet:
         """
@@ -402,13 +413,13 @@ class ChameleonDataFrameSet(set):
                     result[k] = ""
                 result.to_excel(
                     writer,
-                    sheet_name=result.chameleon_mode,
+                    sheet_name=result.chameleon_mode_cleaned,
                     index=True,
                     freeze_panes=(1, 0),
                 )
 
                 if self.extra_columns:
-                    sheet = writer.sheets[result.chameleon_mode]
+                    sheet = writer.sheets[result.chameleon_mode_cleaned]
 
                     for k, v in self.extra_columns.items():
                         if v is not None and v.get("validate", None):
@@ -438,8 +449,8 @@ class ChameleonDataFrameSet(set):
                 columns_to_keep += ["highway"]
             if result.chameleon_mode not in SPECIAL_MODES:
                 columns_to_keep += [
-                    f"old_{result.chameleon_mode}",
-                    f"new_{result.chameleon_mode}",
+                    f"old_{result.chameleon_mode_cleaned}",
+                    f"new_{result.chameleon_mode_cleaned}",
                 ]
             # else:
             #     result[result.chameleon_mode] = result.chameleon_mode
@@ -521,14 +532,4 @@ def clean_for_presentation(uinput) -> str:
     """
     uinput = uinput.strip(" \"'")
     uinput = uinput.partition("=")[0]
-    return uinput
-
-
-def clean_for_analysis(uinput: str) -> str:
-    """
-    Further sanitizes user input in a way that makes sense to pandas
-    """
-    uinput = clean_for_presentation(uinput)
-    uinput = uinput.replace("@", "")
-    uinput = uinput.replace(":", "_")
     return uinput
