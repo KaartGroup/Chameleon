@@ -165,20 +165,12 @@ class ChameleonDataFrame(pd.DataFrame):
             "changeset": lambda changeset: ",".join(changeset.unique()),
         }
         if self.chameleon_mode != "name":
-            agg_functions.update(
-                {
-                    "name": lambda name: ",".join(
-                        str(i) for i in name.unique() if pd.notna(i)
-                    )
-                }
+            agg_functions["name"] = lambda name: ",".join(
+                str(i) for i in name.unique() if pd.notna(i)
             )
         if self.chameleon_mode != "highway":
-            agg_functions.update(
-                {
-                    "highway": lambda highway: ",".join(
-                        str(i) for i in highway.unique() if pd.notna(i)
-                    )
-                }
+            agg_functions["highway"] = lambda highway: ",".join(
+                str(i) for i in highway.unique() if pd.notna(i)
             )
         # Create the new dataframe
         grouped_df = self.groupby(
