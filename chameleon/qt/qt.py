@@ -931,16 +931,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         icon : str
             Which icon to use
         """
-        dialog = QMessageBox(self)
-        dialog.setText(text)
-        dialog.setIcon(
+        dialog_box = QMessageBox(self)
+        dialog_box.setText(text)
+        dialog_box.setIcon(
             QMessageBox.Critical
             if icon == "critical"
             else QMessageBox.Information
         )
-        dialog.setInformativeText(info)
-        dialog.setTextFormat(QtCore.Qt.RichText)
-        dialog.exec()
+        dialog_box.setInformativeText(info)
+        dialog_box.setTextFormat(QtCore.Qt.RichText)
+        dialog_box.exec()
 
     @property
     def file_fields(self) -> dict:
