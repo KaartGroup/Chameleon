@@ -629,16 +629,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Handles about page information.
         """
-        logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
+        logo = QtGui.QPixmap(self.logo)
 
         if APP_VERSION:
             formatted_version = f"<p><center>Version {APP_VERSION}</center></p>"
         else:
             formatted_version = ""
-        about = QMessageBox(self, icon=logo, textFormat=QtCore.Qt.RichText)
+        about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
         about.setWindowTitle("About Chameleon")
         about.setIconPixmap(
-            QtGui.QPixmap(self.logo).scaled(
+            logo.scaled(
                 160,
                 160,
                 QtCore.Qt.KeepAspectRatio,
