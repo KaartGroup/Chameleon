@@ -920,7 +920,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender.insert(expanded)
         self.run_checker()
 
-    def dialog(self, text: str, info: str, icon: str):
+    def dialog(self, text: str, info: str, icon: str = "information"):
         """
         Method to pop-up critical error box
 
@@ -928,13 +928,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         ----------
         text, info : str
             Optional error box text.
+        icon : str
+            Which icon to use
         """
         dialog = QMessageBox(self)
         dialog.setText(text)
-        if icon == "critical":
-            dialog.setIcon(QMessageBox.Critical)
-        else:
-            dialog.setIcon(QMessageBox.Information)
+        dialog.setIcon(
+            QMessageBox.Critical
+            if icon == "critical"
+            else QMessageBox.Information
+        )
         dialog.setInformativeText(info)
         dialog.setTextFormat(QtCore.Qt.RichText)
         dialog.exec()
