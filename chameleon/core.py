@@ -114,9 +114,16 @@ class ChameleonDataFrame(pd.DataFrame):
                 # If neither had one, we just won't include in the output
                 pass
         if self.chameleon_mode != "name":
-            self["name"] = intermediate_df["name_new"].fillna(
-                intermediate_df["name_old"]
-            )
+            try:
+                self["name"] = intermediate_df["name_new"].fillna(
+                    intermediate_df["name_old"]
+                )
+            except KeyError:
+                try:
+                    # Succeeds if one csv had a name column
+                    self["name"] = intermediate_df["name"]
+                except KeyError:
+                    pass
         if self.chameleon_mode != "highway":
             try:
                 # Succeeds if both csvs had highway columns
