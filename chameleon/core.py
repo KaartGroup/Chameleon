@@ -277,6 +277,14 @@ class ChameleonDataFrameSet(set):
             if i.chameleon_mode == key or i.chameleon_mode_cleaned == key
         )
 
+    @property
+    def modes(self) -> Set[str]:
+        return {i.chameleon_mode for i in self}
+
+    @property
+    def modes_cleaned(self) -> Set[str]:
+        return {i.chameleon_mode_cleaned for i in self}
+
     def merge_files(self) -> ChameleonDataFrameSet:
         """
         Merge two csv inputs into a single combined dataframe
