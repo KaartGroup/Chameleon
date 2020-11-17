@@ -245,7 +245,7 @@ class Worker(QObject):
         else:
             # If any modes aren't in either list,
             # the process was cancelled before they could be completed
-            cancelled_list = self.modes.difference(
+            cancelled_list = self.modes - (
                 set(self.error_list) | set(self.successful_items.keys())
             )
             dialog_icon = "information"
@@ -253,10 +253,9 @@ class Worker(QObject):
                 dialog_icon = "critical"
                 if len(self.error_list) == 1:
                     headline = "<p>A tag could not be queried</p>"
-                    summary = self.error_list[0]
                 else:
                     headline = "<p>Tags could not be queried</p>"
-                    summary = "\n".join(self.error_list)
+                summary = "\n".join(self.error_list)
                 if self.successful_items:
                     headline = "<p>Some tags could not be queried</p>"
                     summary += "\nThe following tags completed successfully:\n"
@@ -292,7 +291,7 @@ class Worker(QObject):
     def load_extra_columns(self) -> dict:
         try:
             with (RESOURCES_DIR / "extracolumns.yaml").open("r") as f:
-                extra_columns = yaml.safe_load(f.read())
+                extra_columns = yaml.safe_load(f)
         except OSError:
             logger.info("No extra columns loaded.")
             extra_columns = {"notes": None}
@@ -409,7 +408,7 @@ class Worker(QObject):
         """
         for result in dataframe_set:
             file_name = Path(
-                f"{self.files['output']}_{result.chameleon_mode}.csv"
+                f"{self.files['output']}_{result.chameleon_mode_cleaned}.csv"
             )
             logger.info("Writing %s", file_name)
             try:
@@ -630,16 +629,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Handles about page information.
         """
-        logo = QtGui.QIcon(QtGui.QPixmap(self.logo))
+        logo = QtGui.QPixmap(self.logo)
 
         if APP_VERSION:
             formatted_version = f"<p><center>Version {APP_VERSION}</center></p>"
         else:
             formatted_version = ""
-        about = QMessageBox(self, icon=logo, textFormat=QtCore.Qt.RichText)
+        about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
         about.setWindowTitle("About Chameleon")
         about.setIconPixmap(
-            QtGui.QPixmap(self.logo).scaled(
+            logo.scaled(
                 160,
                 160,
                 QtCore.Qt.KeepAspectRatio,
@@ -729,7 +728,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         else:
             logger.debug("counter.yaml history: %s.", (self.tag_count))
 
-        fav_list = list(self.tag_count)
+        fav_list = sorted(self.tag_count, key=self.tag_count.get, reverse=True)
 
         if len(fav_list) < len(self.fav_btn):
             # If we run out of favorites, start adding non-redundant default tags
@@ -748,9 +747,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 :def_count
             ]
         # Loop through the buttons and apply our ordered tag values
-        for index, btn in enumerate(self.fav_btn):
+        for btn, text in zip(self.fav_btn, fav_list):
             # The fav_btn and set_lists should have a 1:1 correspondence
-            btn.setText(fav_list[index])
+            btn.setText(text)
 
     def add_tag(self):
         """
@@ -770,19 +769,18 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Count commas as a delimiter and don't include in the tags
         splitter.whitespace += ","
         splitter.whitespace_split = True
-        label_list = sorted(splitter)
-        for i, label in enumerate(label_list):
+        for count, label in enumerate(sorted(splitter)):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
-            existing_item = self.listWidget.findItems(
-                label, QtCore.Qt.MatchExactly
+            existing_item = next(
+                iter(self.listWidget.findItems(label, QtCore.Qt.MatchExactly)),
+                None,
             )
             if existing_item:
                 # Clear the prior selection on the first iteration only
-                if i == 0:
+                if count == 0:
                     self.listWidget.selectionModel().clear()
-                # existing_item should never have more than 1 member
-                existing_item[0].setSelected(True)
+                existing_item.setSelected(True)
                 logger.warning("%s is already in the list.", label)
             else:
                 self.listWidget.addItem(label)
@@ -922,7 +920,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender.insert(expanded)
         self.run_checker()
 
-    def dialog(self, text: str, info: str, icon: str):
+    def dialog(self, text: str, info: str, icon: str = "information"):
         """
         Method to pop-up critical error box
 
@@ -930,16 +928,19 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         ----------
         text, info : str
             Optional error box text.
+        icon : str
+            Which icon to use
         """
-        dialog = QMessageBox(self)
-        dialog.setText(text)
-        if icon == "critical":
-            dialog.setIcon(QMessageBox.Critical)
-        else:
-            dialog.setIcon(QMessageBox.Information)
-        dialog.setInformativeText(info)
-        dialog.setTextFormat(QtCore.Qt.RichText)
-        dialog.exec()
+        dialog_box = QMessageBox(self)
+        dialog_box.setText(text)
+        dialog_box.setIcon(
+            QMessageBox.Critical
+            if icon == "critical"
+            else QMessageBox.Information
+        )
+        dialog_box.setInformativeText(info)
+        dialog_box.setTextFormat(QtCore.Qt.RichText)
+        dialog_box.exec()
 
     @property
     def file_fields(self) -> dict:
@@ -961,7 +962,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         checked_box = next(
             e
             for e in self.fileFormatGroup.children()
-            if isinstance(e, QRadioButton)
+            if isinstance(e, QRadioButton) and e.isChecked()
         )
         return {
             self.excelRadio: "excel",
@@ -972,7 +973,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     @property
     def modes(self) -> set:
         return {
-            i.text().replace(":", "_")
+            i.text()
             for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
         }
 

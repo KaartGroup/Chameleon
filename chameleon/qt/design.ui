@@ -72,7 +72,7 @@
         <item>
          <widget class="QToolButton" name="oldFileSelectButton">
           <property name="focusPolicy">
-           <enum>Qt::StrongFocus</enum>
+           <enum>Qt::TabFocus</enum>
           </property>
           <property name="toolTip">
            <string>Browse for an earlier timestamped .csv file.</string>
@@ -130,7 +130,7 @@
         <item>
          <widget class="QToolButton" name="newFileSelectButton">
           <property name="focusPolicy">
-           <enum>Qt::StrongFocus</enum>
+           <enum>Qt::TabFocus</enum>
           </property>
           <property name="toolTip">
            <string>Browse for a later timestamped .csv file.</string>
@@ -208,7 +208,7 @@
         <item>
          <widget class="QToolButton" name="outputFileSelectButton">
           <property name="focusPolicy">
-           <enum>Qt::StrongFocus</enum>
+           <enum>Qt::TabFocus</enum>
           </property>
           <property name="toolTip">
            <string>Set save location for output file.</string>
@@ -246,7 +246,7 @@
        <item>
         <widget class="QRadioButton" name="geojsonRadio">
          <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
+          <enum>Qt::TabFocus</enum>
          </property>
          <property name="text">
           <string>GeoJSON</string>
@@ -256,7 +256,7 @@
        <item>
         <widget class="QRadioButton" name="excelRadio">
          <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
+          <enum>Qt::TabFocus</enum>
          </property>
          <property name="text">
           <string>Excel</string>
@@ -266,7 +266,7 @@
        <item>
         <widget class="QRadioButton" name="csvRadio">
          <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
+          <enum>Qt::TabFocus</enum>
          </property>
          <property name="text">
           <string>CSV</string>
@@ -328,7 +328,7 @@
          <item>
           <widget class="QPushButton" name="popTag1">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>highway</string>
@@ -338,7 +338,7 @@
          <item>
           <widget class="QPushButton" name="popTag2">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>name</string>
@@ -348,7 +348,7 @@
          <item>
           <widget class="QPushButton" name="popTag3">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>building</string>
@@ -358,7 +358,7 @@
          <item>
           <widget class="QPushButton" name="popTag4">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>addr:housenumber</string>
@@ -368,7 +368,7 @@
          <item>
           <widget class="QPushButton" name="popTag5">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>addr:street</string>
@@ -395,7 +395,7 @@
          <item row="1" column="1">
           <widget class="QPushButton" name="searchButton">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="toolTip">
             <string>Add selected tag to list.</string>
@@ -424,7 +424,7 @@
          <item row="2" column="1">
           <widget class="QPushButton" name="deleteItemButton">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="toolTip">
             <string>Delete selected tag from list.</string>
@@ -437,7 +437,7 @@
          <item row="3" column="1">
           <widget class="QPushButton" name="clearListButton">
            <property name="focusPolicy">
-            <enum>Qt::StrongFocus</enum>
+            <enum>Qt::TabFocus</enum>
            </property>
            <property name="toolTip">
             <string>Clear all tags from current list.</string>
@@ -483,7 +483,7 @@
       <item>
        <widget class="QCheckBox" name="groupingCheckBox">
         <property name="focusPolicy">
-         <enum>Qt::StrongFocus</enum>
+         <enum>Qt::TabFocus</enum>
         </property>
         <property name="toolTip">
          <string>Consolidate similar changes for listed tag(s)</string>
@@ -522,7 +522,7 @@
        <item>
         <widget class="QRadioButton" name="onlineRadio">
          <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
+          <enum>Qt::TabFocus</enum>
          </property>
          <property name="toolTip">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Chameleon will use the OSM API to get more information about &amp;quot;deleted&amp;quot; ways, such as whether they are actually deleted or just absent from the provided data, and which changeset they were deleted in.&lt;/p&gt;&lt;p&gt;This will make the analysis take a longer amount of time.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -541,7 +541,7 @@
        <item>
         <widget class="QRadioButton" name="offlineRadio">
          <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
+          <enum>Qt::TabFocus</enum>
          </property>
          <property name="toolTip">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Chameleon will not attempt to use the OSM API to get more information about &amp;quot;deleted&amp;quot; ways.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -588,7 +588,7 @@
       <item>
        <widget class="QPushButton" name="runButton">
         <property name="focusPolicy">
-         <enum>Qt::StrongFocus</enum>
+         <enum>Qt::TabFocus</enum>
         </property>
         <property name="toolTip">
          <string>Execute process based on tag(s) selected.</string>

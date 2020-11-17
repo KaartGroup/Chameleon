@@ -13,7 +13,7 @@ else:
     last_tag = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)[
         -1
     ].name
-    with Path("resources/version.txt").open("w") as f:
+    with Path("chameleon/resources/version.txt").open("w") as f:
         f.write(last_tag)
     print("version.txt written")
 
