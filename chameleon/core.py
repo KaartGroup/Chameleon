@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, TextIO, Tuple, Union
+from typing import Dict, List, Set, TextIO, Tuple, Union
 
 import numpy as np
 import overpass
@@ -73,16 +73,16 @@ class ChameleonDataFrame(pd.DataFrame):
         Takes a dataframe that has already been merged from two input files
         and queries it for changes in the given tag
         """
-        if self.chameleon_mode not in SPECIAL_MODES:
-            intermediate_df = self.loc[
+        intermediate_df = (
+            self.loc[
                 (
                     self[f"{self.chameleon_mode_cleaned}_old"].fillna("")
                     != self[f"{self.chameleon_mode_cleaned}_new"].fillna("")
                 )
             ]
-        else:
-            # New and deleted frames
-            intermediate_df = self
+            if self.chameleon_mode not in SPECIAL_MODES
+            else self
+        )
         # self = ChameleonDataFrame(
         #     mode=self.chameleon_mode, grouping=self.grouping)
 
@@ -230,10 +230,11 @@ class ChameleonDataFrame(pd.DataFrame):
         return self
 
     def sort(self) -> ChameleonDataFrame:
-        if self.grouping:
-            sortable_values = ["action", "users", "latest_timestamp"]
-        else:
-            sortable_values = ["action", "user", "timestamp"]
+        sortable_values = (
+            ["action", "users", "latest_timestamp"]
+            if self.grouping
+            else ["action", "user", "timestamp"]
+        )
         try:
             self.sort_values(sortable_values, inplace=True)
         except KeyError:
@@ -496,10 +497,7 @@ def split_id(feature_id) -> Tuple[str, str]:
     idregex = re.compile(r"\d+\Z")
 
     typematch = typeregex.search(feature_id)
-    if typematch:
-        ftype = TYPE_EXPANSION[typematch.group()]
-    else:
-        ftype = None
+    ftype = TYPE_EXPANSION[typematch.group()] if typematch else None
     idmatch = idregex.search(feature_id).group()
     return ftype, idmatch
 

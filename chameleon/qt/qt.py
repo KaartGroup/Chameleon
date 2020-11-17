@@ -43,13 +43,15 @@ from chameleon.core import (
 from chameleon.qt import design
 
 # Differentiate sys settings between pre and post-bundling
-if getattr(sys, "frozen", False):
-    # Script is in a frozen package, i.e. PyInstaller
-    RESOURCES_DIR = Path(sys._MEIPASS)
-else:
-    # Script is not in a frozen package
+RESOURCES_DIR = (
+    Path(sys._MEIPASS)
+    if getattr(
+        sys, "frozen", False
+    )  # Script is in a frozen package, i.e. PyInstaller
+    else Path(__file__).parents[1]  # Script is not in a frozen package
+    / "resources"
     # __file__.parent is chameleon, .parents[1] is chameleon-2
-    RESOURCES_DIR = Path(__file__).parents[1] / "resources"
+)
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
@@ -251,10 +253,11 @@ class Worker(QObject):
             dialog_icon = "information"
             if self.error_list:  # Some tags failed
                 dialog_icon = "critical"
-                if len(self.error_list) == 1:
-                    headline = "<p>A tag could not be queried</p>"
-                else:
-                    headline = "<p>Tags could not be queried</p>"
+                headline = (
+                    "<p>A tag could not be queried</p>"
+                    if len(self.error_list) == 1
+                    else "<p>Tags could not be queried</p>"
+                )
                 summary = "\n".join(self.error_list)
                 if self.successful_items:
                     headline = "<p>Some tags could not be queried</p>"
@@ -272,10 +275,7 @@ class Worker(QObject):
                 summary += "\nThe process was cancelled before the following tags completed:\n"
                 summary += "\n".join(cancelled_list)
             if self.successful_items:
-                if self.format != "excel":
-                    s = "s"
-                else:
-                    s = ""
+                s = "s" if self.format != "excel" else ""
                 # We want to always show in the file explorer, so we'll always link to a directory
                 headline += (
                     f"<p>Output file{s} written to "
@@ -631,10 +631,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         logo = QtGui.QPixmap(self.logo)
 
-        if APP_VERSION:
-            formatted_version = f"<p><center>Version {APP_VERSION}</center></p>"
-        else:
-            formatted_version = ""
+        formatted_version = (
+            f"<p><center>Version {APP_VERSION}</center></p>"
+            if APP_VERSION
+            else ""
+        )
         about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
         about.setWindowTitle("About Chameleon")
         about.setIconPixmap(
@@ -756,15 +757,17 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Adds user defined tags into processing list on QListWidget.
         """
         # Identifies sender signal and grabs button text
-        if self.sender() is self.searchButton:
-            # Value was typed by user
-            raw_label = self.searchBox.text()
-            if not raw_label.strip():  # Don't accept whitespace-only values
-                logger.warning("No value entered.")
-                return
-        elif self.sender() in self.fav_btn:
+        raw_label = (
+            self.sender().text()
+            if self.sender() in self.fav_btn
             # Value was clicked from fav btn
-            raw_label = self.sender().text()
+            else self.searchBox.text()
+            # Value was typed by user
+            # self.sender() is self.searchButton
+        )
+        if not raw_label.strip():  # Don't accept whitespace-only values
+            logger.warning("No value entered.")
+            return
         splitter = shlex.shlex(raw_label)
         # Count commas as a delimiter and don't include in the tags
         splitter.whitespace += ","
@@ -912,10 +915,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         sender = self.sender()
         text = sender.text().strip()
-        if text:
-            expanded = str(Path(text).expanduser())
-        else:
-            expanded = ""
+        expanded = str(Path(text).expanduser()) if text else ""
         sender.selectAll()
         sender.insert(expanded)
         self.run_checker()
@@ -1166,7 +1166,8 @@ class ChameleonProgressDialog(QProgressDialog):
     Customizes QProgressDialog with methods specific to this app.
     """
 
-    # TODO Redefine properties in terms of major and minor increments, use getters and setters if it helps
+    # TODO Redefine properties in terms of major and minor increments,
+    # use getters and setters if it helps
     def __init__(self, length: int, use_api=False, use_overpass=False):
         self.current_item = 0
         self.item_count = None
@@ -1272,10 +1273,7 @@ def dirname(the_path: Path) -> str:
     which can be self if it is a directory
     or else the parent
     """
-    if not the_path.is_dir():
-        return the_path.parent
-    else:
-        return the_path
+    return the_path.parent if not the_path.is_dir() else the_path
 
 
 def plur(count: int) -> str:
@@ -1283,23 +1281,20 @@ def plur(count: int) -> str:
     Meant to used within f-strings, fills in an 's' where appropriate,
     based on input parameter. i.e., f"You have {count} item{plur(count)}."
     """
-    if count == 1:
-        return ""
-    else:
-        return "s"
+    return "" if count == 1 else "s"
 
 
 def success_message(frame) -> str:
     row_count = len(frame)
-    if not row_count:
-        # Empty dataframe
-        success_message = f"{frame.chameleon_mode} has no change."
-    else:
-        success_message = (
+    # Empty dataframe
+    return (
+        f"{frame.chameleon_mode} has no change."
+        if not row_count
+        else (
             f"{frame.chameleon_mode} output "
             f"with {row_count} row{plur(row_count)}."
         )
-    return success_message
+    )
 
 
 if __name__ == "__main__":

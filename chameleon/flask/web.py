@@ -501,31 +501,31 @@ mimetype = {
 
 def filter_processing(filters: List[str]) -> List[Dict[tuple, list]]:
     filter_list = []
-    for filterstring in filters:
-        filterstring, typestring = filterstring.rsplit(" (", 1)
+    for filter in filters:
+        filterstring, typestring = filter.rsplit(" (", 1)
         typestring = typestring[:-1]
 
-        if typestring == "nwr":
-            types = [typestring]
-        else:
-            types = [TYPE_EXPANSION[i] for i in typestring]
-
-        for separator in ("=", "~"):  # Probably add more separators
-            partitioned = filterstring.partition(separator)
-            if partitioned[2]:
-                break
-        filter_dict = {
-            "key": partitioned[0],
-            "value": partitioned[2],
+        types = (
+            [typestring]
+            if typestring == "nwr"
+            else [TYPE_EXPANSION[i] for i in typestring]
+        )
+        filter_map = {
             "types": types,
         }
-        if filter_dict["value"]:
-            splitter = shlex.shlex(filter_dict["value"])
-            splitter.whitespace += ",|"
-            splitter.whitespace_split = True
-            filter_dict["value"] = list(splitter)
-        if any(v for k, v in filter_dict.items() if k != "types"):
-            filter_list.append(filter_dict)
+
+        for separator in ("=", "~"):  # Probably add more separators
+            filter_map["key"], _, filter_map["value"] = filterstring.partition(
+                separator
+            )
+            if filter_map.get("value"):
+                splitter = shlex.shlex(filter_map["value"])
+                splitter.whitespace += ",|"
+                splitter.whitespace_split = True
+                filter_map["value"] = list(splitter)
+                break
+        if filter_map.get("key") or filter_map.get("value"):
+            filter_list.append(filter_map)
     return filter_list
 
 
@@ -540,10 +540,7 @@ def overpass_getter(
 
     formatted_tags = []
     for i in filter_list:
-        if i["value"]:
-            formatted = f'~"{"|".join(i["value"])}"'
-        else:
-            formatted = ""
+        formatted = f'~"{"|".join(i["value"])}"' if i["value"] else ""
         for t in i["types"]:
             formatted_tags.append(
                 f'{t}["{i["key"]}"{formatted}](area.searchArea)'
