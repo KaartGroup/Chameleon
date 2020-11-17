@@ -1,0 +1,29 @@
+select {
+    min-width: 20em;
+}
+
+.tabcontainer > .tabbedpage:target ~ .tabbedpage:last-child,
+.tabcontainer > .tabbedpage {
+    display: none;
+}
+
+.tabcontainer > :last-child,
+.tabcontainer > .tabbedpage:target {
+    display: block;
+}
+
+label {
+    display: block;
+}
+
+ul#tabmenu li {
+    display: inline;
+}
+
+fieldset {
+    border: none;
+}
+
+input[name="output"] {
+    text-align: right;
+}

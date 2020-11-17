@@ -6,9 +6,10 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, TextIO, Tuple, Union
 
 import numpy as np
+import overpass
 import pandas as pd
 import requests
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 SPECIAL_MODES = {"new", "deleted"}
 TYPE_EXPANSION = {"n": "node", "w": "way", "r": "relation"}
+GEOJSON_OSM = {"Point": "node", "LineString": "way", "Polygon": "way"}
 JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
 OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 
@@ -157,13 +159,17 @@ class ChameleonDataFrame(pd.DataFrame):
         }
         if self.chameleon_mode != "name":
             agg_functions.update(
-                {"name": lambda name: ",".join(str(i) for i in name.unique())}
+                {
+                    "name": lambda name: ",".join(
+                        str(i) for i in name.unique() if pd.notna(i)
+                    )
+                }
             )
         if self.chameleon_mode != "highway":
             agg_functions.update(
                 {
                     "highway": lambda highway: ",".join(
-                        str(i) for i in highway.unique()
+                        str(i) for i in highway.unique() if pd.notna(i)
                     )
                 }
             )
@@ -236,21 +242,29 @@ class ChameleonDataFrameSet(set):
 
     def __init__(
         self,
-        oldfile: Union[str, Path],
-        newfile: Union[str, Path],
+        old: Union[str, Path, TextIO],
+        new: Union[str, Path, TextIO],
         use_api=False,
+        extra_columns: dict = {},
     ):
         super().__init__(self)
+        self.oldfile = old
+        self.newfile = new
+        if isinstance(self.oldfile, str):
+            self.oldfile = Path(self.oldfile)
+        if isinstance(self.newfile, str):
+            self.newfile = Path(self.newfile)
+
+        self.extra_columns = extra_columns
+
         self.source_data = None
-        self.oldfile = Path(oldfile)
-        self.newfile = Path(newfile)
         self.deleted_way_members = {}
         self.overpass_result_attribs = {}
 
         self.merge_files()
 
     def __getitem__(self, key) -> ChameleonDataFrame:
-        return [i for i in self if i.chameleon_mode == key][0]
+        return next(i for i in self if i.chameleon_mode == key)
 
     def merge_files(self) -> ChameleonDataFrameSet:
         """
@@ -335,68 +349,116 @@ class ChameleonDataFrameSet(set):
             return self.overpass_result_attribs[feature_id]
         else:
             feature_type, feature_id_num = split_id(feature_id)
-            try:
-                response = requests.get(
-                    "https://www.openstreetmap.org/api/0.6/"
-                    f"{feature_type}/{feature_id_num}/history.json",
-                    timeout=5,
-                    headers={"user-agent": f"Kaart Chameleon{app_version}"},
-                )
-                # Raises exceptions for non-successful status codes
-                response.raise_for_status()
-            except ConnectionError as e:
-                # Couldn't contact the server, could be client-side
-                logger.exception(e)
-                return {}
-            except requests.ReadTimeout as e:
-                logger.exception(e)
-                return {}
-            except requests.HTTPError:
-                if str(response.status_code) == "429":
-                    retry_after = response.headers.get("retry-after", "")
-                    logger.error(
-                        "The OSM server says you've made too many requests."
-                        "You can retry after %s seconds.",
-                        retry_after,
+            response = requests.get(
+                "https://www.openstreetmap.org/api/0.6/"
+                f"{feature_type}/{feature_id_num}/history.json",
+                timeout=5,
+                headers={
+                    "User-Agent": f"Kaart Chameleon{app_version}",
+                    "From": "dev@kaart.com",
+                },
+            )
+            # Raises exceptions for non-successful status codes
+            response.raise_for_status()
+
+            loaded_response = response.json()
+            latest_version = loaded_response["elements"][-1]
+            element_attribs = {
+                "user_new": latest_version["user"],
+                "changeset_new": str(latest_version["changeset"]),
+                "version_new": str(latest_version["version"]),
+                "timestamp_new": latest_version["timestamp"],
+            }
+            if not latest_version.get("visible", True):
+                # The most recent way version has the way deleted
+                prior_version_num = latest_version["version"] - 1
+                try:
+                    prior_version = next(
+                        i
+                        for i in loaded_response["elements"]
+                        if i["version"] == prior_version_num
                     )
-                    raise
+                except IndexError:
+                    # Prior version doesn't exist for some reason, possibly redaction
+                    pass
                 else:
-                    logger.error(
-                        "Server replied with a %s error", response.status_code
-                    )
-                return {}
+                    # Save last members of the deleted way
+                    # for later use in detecting splits/merges
+                    if feature_type == "way":
+                        self.deleted_way_members[feature_id] = prior_version[
+                            "nodes"
+                        ]
             else:
-                loaded_response = response.json()
-                latest_version = loaded_response["elements"][-1]
-                element_attribs = {
-                    "user_new": latest_version["user"],
-                    "changeset_new": str(latest_version["changeset"]),
-                    "version_new": str(latest_version["version"]),
-                    "timestamp_new": latest_version["timestamp"],
-                }
-                if not latest_version.get("visible", True):
-                    # The most recent way version has the way deleted
-                    prior_version_num = latest_version["version"] - 1
-                    try:
-                        prior_version = [
-                            i
-                            for i in loaded_response["elements"]
-                            if i["version"] == prior_version_num
-                        ][0]
-                    except IndexError:
-                        # Prior version doesn't exist for some reason, possibly redaction
-                        pass
-                    else:
-                        # Save last members of the deleted way
-                        # for later use in detecting splits/merges
-                        if feature_type == "way":
-                            self.deleted_way_members[feature_id] = prior_version[
-                                "nodes"
-                            ]
-                else:
-                    # The way was not deleted, just dropped from the latter dataset
-                    element_attribs.update({"action": "dropped"})
-                return element_attribs
+                # The way was not deleted, just dropped from the latter dataset
+                element_attribs.update({"action": "dropped"})
+            return element_attribs
+
+    def write_excel(self, file_name: Union[Path, str]):
+        with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
+            for result in self:
+                # Points at first cell (blank) of last column written
+                column_pointer = len(result.columns) + 1
+                for k in self.extra_columns.keys():
+                    result[k] = ""
+                result.to_excel(
+                    writer,
+                    sheet_name=result.chameleon_mode,
+                    index=True,
+                    freeze_panes=(1, 0),
+                )
+
+                if self.extra_columns:
+                    sheet = writer.sheets[result.chameleon_mode]
+
+                    for k, v in self.extra_columns.items():
+                        if v is not None and v.get("validate", None):
+                            sheet.data_validation(
+                                1, column_pointer, len(result), column_pointer, v
+                            )
+                        column_pointer += 1
+
+    def to_geojson(self, timeout: int = 120) -> dict:
+        if not self.overpass_query:
+            return
+
+        api = overpass.API(timeout=timeout)
+
+        response = api.get(
+            self.overpass_query, verbosity="meta geom", responseformat="geojson",
+        )
+
+        merged = ChameleonDataFrame()
+        for result in self.nondeleted:
+            columns_to_keep = ["url", "user", "timestamp", "version"]
+            if "changeset" in result.columns and "osmcha" in result.columns:
+                columns_to_keep += ["changeset", "osmcha"]
+            if result.chameleon_mode != "name":
+                columns_to_keep += ["name"]
+            if result.chameleon_mode != "highway":
+                columns_to_keep += ["highway"]
+            if result.chameleon_mode not in SPECIAL_MODES:
+                columns_to_keep += [
+                    f"old_{result.chameleon_mode}",
+                    f"new_{result.chameleon_mode}",
+                ]
+            # else:
+            #     result[result.chameleon_mode] = result.chameleon_mode
+            #     columns_to_keep += [result.chameleon_mode]
+            columns_to_keep += ["action"]
+            result = result[columns_to_keep]
+            merged = merged.append(result)
+
+        merged = merged.loc[~merged.index.duplicated()]
+
+        for i in response["features"]:
+            newid = GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"])
+            i["id"] = newid
+            i["properties"] = {
+                column: value
+                for column, value in merged.loc[newid].items()
+                if pd.notna(value)
+            }
+        return response
 
     @property
     def nondeleted(self) -> set:
@@ -404,15 +466,14 @@ class ChameleonDataFrameSet(set):
 
     @property
     def overpass_query(self) -> str:
-        feature_ids = {
-            "node": [],
-            "way": [],
-        }
+        feature_ids = {"node": set(), "way": set(), "relation": set()}
         for df in self.nondeleted:
             for k, v in separate_ids_by_feature_type(df.index).items():
-                feature_ids[k] += v
+                feature_ids[k] |= set(v)
         return ";".join(
-            [f"{k}(id:{','.join(v)})" for k, v in feature_ids.items() if v]
+            f"{k}(id:{','.join(sorted(v))})"
+            for k, v in feature_ids.items()
+            if k != "relation" and v
         )
 
 
@@ -421,7 +482,7 @@ def split_id(feature_id) -> Tuple[str, str]:
     Separates an id like "n12345678" into the type and id number
     """
     feature_id = str(feature_id)
-    typeregex = re.compile(r"\A[a-z-A-Z]")
+    typeregex = re.compile(r"\A[A-z]")
     idregex = re.compile(r"\d+\Z")
 
     typematch = typeregex.search(feature_id)
@@ -451,7 +512,6 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
     return {
         v: [fid for ftype, fid in f_type_id if ftype == v]
         for v in TYPE_EXPANSION.values()
-        if v != "relation"
     }
 
 

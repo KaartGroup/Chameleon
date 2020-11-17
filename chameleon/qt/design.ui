@@ -245,6 +245,9 @@
        </property>
        <item>
         <widget class="QRadioButton" name="geojsonRadio">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
          <property name="text">
           <string>GeoJSON</string>
          </property>
@@ -252,6 +255,9 @@
        </item>
        <item>
         <widget class="QRadioButton" name="excelRadio">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
          <property name="text">
           <string>Excel</string>
          </property>
@@ -259,6 +265,9 @@
        </item>
        <item>
         <widget class="QRadioButton" name="csvRadio">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
          <property name="text">
           <string>CSV</string>
          </property>
@@ -512,6 +521,9 @@
        </property>
        <item>
         <widget class="QRadioButton" name="onlineRadio">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
          <property name="toolTip">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Chameleon will use the OSM API to get more information about &amp;quot;deleted&amp;quot; ways, such as whether they are actually deleted or just absent from the provided data, and which changeset they were deleted in.&lt;/p&gt;&lt;p&gt;This will make the analysis take a longer amount of time.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
@@ -528,6 +540,9 @@
        </item>
        <item>
         <widget class="QRadioButton" name="offlineRadio">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
          <property name="toolTip">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Chameleon will not attempt to use the OSM API to get more information about &amp;quot;deleted&amp;quot; ways.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
@@ -599,7 +614,7 @@
   <customwidget>
    <class>QLineEditDragDrop</class>
    <extends>QLineEdit</extends>
-   <header>chameleon.qlineeditdragdrop</header>
+   <header>chameleon.qt.qlineeditdragdrop</header>
   </customwidget>
  </customwidgets>
  <tabstops>
@@ -609,6 +624,9 @@
   <tabstop>newFileSelectButton</tabstop>
   <tabstop>outputFileNameBox</tabstop>
   <tabstop>outputFileSelectButton</tabstop>
+  <tabstop>csvRadio</tabstop>
+  <tabstop>excelRadio</tabstop>
+  <tabstop>geojsonRadio</tabstop>
   <tabstop>popTag1</tabstop>
   <tabstop>popTag2</tabstop>
   <tabstop>popTag3</tabstop>

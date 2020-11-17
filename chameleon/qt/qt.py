@@ -14,14 +14,13 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-import overpass
-import oyaml as yaml
 import pandas as pd
+import yaml
 
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject, QThread, Signal, QMutex, QWaitCondition
+from PySide2.QtCore import QObject, QThread, Signal
 from PySide2.QtWidgets import (
     QAction,
     QApplication,
@@ -31,16 +30,17 @@ from PySide2.QtWidgets import (
     QMessageBox,
     QProgressDialog,
     QPushButton,
+    QRadioButton,
 )
+from requests import HTTPError, Timeout
 
 # Import generated UI file
-from chameleon import design
 from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
-    SPECIAL_MODES,
     clean_for_presentation,
 )
+from chameleon.qt import design
 
 # Differentiate sys settings between pre and post-bundling
 if getattr(sys, "frozen", False):
@@ -170,7 +170,6 @@ class Worker(QObject):
         self.error_list = []
         self.successful_items = {}
 
-        self.extra_columns = self.load_extra_columns()
         self.write_output = {
             "csv": self.write_csv,
             "excel": self.write_excel,
@@ -202,7 +201,10 @@ class Worker(QObject):
                 self.history_writer()
             mode = None
             cdf_set = ChameleonDataFrameSet(
-                self.files["old"], self.files["new"], use_api=self.use_api
+                self.files["old"],
+                self.files["new"],
+                use_api=self.use_api,
+                extra_columns=self.load_extra_columns(),
             )
 
             if self.high_deletions_checker(cdf_set):
@@ -343,14 +345,12 @@ class Worker(QObject):
         )
 
     def user_confirm(self, message: str) -> bool:
-        try:  # This block ensures the mutex is unlocked even in the worst case
-            self.user_confirm_signal.emit(message)
-            self.parent.mutex.lock()
-            # Don't check for a response until after the user has a chance to give one
-            self.parent.waiting_for_input.wait(self.parent.mutex)
-            return self.response
-        finally:
-            self.parent.mutex.unlock()
+        self.user_confirm_signal.emit(message)
+        while self.response is None:  # Wait for user input
+            time.sleep(0.1)
+        response = self.response
+        self.response = None
+        return response
 
     def check_api_deletions(self, cdfs: ChameleonDataFrameSet):
         """
@@ -361,6 +361,7 @@ class Worker(QObject):
 
         df = cdfs.source_data
 
+        empty_count = 0
         # TODO Iterate directly over dataframe rather than constructed list
         deleted_ids = list(df.loc[df["action"] == "deleted"].index)
         self.scale_with_api_items.emit(len(deleted_ids))
@@ -370,9 +371,31 @@ class Worker(QObject):
                 raise UserCancelledError
             self.increment_progbar_api.emit()
 
-            element_attribs = cdfs.check_feature_on_api(
-                feature_id, app_version=APP_VERSION
-            )
+            try:
+                element_attribs = cdfs.check_feature_on_api(
+                    feature_id, app_version=APP_VERSION
+                )
+            except (Timeout, ConnectionError) as e:
+                # Couldn't contact the server, could be client-side
+                logger.exception(e)
+                if empty_count > 20:
+                    break
+                empty_count += 1
+                continue
+            except HTTPError as e:
+                if str(e.response.status_code) == "429":
+                    retry_after = e.response.headers.get("retry-after", "")
+                    logger.error(
+                        "The OSM server says you've made too many requests."
+                        "You can retry after %s seconds.",
+                        retry_after,
+                    )
+                    raise
+                else:
+                    logger.error(
+                        "Server replied with a %s error", e.response.status_code
+                    )
+                return {}
 
             df.update(pd.DataFrame(element_attribs, index=[feature_id]))
 
@@ -385,7 +408,6 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
         for result in dataframe_set:
-            row_count = len(result)
             file_name = Path(
                 f"{self.files['output']}_{result.chameleon_mode}.csv"
             )
@@ -405,16 +427,9 @@ class Worker(QObject):
                 logger.exception("Write error.")
                 self.error_list.append(result.chameleon_mode)
                 continue
-            if not row_count:
-                # Empty dataframe
-                success_message = f"{result.chameleon_mode} has no change."
-            else:
-                success_message = (
-                    f"{result.chameleon_mode} output "
-                    f"with {row_count} row{plur(row_count)}."
-                )
+
             self.successful_items.update(
-                {result.chameleon_mode: success_message}
+                {result.chameleon_mode: success_message(result)}
             )
             logger.info(
                 "Processing for %s complete. %s written.",
@@ -428,47 +443,18 @@ class Worker(QObject):
         """
         Writes all members of a ChameleonDataFrameSet as sheets in an Excel file
         """
-        file_name = self.files["output"].with_suffix(".xlsx")
+        self.output_path = file_name = self.files["output"].with_suffix(".xlsx")
         if file_name.is_file() and not self.overwrite_confirm(file_name):
             logger.info("Not writing output")
             return
-        with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
-            for result in dataframe_set:
-                row_count = len(result)
-                # Points at first cell (blank) of last column written
-                column_pointer = len(result.columns) + 1
-                for k in self.extra_columns.keys():
-                    result[k] = ""
-                result.to_excel(
-                    writer,
-                    sheet_name=result.chameleon_mode,
-                    index=True,
-                    freeze_panes=(1, 0),
-                )
 
-                if self.extra_columns:
-                    sheet = writer.sheets[result.chameleon_mode]
+        dataframe_set.write_excel(file_name)
 
-                    for k, v in self.extra_columns.items():
-                        if v is not None and v.get("validate", None):
-                            sheet.data_validation(
-                                1, column_pointer, row_count, column_pointer, v
-                            )
-                        column_pointer += 1
-
-                if not row_count:
-                    # Empty dataframe
-                    success_message = f"{result.chameleon_mode} has no change."
-                else:
-                    success_message = (
-                        f"{result.chameleon_mode} output "
-                        f"with {row_count} row{plur(row_count)}."
-                    )
-                self.successful_items.update(
-                    {result.chameleon_mode: success_message}
-                )
-                self.mode_complete.emit()
-        self.output_path = file_name
+        for result in dataframe_set:
+            self.successful_items.update(
+                {result.chameleon_mode: success_message(result)}
+            )
+            self.mode_complete.emit()
 
     def write_geojson(self, dataframe_set: ChameleonDataFrameSet):
         """
@@ -476,73 +462,27 @@ class Worker(QObject):
         using the overpass API
         """
         timeout = 120
-        file_name = Path(f"{self.files['output']}.geojson")
-        self.output_path = file_name
+        self.output_path = file_name = self.files["output"].with_suffix(
+            ".geojson"
+        )
+
         if file_name.is_file() and not self.overwrite_confirm(file_name):
             logger.info("User chose not to overwrite")
             return
-        if dataframe_set.overpass_query:
-            api = overpass.API(timeout=timeout)
-            try:
-                self.overpass_counter.emit(timeout)
-                response = api.get(
-                    dataframe_set.overpass_query,
-                    verbosity="meta geom",
-                    responseformat="geojson",
-                )
-            except TimeoutError:
-                self.dialog(
-                    "Overpass timeout",
-                    "The Overpass server did not respond in time.",
-                    "critical",
-                )
-                return
-            finally:
-                self.overpass_complete.emit()
-            logger.info("Response recieved from Overpass.")
-            merged = ChameleonDataFrame()
-            for result in dataframe_set.nondeleted:
-                row_count = len(result)
-                columns_to_keep = ["id", "url", "user", "timestamp", "version"]
-                if "changeset" in result.columns and "osmcha" in result.columns:
-                    columns_to_keep += ["changeset", "osmcha"]
-                if result.chameleon_mode != "name":
-                    columns_to_keep += ["name"]
-                if result.chameleon_mode != "highway":
-                    columns_to_keep += ["highway"]
-                if result.chameleon_mode not in SPECIAL_MODES:
-                    columns_to_keep += [
-                        f"old_{result.chameleon_mode}",
-                        f"new_{result.chameleon_mode}",
-                    ]
-                # else:
-                #     result[result.chameleon_mode] = result.chameleon_mode
-                #     columns_to_keep += [result.chameleon_mode]
-                columns_to_keep += ["action"]
-                result = result[columns_to_keep]
-                merged = merged.append(result)
-                if not row_count:
-                    # Empty dataframe
-                    success_message = f"{result.chameleon_mode} has no change."
-                else:
-                    success_message = (
-                        f"{result.chameleon_mode} output "
-                        f"with {row_count} row{plur(row_count)}."
-                    )
-                self.successful_items.update(
-                    {result.chameleon_mode: success_message}
-                )
-                logger.info("Processing for %s complete.", result.chameleon_mode)
-                self.mode_complete.emit()
-            for i in response["features"]:
-                i["id"] = "w" + str(i["id"])
-                i["properties"] = {
-                    column: value
-                    for column, value in merged[merged["id"] == i["id"]]
-                    .iloc[0]
-                    .items()
-                    if pd.notna(value)
-                }
+
+        try:
+            self.overpass_counter.emit(timeout)
+            response = dataframe_set.to_geojson(timeout=timeout)
+        except TimeoutError:
+            self.dialog(
+                "Overpass timeout",
+                "The Overpass server did not respond in time.",
+                "critical",
+            )
+            return
+        finally:
+            self.overpass_complete.emit()
+        logger.info("Response recieved from Overpass.")
 
         logger.info("Writing geojson…")
         try:
@@ -551,6 +491,15 @@ class Worker(QObject):
         except OSError:
             logger.exception("Write error.")
             self.error_list = [i.chameleon_mode for i in dataframe_set]
+        else:
+            self.successful_items.update(
+                {
+                    frame.chameleon_mode: success_message(frame)
+                    for frame in dataframe_set.nondeleted
+                }
+            )
+        for mode in self.modes:
+            self.mode_complete.emit()
 
 
 class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
@@ -563,6 +512,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     clear_search_box = Signal()
 
     QMB_MAP = {QMessageBox.Yes: True, QMessageBox.No: False}
+    EXTENSION_MAP = {
+        "excel": ".xlsx",
+        "geojson": ".geojson",
+        "csv": r"_{mode}.csv",
+    }
 
     def __init__(self, parent=None):
         """
@@ -576,8 +530,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
         self.listWidget.installEventFilter(self)
-        self.mutex = QMutex()
-        self.waiting_for_input = QWaitCondition()
         self.progress_bar = None
         self.work_thread = None
         self.worker = None
@@ -626,13 +578,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.history_loader()
 
         # List all of our buttons to populate so we can iterate through them
-        self.fav_btn = [
+        self.fav_btn = (
             self.popTag1,
             self.popTag2,
             self.popTag3,
             self.popTag4,
             self.popTag5,
-        ]
+        )
 
         # Populate the buttons defined above
         self.fav_btn_populate()
@@ -719,8 +671,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
 
         # OSM tag resource file, construct list from file
-        autocomplete_source = RESOURCES_DIR / "OSMtag.txt"
-        with autocomplete_source.open() as read_file:
+        with (RESOURCES_DIR / "OSMtag.txt").open() as read_file:
             tags = read_file.read().splitlines()
 
         # Needs to have tags reference a resource file of OSM tags
@@ -816,11 +767,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             # Value was clicked from fav btn
             raw_label = self.sender().text()
         splitter = shlex.shlex(raw_label)
-        splitter.whitespace += (
-            ","  # Count commas as a delimiter and don't include in the tags
-        )
+        # Count commas as a delimiter and don't include in the tags
+        splitter.whitespace += ","
         splitter.whitespace_split = True
-        label_list = sorted(list(splitter))
+        label_list = sorted(splitter)
         for i, label in enumerate(label_list):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
@@ -828,9 +778,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 label, QtCore.Qt.MatchExactly
             )
             if existing_item:
-                if (
-                    i == 0
-                ):  # Clear the prior selection on the first iteration only
+                # Clear the prior selection on the first iteration only
+                if i == 0:
                     self.listWidget.selectionModel().clear()
                 # existing_item should never have more than 1 member
                 existing_item[0].setSelected(True)
@@ -898,7 +847,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         destination = sender.box_control
         # Gets first non-empty value in order
         file_dir = str(
-            [
+            next(
                 e
                 for e in (
                     destination.text().strip(),
@@ -907,7 +856,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                     Path.home() / "Downloads",
                 )
                 if e
-            ][0]
+            )
         )
         file_name = QFileDialog.getOpenFileName(
             self,
@@ -926,14 +875,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         # If no previous location, default to Documents folder
         output_file_dir = str(
-            [
+            next(
                 e
                 for e in (
                     os.path.dirname(self.outputFileNameBox.text().strip()),
                     Path.home() / "Documents",
                 )
                 if e
-            ][0]
+            )
         )
         output_file_name = QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir
@@ -956,12 +905,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.repaint()
 
     def suffix_updater(self):
-        if self.excelRadio.isChecked():
-            self.fileSuffix.setText(".xlsx")
-        elif self.geojsonRadio.isChecked():
-            self.fileSuffix.setText(".geojson")
-        else:
-            self.fileSuffix.setText(r"_{mode}.csv")
+        self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
         self.repaint()
 
     def on_editing_finished(self):
@@ -1014,13 +958,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     @property
     def file_format(self) -> str:
-        if self.excelRadio.isChecked():
-            file_format = "excel"
-        elif self.geojsonRadio.isChecked():
-            file_format = "geojson"
-        else:
-            file_format = "csv"
-        return file_format
+        checked_box = next(
+            e
+            for e in self.fileFormatGroup.children()
+            if isinstance(e, QRadioButton)
+        )
+        return {
+            self.excelRadio: "excel",
+            self.geojsonRadio: "geojson",
+            self.csvRadio: "csv",
+        }[checked_box]
 
     @property
     def modes(self) -> set:
@@ -1176,7 +1123,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         confirm_response = QMessageBox.question(self, "", message)
 
         self.worker.response = self.QMB_MAP[confirm_response]
-        self.waiting_for_input.wakeAll()
 
     def closeEvent(self, event):
         """
@@ -1219,6 +1165,7 @@ class ChameleonProgressDialog(QProgressDialog):
     Customizes QProgressDialog with methods specific to this app.
     """
 
+    # TODO Redefine properties in terms of major and minor increments, use getters and setters if it helps
     def __init__(self, length: int, use_api=False, use_overpass=False):
         self.current_item = 0
         self.item_count = None
@@ -1339,6 +1286,19 @@ def plur(count: int) -> str:
         return ""
     else:
         return "s"
+
+
+def success_message(frame) -> str:
+    row_count = len(frame)
+    if not row_count:
+        # Empty dataframe
+        success_message = f"{frame.chameleon_mode} has no change."
+    else:
+        success_message = (
+            f"{frame.chameleon_mode} output "
+            f"with {row_count} row{plur(row_count)}."
+        )
+    return success_message
 
 
 if __name__ == "__main__":

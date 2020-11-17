@@ -23,3 +23,5 @@ output_test.csv
 pip-selfcheck.json
 resources/version.txt
 test/output_name.csv
+chameleon/flask/files
+chameleon/flask/node_modules

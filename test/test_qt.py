@@ -1,34 +1,62 @@
 """
-Unit tests for the main.py file
+Unit tests for the qt.py file
 """
 from pathlib import Path
 
-import oyaml as yaml
+import yaml
 import pytest
-from PySide2 import QtWidgets
 from PySide2.QtCore import Qt
-from PySide2.QtTest import QTest
-from PySide2.QtWidgets import QMessageBox
 
-from chameleon import main, core
+from chameleon import core
+from chameleon.qt import qt
 
 # TEST_FOLDER = Path("test")
 
-app = QtWidgets.QApplication(["."])
+
+# @pytest.fixture
+# def worker_files():
+#     return {
+#         "old": Path("test/old.csv"),
+#         "new": Path("test/new.csv"),
+#         "output": Path("test/output"),
+#     }
+
+worker_files = {
+    "old": Path("test/old.csv"),
+    "new": Path("test/new.csv"),
+    "output": Path("test/output"),
+}
 
 
 @pytest.fixture
-def worker_files():
-    return {
-        "old": Path("test/old.csv"),
-        "new": Path("test/new.csv"),
-        "output": Path("test/output"),
-    }
+def worker(mainapp):
+    return qt.Worker(mainapp)
 
 
 @pytest.fixture
-def worker(mainapp, worker_files):
-    return main.Worker(mainapp)
+def favorite_location():
+    return Path("test/test_counter.yaml")
+
+
+@pytest.fixture
+def mainapp(
+    monkeypatch,
+    favorite_location,
+    # worker_files,
+    tmp_path,
+    request,
+    qtbot,
+):
+    monkeypatch.setattr(qt, "COUNTER_LOCATION", favorite_location)
+    monkeypatch.setattr(qt.MainApp, "file_fields", worker_files)
+    monkeypatch.setattr(
+        qt.MainApp, "closeEvent", lambda *args: None
+    )  # Disable the confirmation dialog while testing
+    app = qt.MainApp()
+    app.show()
+    qtbot.addWidget(app)
+
+    return app
 
 
 # Worker tests
@@ -65,16 +93,21 @@ def test_load_extra_columns(worker):
 @pytest.mark.parametrize("use_api", [True, False])
 @pytest.mark.parametrize("file_format", ["csv", "geojson", "excel"])
 def test_history_writer(
-    worker, worker_files, use_api, file_format, monkeypatch, tmp_path
+    worker,
+    # worker_files,
+    use_api,
+    file_format,
+    monkeypatch,
+    tmp_path,
 ):
     worker.files = worker_files
     worker.use_api = use_api
     worker.format = file_format
 
     history_path = tmp_path / "history/history.yaml"
-    # history_path = main.HISTORY_LOCATION
-    tmp_path.mkdir(exist_ok=True, parents=True)
-    monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
+    # history_path = qt.HISTORY_LOCATION
+    history_path.parent.mkdir(exist_ok=True, parents=True)
+    monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
     gold_dict = {
         "use_api": use_api,
         "file_format": file_format,
@@ -86,49 +119,36 @@ def test_history_writer(
     worker.history_writer()
 
     with history_path.open("r") as f:
-        assert gold_dict == yaml.safe_load(f)
+        assert {
+            k: (str(v) if isinstance(v, Path) else v)
+            for k, v in gold_dict.items()
+        } == yaml.safe_load(f)
 
 
 @pytest.mark.parametrize(
-    "newfile,outcome",
-    [("test/new_highdeletions.csv", False), ("test/new.csv", True)],
+    "newfile,highdeletions",
+    [("test/new_highdeletions.csv", True), ("test/new.csv", False)],
 )
-def test_high_deletions_checker(worker, newfile, outcome):
-    # TODO Need to simulate click on confirmation dialog
+@pytest.mark.parametrize("user_response", [True, False])
+def test_high_deletions_checker(
+    worker, newfile, highdeletions, user_response, monkeypatch
+):
+    def mock_confirm(message):
+        return user_response
+
+    monkeypatch.setattr(worker, "user_confirm", mock_confirm)
+
     cdf_set = core.ChameleonDataFrameSet("test/old.csv", newfile)
-    assert worker.high_deletions_checker(cdf_set) is outcome
+    assert worker.high_deletions_checker(cdf_set) == (
+        highdeletions and not user_response
+    )
 
 
-# @pytest.mark.parametrize(
-#     "role,returned", [(QMessageBox.YesRole, True), (QMessageBox.NoRole, False)]
-# )
-# def test_overwrite_confirm(mainapp, worker, worker_files, role, returned):
-#     # TODO Need to simulate click on confirmation dialog
-#     worker.overwrite_confirm(worker_files["output"])
-#     messagebox = mainapp.activeModalWidget()
-#     the_button = [
-#         button
-#         for button in messagebox.buttons()
-#         if messagebox.buttonRole(button) == role
-#     ][0]
-#     QTest.mouseClick(the_button)
-#     assert worker.response is returned
+@pytest.mark.parametrize("returned", [True, False])
+def test_overwrite_confirm(mainapp, worker, returned, qtbot, monkeypatch):
+    monkeypatch.setattr(worker, "user_confirm", lambda *args: returned)
 
-
-@pytest.mark.parametrize(
-    "role,returned", [(QMessageBox.YesRole, True), (QMessageBox.NoRole, False)]
-)
-def test_overwrite_confirm(qtbot, mainapp, worker_files, role, returned):
-    mainapp.show()
-    qtbot.addWidget(mainapp)
-    messagebox = mainapp.activeModalWidget()
-    the_button = [
-        button
-        for button in messagebox.buttons()
-        if messagebox.buttonRole(button) == role
-    ][0]
-    QTest.mouseClick(the_button)
-    assert worker.response is returned
+    assert worker.overwrite_confirm(worker_files["output"]) is returned
 
 
 # def test_check_api_deletions(worker, cdf_set):
@@ -137,52 +157,38 @@ def test_overwrite_confirm(qtbot, mainapp, worker_files, role, returned):
 #     assert len(cdf_set["deleted"]["changeset_new"].isna) == 0
 
 
-def test_csv_output(self):
-    pass
+# def test_csv_output():
+#     pass
 
 
-def test_excel_output(self):
-    pass
+# def test_excel_output():
+#     pass
 
 
-def test_geojson_output(self):
-    pass
+# def test_geojson_output():
+#     pass
 
 
 # GUI Tests
 
 
-@pytest.fixture
-def favorite_location():
-    return Path("test/test_counter.yaml")
-
-
-@pytest.fixture(params=[None, favorite_location])
-def mainapp(monkeypatch, favorite_location, worker_files, tmp_path, request):
-    if request.param is None:
-        # Empty file
-        monkeypatch.setattr(main, "COUNTER_LOCATION", tmp_path / "counter.yaml")
-    else:
-        monkeypatch.setattr(main, "COUNTER_LOCATION", favorite_location)
-    app = main.MainApp()
-    app.text_fields = worker_files
-    return app
-
-
 @pytest.mark.parametrize(
     "tag,count", [("highway", 1), ("addr:housenumber", 1), ("   ", 0)]
 )
-def test_add_to_list(tag, count, mainapp):
+def test_add_to_list(mainapp, qtbot, tag, count):
     """
     Verifies 'Add' button function for search bar.
     """
+    qtbot.mouseClick(mainapp.searchBox, Qt.LeftButton)
     mainapp.searchBox.insert(tag)
-    QTest.mouseClick(mainapp.searchButton, Qt.LeftButton)
+    qtbot.mouseClick(mainapp.searchButton, Qt.LeftButton)
+    qtbot.wait(500)  # Waits until Qt has a chance to process the action
+
     assert len(mainapp.listWidget.findItems(tag, Qt.MatchExactly)) == count
-    assert mainapp.searchBox.text is not True
+    assert bool(mainapp.searchBox.text()) is not bool(count)
 
 
-def test_remove_from_list(mainapp):
+def test_remove_from_list(mainapp, qtbot):
     """
     Verifies 'Delete' button function for QListWidget.
     """
@@ -190,12 +196,13 @@ def test_remove_from_list(mainapp):
     nameitems = mainapp.listWidget.findItems("name", Qt.MatchExactly)
     for i in nameitems:
         mainapp.listWidget.setCurrentItem(i)
-        QTest.mouseClick(mainapp.deleteItemButton, Qt.LeftButton)
+        qtbot.mouseClick(mainapp.deleteItemButton, Qt.LeftButton)
+
     assert len(mainapp.listWidget.findItems("name", Qt.MatchExactly)) == 0
     assert len(mainapp.listWidget.findItems("highway", Qt.MatchExactly)) > 0
 
 
-def test_clear_list_widget(mainapp):
+def test_clear_list_widget(mainapp, qtbot):
     """
     Verifies 'Clear' button function for wiping items
     in QListWidget.
@@ -210,7 +217,7 @@ def test_clear_list_widget(mainapp):
             "addr:street",
         ]
     )
-    QTest.mouseClick(mainapp.clearListButton, Qt.LeftButton)
+    qtbot.mouseClick(mainapp.clearListButton, Qt.LeftButton)
     assert mainapp.listWidget.count() == 0
 
 
@@ -227,14 +234,18 @@ def test_fav_btn_populate(mainapp, favorite_location):
     assert mainapp.popTag5.text() == "addr:housenumber"
 
 
-def test_fav_btn_click(mainapp):
+def test_fav_btn_click(mainapp, qtbot, favorite_location):
     """
     Verifies favorite button function and reception
     of favorite values by the QListWidget.
     """
+    mainapp.fav_btn_populate(favorite_location)
+    qtbot.wait(500)
     assert mainapp.listWidget.count() == 0
     assert mainapp.popTag1.text() == "name"
-    QTest.mouseClick(mainapp.popTag1, Qt.LeftButton)
+    qtbot.mouseClick(mainapp.popTag1, Qt.LeftButton)
+    qtbot.wait(500)
+
     assert len(mainapp.listWidget.findItems("name", Qt.MatchExactly)) > 0
 
 
@@ -245,25 +256,27 @@ def test_autocompleter(mainapp):
     mainapp.auto_completer()
 
 
-def test_expand_user(mainapp):
+def test_expand_user(mainapp, qtbot):
+    qtbot.mouseClick(mainapp.newFileNameBox, Qt.LeftButton)
     mainapp.newFileNameBox.selectAll()
-    QTest.keyClicks(mainapp.newFileNameBox, "~/Desktop/")
-    # mainapp.newFileNameBox.insert("~/Desktop/")
-    QTest.mouseClick(mainapp.oldFileNameBox, Qt.LeftButton)
+    qtbot.keyClicks(mainapp.newFileNameBox, "~/Desktop/")
+    qtbot.mouseClick(mainapp.oldFileNameBox, Qt.LeftButton)
     assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
 
 
-def test_no_settings_files(monkeypatch, tmp_path, worker_files):
+def test_no_settings_files(mainapp, monkeypatch, tmp_path):
     """
     Test running chameleon without existing counter.yaml/settings.yaml
     """
+
+    def text_fields():
+        return worker_files
+
     history_path = tmp_path / "history.yaml"
     counter_path = tmp_path / "counter.yaml"
-    monkeypatch.setattr(main, "HISTORY_LOCATION", history_path)
-    monkeypatch.setattr(main, "COUNTER_LOCATION", counter_path)
-    mainapp = main.MainApp()
-
-    mainapp.text_fields = worker_files
+    monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
+    monkeypatch.setattr(qt, "COUNTER_LOCATION", counter_path)
+    monkeypatch.setattr(mainapp, "text_fields", text_fields)
 
     mainapp.run_query()
 
@@ -278,4 +291,4 @@ def test_no_settings_files(monkeypatch, tmp_path, worker_files):
     ],
 )
 def test_dirname(path, returned):
-    assert main.dirname(path) == returned
+    assert qt.dirname(path) == returned

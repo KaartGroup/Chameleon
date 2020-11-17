@@ -10,14 +10,16 @@ except ImportError:
     pass
 else:
     repo = Repo()
-    last_tag = sorted(
-        repo.tags, key=lambda t: t.commit.committed_datetime)[-1].name
-    with Path('resources/version.txt').open('w') as f:
+    last_tag = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)[
+        -1
+    ].name
+    with Path("resources/version.txt").open("w") as f:
         f.write(last_tag)
     print("version.txt written")
 
-subprocess.check_call(["pyside2-uic", "chameleon/design.ui",
-                       "-o", "chameleon/design.py"])
+subprocess.check_call(
+    ["pyside2-uic", "chameleon/qt/design.ui", "-o", "chameleon/qt/design.py"]
+)
 print("pyuic complete")
 
 if platform.system().lower() == "darwin":

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Chameleon for Web</title>
+        <meta name="author" content="Kaart" />
+        <script
+            defer
+            src="{{url_for('static', filename='main.js')}}"
+            type="module"
+        ></script>
+        <link
+            rel="stylesheet"
+            href="{{url_for('static', filename='main.css')}}"
+        />
+    </head>
+
+    <body>
+        <h1>Chameleon for Web</h1>
+        <form
+            enctype="multipart/form-data"
+            method="POST"
+            id="mainform"
+            novalidate
+        >
+            <ul id="tabmenu">
+                <li><a href="#">Step-by-step</a></li>
+                <li>
+                    <a href="#manualtab" title="Bring Your Own Data">BYOD</a>
+                </li>
+            </ul>
+            <div class="tabcontainer">
+                <fieldset class="tabbedpage" id="manualtab">
+                    <h2>Bring Your Own Data</h2>
+                    <label
+                        >Old file <input type="file" name="old" required
+                    /></label>
+                    <label
+                        >New file <input type="file" name="new" required
+                    /></label>
+                </fieldset>
+                <fieldset class="tabbedpage" id="easytab">
+                    <h2 class="stepHeading">Where</h2>
+                    <fieldset id="whereStep">
+                        <label
+                            >2 Letter ISO Country Code
+                            <!-- Need to replace this with a AJAX search of some sort
+                            Hit either an internal pycountry instance or Nominatim -->
+                            <input
+                                type="text"
+                                name="location"
+                                maxlength="2"
+                                pattern="[A-z]{2}"
+                                required
+                            />
+                        </label>
+                    </fieldset>
+                    <h2 class="stepHeading">When</h2>
+                    <fieldset id="whenStep">
+                        <label
+                            >Start date
+                            <input
+                                type="date"
+                                name="startdate"
+                                min="2012-09-12"
+                                required
+                            />
+                        </label>
+                        <label
+                            >End date
+                            <input
+                                type="date"
+                                name="enddate"
+                                min="2012-09-12"
+                            />
+                        </label>
+                    </fieldset>
+                    <h2 class="stepHeading">What</h2>
+                    <fieldset id="whatStep">
+                        Add filter:
+                        <label
+                            >Key:
+                            <input type="text" id="filterAddField" />
+                        </label>
+                        <label
+                            >Value(s):<input
+                                type="text"
+                                id="filterValueField"
+                                pattern="[A-z:,| ]"
+                                title="Separate multiple values with commas (,), spaces, or pipes (|). Use asterisk (*) for all values"
+                            />
+                        </label>
+                        <label
+                            >Node:<input
+                                type="checkbox"
+                                value="n"
+                                name="filterTypeBox"
+                                checked
+                        /></label>
+                        <label
+                            >Way:<input
+                                type="checkbox"
+                                value="w"
+                                name="filterTypeBox"
+                                checked
+                        /></label>
+                        <label
+                            >Relation:<input
+                                type="checkbox"
+                                value="r"
+                                name="filterTypeBox"
+                                checked
+                        /></label>
+
+                        <button type="button" id="filterAddButton">Add</button>
+                        <br />
+                        <select
+                            name="filters"
+                            size="5"
+                            id="filterList"
+                            multiple
+                        ></select>
+                        <button type="button" id="filterRemoveButton">
+                            Remove
+                        </button>
+                        <button type="button" id="filterClearButton">
+                            Clear
+                        </button>
+                    </fieldset>
+                </fieldset>
+            </div>
+            <fieldset id="howStep">
+                <h2 class="stepHeading">How</h2>
+                <ul id="favButtons"></ul>
+                <label
+                    >Enter tag:
+                    <input list="tagAutocomplete" type="text" id="tagAddField"
+                /></label>
+                <datalist id="tagAutocomplete"></datalist>
+
+                <button type="button" id="tagAddButton">Add</button>
+                <br />
+                <select name="modes" size="10" id="tagList" multiple></select>
+                <br />
+                <button type="button" id="tagRemoveButton">Remove</button>
+                <button type="button" id="tagClearButton">Clear</button>
+            </fieldset>
+            <fieldset id="fileDetails">
+                <input
+                    type="hidden"
+                    id="high_deletions_ok"
+                    name="high_deletions_ok"
+                    value="true"
+                    disabled
+                />
+                <label
+                    >Output file name
+                    <input
+                        type="text"
+                        name="output"
+                        placeholder="chameleon" /><span id="fileExt"></span
+                ></label>
+                File format:
+                <label
+                    >Excel<input
+                        value="excel"
+                        type="radio"
+                        name="file_format"
+                        checked
+                /></label>
+                <label
+                    >GeoJSON<input
+                        value="geojson"
+                        type="radio"
+                        name="file_format"
+                /></label>
+                <label
+                    >CSV<input value="csv" type="radio" name="file_format"
+                /></label>
+            </fieldset>
+            <label
+                >Group rows by type of change
+                <input type="checkbox" name="grouping"
+            /></label>
+
+            <button name="run" type="submit">Run</button>
+        </form>
+        <dialog id="progressbarDialog">
+            <label id="progressbarLabel">
+                <p id="progressbarMessage"></p>
+                <progress id="progressbar"></progress>
+                <button type="button" id="cancelTask" disabled>Cancel</button>
+            </label>
+        </dialog>
+        <dialog id="highdeletionsdialog">
+            <p id="highdeletionstext"></p>
+            <form method="dialog">
+                <button id="highdeletionsyes" type="button">Yes</button>
+                <button id="highdeletionsno" type="button">No</button>
+            </form>
+        </dialog>
+    </body>
+</html>

@@ -80,7 +80,7 @@ def test_check_api(feature_id, gold_file, gold_dict, files, requests_mock):
     gold_file = Path(f"test/{ftype}{fid}.json")
     with gold_file.open("r") as f:
         gold_json = json.load(f)
-    cdfs = ChameleonDataFrameSet(**files, use_api=True)
+    cdfs = ChameleonDataFrameSet(files["old"], files["new"], use_api=True)
     requests_mock.get(
         f"https://www.openstreetmap.org/api/0.6/{ftype}/{fid}/history.json",
         json=gold_json,
@@ -111,6 +111,7 @@ def test_add_cdf_to_set(mode, cdf_set):
             {
                 "node": ["1234567", "8901234", "23456789"],
                 "way": ["5678901", "7801234"],
+                "relation": ["0123456"],
             },
         )
     ],
