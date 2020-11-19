@@ -419,6 +419,7 @@ class ChameleonDataFrameSet(set):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
             for result in self:
                 # Points at first cell (blank) of last column written
+                # Set before adding the other columns
                 column_pointer = len(result.columns) + 1
                 for k in self.extra_columns.keys():
                     result[k] = ""
@@ -432,12 +433,15 @@ class ChameleonDataFrameSet(set):
                 if self.extra_columns:
                     sheet = writer.sheets[result.chameleon_mode_cleaned]
 
-                    for k, v in self.extra_columns.items():
+                    for count, (k, v) in enumerate(self.extra_columns.items()):
                         if v is not None and v.get("validate", None):
                             sheet.data_validation(
-                                1, column_pointer, len(result), column_pointer, v
+                                1,
+                                column_pointer + count,
+                                len(result),
+                                column_pointer + count,
+                                v,
                             )
-                        column_pointer += 1
 
     def to_geojson(self, timeout: int = 120) -> List[geojson.FeatureCollection]:
         if not self.overpass_query_pages:

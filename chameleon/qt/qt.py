@@ -306,10 +306,10 @@ class Worker(QObject):
         except OSError:
             logger.exception("Couldn't write history.yaml.")
         else:
-            # In some rare cases (like testing) MainApp may not exist
             try:
                 self.parent.history_dict = staged_history_dict
             except NameError:
+                # In some rare cases (like testing) MainApp may not exist
                 pass
 
     def high_deletions_checker(self, cdf_set: ChameleonDataFrameSet) -> bool:
@@ -360,7 +360,6 @@ class Worker(QObject):
         df = cdfs.source_data
 
         empty_count = 0
-        # TODO Iterate directly over dataframe rather than constructed list
         deleted_ids = list(df.loc[df["action"] == "deleted"].index)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
