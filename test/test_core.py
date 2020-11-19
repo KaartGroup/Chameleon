@@ -10,6 +10,7 @@ from pandas.testing import assert_frame_equal
 from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
+    pager,
     separate_ids_by_feature_type,
     split_id,
 )
@@ -132,3 +133,17 @@ def test_separate_ids_by_feature_type(mixed, gold):
 )
 def test_split_id(fid, gold):
     assert gold == split_id(fid)
+
+
+@pytest.mark.parametrize(
+    "the_list,length,gold",
+    [
+        (
+            ["n1234567", "n8901234", "w5678901", "n23456789", "r0123456",],
+            2,
+            [["n1234567", "n8901234"], ["w5678901", "n23456789"], ["r0123456"],],
+        )
+    ],
+)
+def test_pager(the_list, length, gold):
+    assert pager(the_list, length) == gold

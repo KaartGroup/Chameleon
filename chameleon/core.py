@@ -3,11 +3,14 @@ UI-independent classes for processing data
 """
 from __future__ import annotations
 
+import itertools
 import logging
+import math
 import re
 from pathlib import Path
-from typing import Dict, List, Set, TextIO, Tuple, Union
+from typing import Any, Collection, List, Set, TextIO, Tuple, Union
 
+import geojson
 import numpy as np
 import overpass
 import pandas as pd
@@ -436,18 +439,35 @@ class ChameleonDataFrameSet(set):
                             )
                         column_pointer += 1
 
-    def to_geojson(self, timeout: int = 120) -> dict:
-        if not self.overpass_query:
+    def to_geojson(self, timeout: int = 120) -> List[geojson.FeatureCollection]:
+        if not self.overpass_query_pages:
             return
 
         api = overpass.API(timeout=timeout)
+        responses = [
+            api.get(query, verbosity="meta geom", responseformat="geojson",)
+            for query in self.overpass_query_pages
+        ]
 
-        response = api.get(
-            self.overpass_query, verbosity="meta geom", responseformat="geojson",
+        responses_merged = list(
+            itertools.chain(*(fc["features"] for fc in responses))
         )
 
-        merged = ChameleonDataFrame()
+        response_by_id = {
+            GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"]): i
+            for i in responses_merged
+        }
+
+        all_fcs = []
         for result in self.nondeleted:
+            if not len(result):
+                all_fcs.append(
+                    geojson.FeatureCollection(
+                        [], chameleon_mode=result.chameleon_mode
+                    )
+                )
+                continue
+
             columns_to_keep = ["url", "user", "timestamp", "version"]
             if "changeset" in result.columns and "osmcha" in result.columns:
                 columns_to_keep += ["changeset", "osmcha"]
@@ -465,35 +485,46 @@ class ChameleonDataFrameSet(set):
             #     columns_to_keep += [result.chameleon_mode]
             columns_to_keep += ["action"]
             result = result[columns_to_keep]
-            merged = merged.append(result)
 
-        merged = merged.loc[~merged.index.duplicated()]
+            fc = geojson.FeatureCollection(
+                [
+                    geojson.Feature(
+                        id=fid,
+                        geometry=response_by_id.get(fid, {}).get("geometry"),
+                        properties=dict(row),
+                    )
+                    for fid, row in result.iterrows()
+                    if response_by_id.get(fid)
+                ],
+                chameleon_mode=result.chameleon_mode,
+            )
+            all_fcs.append(fc)
 
-        for i in response["features"]:
-            newid = GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"])
-            i["id"] = newid
-            i["properties"] = {
-                column: value
-                for column, value in merged.loc[newid].items()
-                if pd.notna(value)
-            }
-        return response
+        return all_fcs
 
     @property
     def nondeleted(self) -> set:
         return {i for i in self if i.chameleon_mode != "deleted"}
 
     @property
-    def overpass_query(self) -> str:
-        feature_ids = {"node": set(), "way": set(), "relation": set()}
-        for df in self.nondeleted:
-            for k, v in separate_ids_by_feature_type(df.index).items():
-                feature_ids[k] |= set(v)
-        return ";".join(
-            f"{k}(id:{','.join(sorted(v))})"
-            for k, v in feature_ids.items()
-            if k != "relation" and v
+    def overpass_query_pages(self) -> List[str]:
+        page_length = 200
+        query_pages = []
+        all_ids = sorted(
+            set(itertools.chain(*(df.index for df in self.nondeleted)))
         )
+        for page in pager(all_ids, page_length):
+            # for ftype, fid in separate_ids_by_feature_type(page).items():
+            #     feature_ids[ftype] |= set(fid)
+            feature_ids = separate_ids_by_feature_type(page)
+            query_pages.append(
+                ";".join(
+                    f"{ftype}(id:{','.join(sorted(fid))})"
+                    for ftype, fid in feature_ids.items()
+                    if ftype != "relation" and fid
+                )
+            )
+        return query_pages
 
 
 def split_id(feature_id) -> Tuple[str, str]:
@@ -538,3 +569,16 @@ def clean_for_presentation(uinput) -> str:
     uinput = uinput.strip(" \"'")
     uinput = uinput.partition("=")[0]
     return uinput
+
+
+def pager(orig_iterable: Collection[Any], page_length: int) -> List[List[Any]]:
+    """
+    Chunks a Collection into pages, for use with an API
+    """
+    page_count = math.ceil(len(orig_iterable) / page_length)
+    pages = []
+    for page in range(page_count):
+        pages.append(
+            orig_iterable[(page * page_length) : (page + 1) * page_length]
+        )
+    return pages

@@ -4,7 +4,6 @@ Opens a window with fields for input and selectors, which in turn opens
 a worker object to process the input files with `q` and create output
 in .csv format.
 """
-import json
 import logging
 import os
 import shlex
@@ -14,6 +13,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+import geojson
 import pandas as pd
 import yaml
 
@@ -461,17 +461,10 @@ class Worker(QObject):
         using the overpass API
         """
         timeout = 120
-        self.output_path = file_name = self.files["output"].with_suffix(
-            ".geojson"
-        )
-
-        if file_name.is_file() and not self.overwrite_confirm(file_name):
-            logger.info("User chose not to overwrite")
-            return
 
         try:
             self.overpass_counter.emit(timeout)
-            response = dataframe_set.to_geojson(timeout=timeout)
+            fcs = dataframe_set.to_geojson(timeout)
         except TimeoutError:
             self.dialog(
                 "Overpass timeout",
@@ -484,21 +477,39 @@ class Worker(QObject):
         logger.info("Response recieved from Overpass.")
 
         logger.info("Writing geojson…")
-        try:
-            with file_name.open("w") as output_file:
-                json.dump(response, output_file)
-        except OSError:
-            logger.exception("Write error.")
-            self.error_list = [i.chameleon_mode for i in dataframe_set]
-        else:
+        for fc in fcs:
+            file_name = self.files["output"].with_name(
+                f"{self.files['output'].name}_{fc['chameleon_mode']}.geojson"
+            )
+
+            try:
+                with file_name.open("w") as output_file:
+                    geojson.dump(fc, output_file, indent=4)
+            except FileExistsError:
+                if not self.overwrite_confirm(file_name):
+                    logger.info("User chose not to overwrite")
+                    continue
+                else:
+                    with file_name.open("w") as output_file:
+                        geojson.dump(fc, output_file, indent=4)
+            except OSError:
+                logger.exception("Write error.")
+                self.error_list = [i.chameleon_mode for i in dataframe_set]
+                continue
             self.successful_items.update(
                 {
-                    frame.chameleon_mode: success_message(frame)
-                    for frame in dataframe_set.nondeleted
+                    fc["chameleon_mode"]: success_message(
+                        dataframe_set[fc["chameleon_mode"]]
+                    )
                 }
             )
-        for mode in self.modes:
+            logger.info(
+                "Processing for %s complete. %s written.",
+                fc["chameleon_mode"],
+                file_name,
+            )
             self.mode_complete.emit()
+        self.output_path = self.files["output"].parent
 
 
 class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
@@ -513,7 +524,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     QMB_MAP = {QMessageBox.Yes: True, QMessageBox.No: False}
     EXTENSION_MAP = {
         "excel": ".xlsx",
-        "geojson": ".geojson",
+        "geojson": r"_{mode}.geojson",
         "csv": r"_{mode}.csv",
     }
 

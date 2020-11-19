@@ -1,4 +1,5 @@
 appdirs
+geojson
 overpass
 pandas
 pyyaml
