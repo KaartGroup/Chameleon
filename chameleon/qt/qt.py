@@ -697,15 +697,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         try:
             with HISTORY_LOCATION.open("r") as history_file:
                 self.history_dict = yaml.safe_load(history_file)
-            for k, v in self.text_fields.items():
-                v.insert(self.history_dict.get(k, ""))
-            self.offlineRadio.setChecked(
-                not self.history_dict.get("use_api", True)
-            )
-            if self.history_dict.get("file_format", "csv") == "excel":
-                self.excelRadio.setChecked(True)
-            elif self.history_dict.get("file_format", "csv") == "geojson":
-                self.geojsonRadio.setChecked(True)
         # If file doesn't exist, fail silently
         except FileNotFoundError:
             logger.warning(
@@ -716,6 +707,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.exception("History file found but not readable.")
         except AttributeError as e:
             logger.exception(e)
+
+        for k, v in self.text_fields.items():
+            v.insert(self.history_dict.get(k, ""))
+        self.offlineRadio.setChecked(not self.history_dict.get("use_api", True))
+        self.file_format = self.history_dict.get("file_format", "csv")
 
     def fav_btn_populate(self, counter_location: Path = COUNTER_LOCATION):
         """
@@ -740,7 +736,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         fav_list = sorted(self.tag_count, key=self.tag_count.get, reverse=True)
 
-        if len(fav_list) < len(self.fav_btn):
+        def_count = len(self.fav_btn) - len(fav_list)
+        if def_count > 0:
             # If we run out of favorites, start adding non-redundant default tags
             # We use these when there aren't enough favorites
             default_tags = [
@@ -751,7 +748,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 "addr:street",
             ]
             # Count how many def tags are needed
-            def_count = len(self.fav_btn) - len(fav_list)
             # Add requisite number of non-redundant tags from the default list
             fav_list += [i for i in default_tags if i not in fav_list][
                 :def_count
@@ -978,6 +974,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.geojsonRadio: "geojson",
             self.csvRadio: "csv",
         }[checked_box]
+
+    @file_format.setter
+    def file_format(self, file_format):
+        {
+            "excel": self.excelRadio,
+            "geojson": self.geojsonRadio,
+            "csv": self.csvRadio,
+        }.get(file_format, self.csvRadio).setChecked(True)
 
     @property
     def modes(self) -> set:
@@ -1360,10 +1364,10 @@ def plur(count: int) -> str:
     return "" if count == 1 else "s"
 
 
-def success_message(frame) -> str:
+def success_message(frame: ChameleonDataFrame) -> str:
     row_count = len(frame)
-    # Empty dataframe
     return (
+        # Empty dataframe
         f"{frame.chameleon_mode} has no change."
         if not row_count
         else (

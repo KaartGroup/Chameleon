@@ -8,7 +8,7 @@ import logging
 import math
 import re
 from pathlib import Path
-from typing import Any, Collection, List, Set, TextIO, Tuple, Union
+from typing import Any, Collection, Dict, List, Set, TextIO, Tuple, Union
 
 import geojson
 import numpy as np
@@ -503,7 +503,7 @@ class ChameleonDataFrameSet(set):
         return all_fcs
 
     @property
-    def nondeleted(self) -> set:
+    def nondeleted(self) -> Set[ChameleonDataFrame]:
         return {i for i in self if i.chameleon_mode != "deleted"}
 
     @property
@@ -529,14 +529,14 @@ class ChameleonDataFrameSet(set):
 
 def split_id(feature_id) -> Tuple[str, str]:
     """
-    Separates an id like "n12345678" into the type and id number
+    Separates an id like "n12345678" into the tuple ('node', '12345678')
     """
     feature_id = str(feature_id)
-    typeregex = re.compile(r"\A[A-z]")
+    typeregex = re.compile(r"\A[nwr]")
     idregex = re.compile(r"\d+\Z")
 
     typematch = typeregex.search(feature_id)
-    ftype = TYPE_EXPANSION[typematch.group()] if typematch else None
+    ftype = TYPE_EXPANSION.get(typematch.group(), None)
     idmatch = idregex.search(feature_id).group()
     return ftype, idmatch
 
@@ -552,14 +552,16 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
 
     Returns
     -------
-    Dict[str, List[str]]: a dict with keys 'nodes' and 'ways', and lists of ids as values
+    Dict[str, List[str]]: a dict with keys 'nodes', 'ways', and 'relations'
+    and lists of ids as values
     """
     f_type_id: List[Tuple[str, str]] = [split_id(i) for i in mixed]
 
-    return {
-        v: [fid for ftype, fid in f_type_id if ftype == v]
-        for v in TYPE_EXPANSION.values()
-    }
+    the_dict = {}
+    for k, v in f_type_id:
+        the_dict.setdefault(k, []).append(v)
+
+    return the_dict
 
 
 def clean_for_presentation(uinput) -> str:
