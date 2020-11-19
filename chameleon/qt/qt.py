@@ -482,7 +482,7 @@ class Worker(QObject):
             )
 
             try:
-                with file_name.open("w") as output_file:
+                with file_name.open("x") as output_file:
                     geojson.dump(fc, output_file, indent=4)
             except FileExistsError:
                 if not self.overwrite_confirm(file_name):
@@ -493,7 +493,7 @@ class Worker(QObject):
                         geojson.dump(fc, output_file, indent=4)
             except OSError:
                 logger.exception("Write error.")
-                self.error_list = [i.chameleon_mode for i in dataframe_set]
+                self.error_list.append(fc["chameleon_mode"])
                 continue
             self.successful_items.update(
                 {
@@ -768,11 +768,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Identifies sender signal and grabs button text
         raw_label = (
             self.sender().text()
-            if self.sender() in self.fav_btn
             # Value was clicked from fav btn
-            else self.searchBox.text()
+            if self.sender() in self.fav_btn
             # Value was typed by user
             # self.sender() is self.searchButton
+            else self.searchBox.text()
         )
         if not raw_label.strip():  # Don't accept whitespace-only values
             logger.warning("No value entered.")
