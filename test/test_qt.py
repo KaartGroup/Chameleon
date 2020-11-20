@@ -13,19 +13,13 @@ from chameleon.qt import qt
 # TEST_FOLDER = Path("test")
 
 
-# @pytest.fixture
-# def worker_files():
-#     return {
-#         "old": Path("test/old.csv"),
-#         "new": Path("test/new.csv"),
-#         "output": Path("test/output"),
-#     }
-
-worker_files = {
-    "old": Path("test/old.csv"),
-    "new": Path("test/new.csv"),
-    "output": Path("test/output"),
-}
+@pytest.fixture
+def worker_files(tmp_path):
+    return {
+        "old": Path("test/old.csv"),
+        "new": Path("test/new.csv"),
+        "output": tmp_path / "output",
+    }
 
 
 @pytest.fixture
@@ -39,9 +33,7 @@ def favorite_location():
 
 
 @pytest.fixture
-def mainapp(
-    monkeypatch, favorite_location, qtbot,
-):
+def mainapp(monkeypatch, favorite_location, qtbot, worker_files):
     monkeypatch.setattr(qt, "COUNTER_LOCATION", favorite_location)
     monkeypatch.setattr(qt.MainApp, "file_fields", worker_files)
     monkeypatch.setattr(
@@ -88,12 +80,7 @@ def test_load_extra_columns(worker):
 @pytest.mark.parametrize("use_api", [True, False])
 @pytest.mark.parametrize("file_format", ["csv", "geojson", "excel"])
 def test_history_writer(
-    worker,
-    # worker_files,
-    use_api,
-    file_format,
-    monkeypatch,
-    tmp_path,
+    worker, worker_files, use_api, file_format, monkeypatch, tmp_path,
 ):
     worker.files = worker_files
     worker.use_api = use_api
@@ -103,13 +90,8 @@ def test_history_writer(
     # history_path = qt.HISTORY_LOCATION
     history_path.parent.mkdir(exist_ok=True, parents=True)
     monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
-    gold_dict = {
-        "use_api": use_api,
-        "file_format": file_format,
-        "old": worker_files["old"],
-        "new": worker_files["new"],
-        "output": worker_files["output"],
-    }
+    gold_dict = {"use_api": use_api, "file_format": file_format}
+    gold_dict.update(worker_files)
 
     worker.history_writer()
 
@@ -140,7 +122,7 @@ def test_high_deletions_checker(
 
 
 @pytest.mark.parametrize("returned", [True, False])
-def test_overwrite_confirm(worker, returned, monkeypatch):
+def test_overwrite_confirm(worker, worker_files, returned, monkeypatch):
     monkeypatch.setattr(worker, "user_confirm", lambda *args: returned)
 
     assert worker.overwrite_confirm(worker_files["output"]) is returned
@@ -259,7 +241,7 @@ def test_expand_user(mainapp, qtbot):
     assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
 
 
-def test_no_settings_files(mainapp, monkeypatch, tmp_path):
+def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
     """
     Test running chameleon without existing counter.yaml/settings.yaml
     """
