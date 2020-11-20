@@ -793,8 +793,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 self.listWidget.addItem(label)
                 logger.info("Adding to list: %s", label)
         self.clear_search_box.emit()
-        self.run_checker()
         self.listWidget.repaint()
+        self.run_checker()
 
     def delete_tag(self):
         """
@@ -905,11 +905,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.runButton.setEnabled(
             bool(self.modes) and all(self.file_fields.values())
         )
-        self.update()
+        self.repaint()
 
     def suffix_updater(self):
         self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
-        self.update()
+        self.repaint()
 
     def on_editing_finished(self):
         """
