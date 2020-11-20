@@ -902,16 +902,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Function that disable/enables run button based on list items.
         """
-        file_fields_not_empty = all(
-            self.file_fields.get(k) for k in self.text_fields.keys()
+        self.runButton.setEnabled(
+            bool(self.modes) and all(self.file_fields.values())
         )
-        list_not_empty = self.listWidget.count() > 0
-        self.runButton.setEnabled(list_not_empty and file_fields_not_empty)
-        self.repaint()
+        self.update()
 
     def suffix_updater(self):
         self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
-        self.repaint()
+        self.update()
 
     def on_editing_finished(self):
         """

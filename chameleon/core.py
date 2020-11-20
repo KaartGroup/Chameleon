@@ -540,7 +540,7 @@ def split_id(feature_id) -> Tuple[str, str]:
     idregex = re.compile(r"\d+\Z")
 
     typematch = typeregex.search(feature_id)
-    ftype = TYPE_EXPANSION.get(typematch.group(), None)
+    ftype = TYPE_EXPANSION.get(typematch.group()) if typematch else None
     idmatch = idregex.search(feature_id).group()
     return ftype, idmatch
 
