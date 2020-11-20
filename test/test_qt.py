@@ -40,12 +40,7 @@ def favorite_location():
 
 @pytest.fixture
 def mainapp(
-    monkeypatch,
-    favorite_location,
-    # worker_files,
-    tmp_path,
-    request,
-    qtbot,
+    monkeypatch, favorite_location, qtbot,
 ):
     monkeypatch.setattr(qt, "COUNTER_LOCATION", favorite_location)
     monkeypatch.setattr(qt.MainApp, "file_fields", worker_files)
@@ -145,7 +140,7 @@ def test_high_deletions_checker(
 
 
 @pytest.mark.parametrize("returned", [True, False])
-def test_overwrite_confirm(mainapp, worker, returned, qtbot, monkeypatch):
+def test_overwrite_confirm(worker, returned, monkeypatch):
     monkeypatch.setattr(worker, "user_confirm", lambda *args: returned)
 
     assert worker.overwrite_confirm(worker_files["output"]) is returned
@@ -269,9 +264,7 @@ def test_no_settings_files(mainapp, monkeypatch, tmp_path):
     Test running chameleon without existing counter.yaml/settings.yaml
     """
 
-    def text_fields():
-        return worker_files
-
+    text_fields = worker_files
     history_path = tmp_path / "history.yaml"
     counter_path = tmp_path / "counter.yaml"
     monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
@@ -292,3 +285,36 @@ def test_no_settings_files(mainapp, monkeypatch, tmp_path):
 )
 def test_dirname(path, returned):
     assert qt.dirname(path) == returned
+
+
+@pytest.mark.parametrize(
+    "modes,button_enabled",
+    [([], False), (["highway"], True), (["ref", "oneway"], True)],
+)
+def test_run_checker(mainapp, qtbot, modes, button_enabled):
+    for mode in modes:
+        qtbot.mouseClick(mainapp.searchBox, Qt.LeftButton)
+        mainapp.searchBox.insert(mode)
+        qtbot.mouseClick(mainapp.searchButton, Qt.LeftButton)
+        qtbot.wait(500)  # Waits until Qt has a chance to process the action
+
+    assert mainapp.runButton.isEnabled() is button_enabled
+
+
+@pytest.mark.parametrize(
+    "modes,button_enabled", [(("highway",), True), (("highway", "ref"), False)],
+)
+def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
+    for tag in ("highway", "ref"):
+        mainapp.listWidget.addItem(tag)
+        qtbot.wait(500)
+    # assert mainapp.runButton.isEnabled()
+    for mode in modes:
+        next(
+            iter(mainapp.listWidget.findItems(mode, Qt.MatchExactly)), None,
+        ).setSelected(True)
+        mainapp.delete_tag()
+        qtbot.wait(500)
+
+    qtbot.wait(500)
+    assert mainapp.runButton.isEnabled() is button_enabled
