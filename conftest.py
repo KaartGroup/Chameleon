@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from chameleon import core
+from chameleon.core import ChameleonDataFrame, ChameleonDataFrameSet
 
 
 @pytest.fixture
@@ -18,17 +18,17 @@ def files():
 
 @pytest.fixture
 def cdf_set(files):
-    return core.ChameleonDataFrameSet(**files, use_api=False)
+    return ChameleonDataFrameSet(**files, use_api=False)
 
 
 @pytest.fixture
 def cdf0(files):
-    return core.ChameleonDataFrame()
+    return ChameleonDataFrame()
 
 
 @pytest.fixture
 def cdf1(files):
-    return core.ChameleonDataFrame(
+    return ChameleonDataFrame(
         {
             "id": ["w624284243", "w212013924", "w182144320"],
             "url": [
