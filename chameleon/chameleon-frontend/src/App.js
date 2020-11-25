@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 import {
   BrowserRouter as Router,
@@ -11,6 +10,7 @@ import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { PageNotFound } from "./components/PageNotFound";
 import { Chameleon } from './components/Chameleon';
+import { BYOD } from './components/BYOD';
 
 function App() {
   return (
@@ -22,6 +22,9 @@ function App() {
             </Route>
             <Route path="/chameleon">
               <Chameleon />
+            </Route>
+            <Route path="/byod">
+              <BYOD />
             </Route>
             <Route component={PageNotFound} />
           </Switch>

@@ -86,7 +86,7 @@ export const Footer = () => {
                 width="15"
                 height="15"
                 alt=""
-                class="wp-image-695 alignnone size-medium"
+                className="wp-image-695 alignnone size-medium"
                 srcset="https://kaart.com/wp-content/uploads//2020/08/KG-Facebook-icon.svg 150w, 
           https://kaart.com/wp-content/uploads//2020/08/KG-Facebook-icon.svg 300w, 
           https://kaart.com/wp-content/uploads//2020/08/KG-Facebook-icon.svg 1024w, 
@@ -106,7 +106,7 @@ export const Footer = () => {
                 width="15"
                 height="15"
                 alt=""
-                class="wp-image-696 alignnone size-medium"
+                className="wp-image-696 alignnone size-medium"
                 srcset="https://kaart.com/wp-content/uploads//2020/08/KG-GitHub-Icon.svg 150w, 
               https://kaart.com/wp-content/uploads//2020/08/KG-GitHub-Icon.svg 300w, 
               https://kaart.com/wp-content/uploads//2020/08/KG-GitHub-Icon.svg 1024w, 
@@ -126,7 +126,7 @@ export const Footer = () => {
                 width="32"
                 height="15"
                 alt=""
-                class="wp-image-694 alignnone size-medium"
+                className="wp-image-694 alignnone size-medium"
               ></SocialImage>
             </SocialLink>
             <SocialLink href="https://www.linkedin.com/company/kaart-group/">
@@ -136,7 +136,7 @@ export const Footer = () => {
                 width="15"
                 height="15"
                 alt=""
-                class="wp-image-1457 alignnone size-medium"
+                className="wp-image-1457 alignnone size-medium"
                 srcset="https://kaart.com/wp-content/uploads//2020/10/iconmonstr-linkedin-1.svg 150w, 
               https://kaart.com/wp-content/uploads//2020/10/iconmonstr-linkedin-1.svg 300w, 
               https://kaart.com/wp-content/uploads//2020/10/iconmonstr-linkedin-1.svg 1024w, 
