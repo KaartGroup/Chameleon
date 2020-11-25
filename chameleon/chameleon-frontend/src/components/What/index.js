@@ -7,8 +7,11 @@ import {
 
 export const What = () => {
     return (
-      <div>
-        <Heading> What </Heading>
+      <>
+        <Wrapper>
+          <Heading> What </Heading>
+        </Wrapper>
+        <div style={{ display: "grid", justifyContent: "center", alignItems: "center", height: "80%"}}>
           <p style={{ display: "flex", justifyContent: "center", fontSize: "12px" }}>Filters</p>
 
           <StyledLabel> 
@@ -28,21 +31,21 @@ export const What = () => {
           
           <StyledLabel>
             Node:
-            <input type="checkbox" value="n" name="filterTypeBox" defaultChecked=""/>
+            <input type="checkbox" value="n" name="filterTypeBox" defaultChecked="Y"/>
           </StyledLabel>
           
           <br></br>
           
           <StyledLabel>
             Way:
-            <input type="checkbox" value="n" name="filterTypeBox" defaultChecked=""/>
+            <input type="checkbox" value="n" name="filterTypeBox" defaultChecked="Y"/>
           </StyledLabel>
           
           <br></br>
           
           <StyledLabel>
             Relation:
-            <input type="checkbox" value="n" name="filterTypeBox" defaultChecked=""/>
+            <input type="checkbox" value="n" name="filterTypeBox" defaultChecked="Y"/>
           </StyledLabel>
           <br></br>
           <br></br>
@@ -52,6 +55,8 @@ export const What = () => {
           <select size="5" multiple=""></select>
           
           <br></br>
-      </div>
+        </div>
+          
+      </>
     );
 };

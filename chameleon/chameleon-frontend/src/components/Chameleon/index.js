@@ -6,6 +6,7 @@ import { When } from "../When";
 import { What } from "../What";
 import { How } from "../How";
 import { FileDetails } from "../FileDetails";
+import { SubmitForm } from "../Submit";
 import "./styles.css";
 
 const GridLayout = WidthProvider(ReactGridLayout);
@@ -18,12 +19,12 @@ export const Chameleon = () => {
   };
 
   const getViewHeight = () => {
-    return window.innerHeight - 130;
+    return window.innerHeight;
   };
 
 
   return (
-    <div className="chameleon">
+    <>
       <GridLayout
         measureBeforeMount={true}
         className="layout"
@@ -35,81 +36,65 @@ export const Chameleon = () => {
         onLayoutChange={(layout) => onLayoutChange(layout)}
       >
         <div
-        className="where"
+        className="where-when"
         key="1"
-        style={{ display: "grid", justifyContent: "center" }}
         data-grid={{
           x: 1,
           y: 0,
           w: 3,
           h: 1,
-          i: "where_grid",
+          i: "where_when_grid",
           static: true,
           }}
         >
           <Where />
+          <When />
         </div>
         <div
-          className="when"
+          className="what"
           key="2"
-          style={{ display: "grid", justifyContent: "center" }}
           data-grid={{
             x: 5,
             y: 0,
             w: 3,
             h: 1,
-            i: "when_grid",
+            i: "what_grid",
             static: true,
-            }}
-          >
-            <When />
-          </div>
-          <div
-            className="what"
-            key="3"
-            style={{ display: "grid", justifyContent: "center" }}
-            data-grid={{
-              x: 9,
-              y: 0,
-              w: 3,
-              h: 1,
-              i: "what_grid",
-              static: true,
             }}
           >
             <What />
           </div>
           <div
-            className="how"
-            key="4"
-            style={{ display: "grid", justifyContent: "center" }}
+            className="how-file"
+            key="3"
             data-grid={{
-              x: 3,
-              y: 1,
+              x: 9,
+              y: 0,
               w: 3,
-              h: 1,
-              i: "how_grid",
+              h: 1.269,
+              i: "how_file_grid",
               static: true,
             }}
           >
             <How />
+            <FileDetails />
           </div>
           <div
-            className="file"
-            key="5"
-            style={{ display: "grid", justifyContent: "center" }}
+            className="submit"
+            key="4"
             data-grid={{
-              x: 7,
+              x: 3,
               y: 1,
-              w: 3,
-              h: 1,
-              i: "file_grid",
+              w: 6,
+              h: 1/4,
+              i: "submit_grid",
               static: true,
             }}
           >
-            <FileDetails />
+            
+            <SubmitForm />
           </div>
       </GridLayout>
-    </div>
+    </>
   );
 };

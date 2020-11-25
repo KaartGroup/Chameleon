@@ -91,7 +91,7 @@ export const Header = () => {
         <ChameleonMenuItem className={classes.ImageHub}>
           <NavLink to="/byod" activeClassName={classes.selectedNavLink}>
             <Button color="inherit" size="large">
-              BYOD
+              <abbr title="Bring Your Own Data" style={{ textDecoration: "none" }}>BYOD</abbr>
             </Button>
           </NavLink>
         </ChameleonMenuItem>
