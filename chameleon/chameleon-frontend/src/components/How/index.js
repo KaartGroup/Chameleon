@@ -1,34 +1,41 @@
 import React from "react";
-import {
-    Wrapper,
-    Heading,
-    StyledLabel,
-} from "./styles";
+import { Wrapper, Heading, StyledLabel } from "./styles";
 
 export const How = () => {
     return (
-      <>
-        <Wrapper>
-          <Heading> How </Heading>
-        </Wrapper>
-        <div style={{ display: "grid", justifyContent: "center", alignItems: "center", height: "40%"}}>
-          <br></br>
-          <StyledLabel> 
-            Tag: 
-            <input type="text" placeholder="OSM Tag" onChange={() => console.log('handling Tag change')} />
-          </StyledLabel>
+        <>
+            <Wrapper>
+                <Heading> How </Heading>
+            </Wrapper>
+            <div
+                style={{
+                    display: "grid",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "40%",
+                }}
+            >
+                <br></br>
+                <StyledLabel>
+                    Tag:
+                    <input
+                        type="text"
+                        placeholder="OSM Tag"
+                        onChange={() => console.log("handling Tag change")}
+                    />
+                </StyledLabel>
 
-          <br></br>
-          <br></br>
-          
-          <button onClick={() => console.log('add')}>Add</button>
-          <button onClick={() => console.log('remove')}>Remove</button>
-          <button onClick={() => console.log('clear')}>Clear</button>
-          <select size="5" multiple=""></select>
+                <br></br>
+                <br></br>
 
-          <br></br>
-          <br></br>
-        </div>
-      </>
+                <button onClick={() => console.log("add")}>Add</button>
+                <button onClick={() => console.log("remove")}>Remove</button>
+                <button onClick={() => console.log("clear")}>Clear</button>
+                <select size="5" multiple=""></select>
+
+                <br></br>
+                <br></br>
+            </div>
+        </>
     );
 };
