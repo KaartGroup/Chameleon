@@ -1179,13 +1179,12 @@ class ChameleonProgressDialog(QProgressDialog):
         self.mode_count = mode_count
         self.current_phase = None  # osm_api, overpass, or mode
         self.current_mode = None
+        # Tracks how many actual modes have been completed, independent of scaling
         self.modes_completed = 0
         self.osm_api_completed = 0
         self.osm_api_max = 0
         self.overpass_start_time = None
         self.overpass_timeout_time = None
-        # Tracks how many actual modes have been completed, independent of scaling
-        self.mode_progress = 0
 
         self.is_overpass_complete = False
 
@@ -1244,9 +1243,11 @@ class ChameleonProgressDialog(QProgressDialog):
     def overpass_remaining(self) -> int:
         return (
             max(
-                (
-                    self.overpass_timeout_time - datetime.now().astimezone()
-                ).seconds,
+                round(
+                    (
+                        self.overpass_timeout_time - datetime.now().astimezone()
+                    ).total_seconds()
+                ),
                 0,
             )
             if self.using_overpass
@@ -1256,7 +1257,11 @@ class ChameleonProgressDialog(QProgressDialog):
     @property
     def overpass_elapsed(self) -> int:
         return (
-            (datetime.now().astimezone() - self.overpass_start_time).seconds
+            round(
+                (
+                    datetime.now().astimezone() - self.overpass_start_time
+                ).total_seconds()
+            )
             if self.using_overpass
             else 0
         )
@@ -1264,7 +1269,11 @@ class ChameleonProgressDialog(QProgressDialog):
     @property
     def overpass_timeout_duration(self) -> int:
         return (
-            (self.overpass_timeout_time - self.overpass_start_time).seconds
+            round(
+                (
+                    self.overpass_timeout_time - self.overpass_start_time
+                ).total_seconds()
+            )
             if self.using_overpass
             else 0
         )
@@ -1281,7 +1290,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.current_phase = "mode"
         logger.info("mode_start signal -> caught mode: %s.", mode)
         if self.current_mode != mode:
-            self.mode_progress += 1
+            self.modes_completed += 1
             self.current_mode = mode
 
         self.update_info(f"Analyzing {self.current_mode} tag…")
@@ -1299,7 +1308,6 @@ class ChameleonProgressDialog(QProgressDialog):
         self.cancel_button.setEnabled(True)
         self.current_phase = "osm_api"
         self.osm_api_max = item_count
-        self.setMaximum(self.real_max)
         self.update_info(
             "Checking deleted items on OSM server "
             f"({self.osm_api_completed} of {self.osm_api_max})"
@@ -1340,6 +1348,7 @@ class ChameleonProgressDialog(QProgressDialog):
 
     def update_info(self, message):
         self.setLabelText(message)
+        self.setMaximum(self.real_max)
         self.setValue(self.real_value)
         self.update()
 
