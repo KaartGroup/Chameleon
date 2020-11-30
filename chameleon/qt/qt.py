@@ -148,15 +148,7 @@ class Worker(QObject):
     overpass_counter = Signal(int)
     overpass_complete = Signal()
 
-    def __init__(
-        self,
-        parent,
-        modes: set = None,
-        files: dict = None,
-        group_output=False,
-        use_api=False,
-        file_format="csv",
-    ):
+    def __init__(self, parent):
         super().__init__()
         # Define set of selected modes
         self.parent = parent
@@ -200,7 +192,6 @@ class Worker(QObject):
                     logger.debug("Config directory could not be created.")
             if self.files:
                 self.history_writer()
-            mode = None
             cdf_set = ChameleonDataFrameSet(
                 self.files["old"],
                 self.files["new"],
@@ -907,7 +898,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         )
         self.repaint()
 
-    def suffix_updater(self):
+    def suffix_updater(self) -> None:
         self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
         self.repaint()
 
@@ -962,9 +953,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     @property
     def file_format(self) -> str:
         checked_box = next(
-            e
-            for e in self.fileFormatGroup.children()
-            if isinstance(e, QRadioButton) and e.isChecked()
+            box
+            for box in self.fileFormatGroup.children()
+            if isinstance(box, QRadioButton) and box.isChecked()
         )
         return {
             self.excelRadio: "excel",
