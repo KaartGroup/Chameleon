@@ -1,12 +1,8 @@
 """
 Unit tests for the web.py file
 """
-from pathlib import Path
 
-import yaml
 import pytest
-
-from contextlib import nullcontext
 
 from chameleon import core
 from chameleon.flask import web
@@ -82,12 +78,12 @@ def test_result_overpass(
 def test_result_byod(client, newpath, file_format, grouping):
     oldpath = "test/BLZ_allroads_2020_02_03.csv"
     filter_list = []
-    output = ""
-    client_uuid = ""
-    high_deletions_ok = False
     modes = ["highway", "ref", "construction", "name"]
     # with highdeletions:
     with open(oldpath, "rb") as oldfile, open(newpath, "rb") as newfile:
+        output = ""
+        client_uuid = ""
+        high_deletions_ok = False
         rv = client.post(
             "/result",
             data={

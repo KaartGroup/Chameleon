@@ -369,51 +369,48 @@ class ChameleonDataFrameSet(set):
 
         if feature_id in self.overpass_result_attribs:
             return self.overpass_result_attribs[feature_id]
-        else:
-            feature_type, feature_id_num = split_id(feature_id)
-            response = requests.get(
-                "https://www.openstreetmap.org/api/0.6/"
-                f"{feature_type}/{feature_id_num}/history.json",
-                timeout=5,
-                headers={
-                    "User-Agent": f"Kaart Chameleon{app_version}",
-                    "From": "dev@kaart.com",
-                },
-            )
-            # Raises exceptions for non-successful status codes
-            response.raise_for_status()
+        feature_type, feature_id_num = split_id(feature_id)
+        response = requests.get(
+            "https://www.openstreetmap.org/api/0.6/"
+            f"{feature_type}/{feature_id_num}/history.json",
+            timeout=5,
+            headers={
+                "User-Agent": f"Kaart Chameleon{app_version}",
+                "From": "dev@kaart.com",
+            },
+        )
+        # Raises exceptions for non-successful status codes
+        response.raise_for_status()
 
-            loaded_response = response.json()
-            latest_version = loaded_response["elements"][-1]
-            element_attribs = {
-                "user_new": latest_version["user"],
-                "changeset_new": str(latest_version["changeset"]),
-                "version_new": str(latest_version["version"]),
-                "timestamp_new": latest_version["timestamp"],
-            }
-            if not latest_version.get("visible", True):
-                # The most recent way version has the way deleted
-                prior_version_num = latest_version["version"] - 1
-                try:
-                    prior_version = next(
-                        i
-                        for i in loaded_response["elements"]
-                        if i["version"] == prior_version_num
-                    )
-                except IndexError:
-                    # Prior version doesn't exist for some reason, possibly redaction
-                    pass
-                else:
-                    # Save last members of the deleted way
-                    # for later use in detecting splits/merges
-                    if feature_type == "way":
-                        self.deleted_way_members[feature_id] = prior_version[
-                            "nodes"
-                        ]
+        loaded_response = response.json()
+        latest_version = loaded_response["elements"][-1]
+        element_attribs = {
+            "user_new": latest_version["user"],
+            "changeset_new": str(latest_version["changeset"]),
+            "version_new": str(latest_version["version"]),
+            "timestamp_new": latest_version["timestamp"],
+        }
+        if not latest_version.get("visible", True):
+            # The most recent way version has the way deleted
+            prior_version_num = latest_version["version"] - 1
+            try:
+                prior_version = next(
+                    i
+                    for i in loaded_response["elements"]
+                    if i["version"] == prior_version_num
+                )
+            except IndexError:
+                # Prior version doesn't exist for some reason, possibly redaction
+                pass
             else:
-                # The way was not deleted, just dropped from the latter dataset
-                element_attribs.update({"action": "dropped"})
-            return element_attribs
+                # Save last members of the deleted way
+                # for later use in detecting splits/merges
+                if feature_type == "way":
+                    self.deleted_way_members[feature_id] = prior_version["nodes"]
+        else:
+            # The way was not deleted, just dropped from the latter dataset
+            element_attribs.update({"action": "dropped"})
+        return element_attribs
 
     def write_excel(self, file_name: Union[Path, str]):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
@@ -582,9 +579,7 @@ def pager(orig_iterable: Collection[Any], page_length: int) -> List[List[Any]]:
     Chunks a Collection into pages, for use with an API
     """
     page_count = math.ceil(len(orig_iterable) / page_length)
-    pages = []
-    for page in range(page_count):
-        pages.append(
-            orig_iterable[(page * page_length) : (page + 1) * page_length]
-        )
-    return pages
+    return [
+        orig_iterable[(page * page_length) : (page + 1) * page_length]
+        for page in range(page_count)
+    ]

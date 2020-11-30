@@ -429,11 +429,10 @@ def return_osm_tag():
 
 
 def high_deletions_checker(cdfs: ChameleonDataFrameSet) -> float:
-    deletion_percentage = (
+    return (
         len(cdfs.source_data[cdfs.source_data["action"] == "deleted"])
         / max(len(cdfs.source_data), 1)  # Protect against zero division
     ) * 100
-    return deletion_percentage
 
 
 def load_extra_columns() -> dict:

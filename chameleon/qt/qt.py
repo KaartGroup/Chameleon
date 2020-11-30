@@ -1080,26 +1080,21 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         event : class
             Event which handles keystroke input
         """
+        if event.type() != QtCore.QEvent.KeyPress:
+            return
+
         # Sets up filter to enable keyboard input in listWidget
-        if self.searchButton == obj and event.type() == QtCore.QEvent.KeyPress:
-            if event.key() == QtCore.Qt.Key_Tab and self.listWidget.count() > 0:
+        if obj == self.searchButton and event.key() == QtCore.Qt.Key_Tab:
+            if self.listWidget.count() > 0:
                 self.listWidget.item(0).setSelected(True)
-            elif (
-                event.key() == QtCore.Qt.Key_Tab and self.listWidget.count() == 0
-            ):
+            elif self.listWidget.count() == 0:
                 event.ignore()
 
         # Set up filter to enable delete key within listWidget
-        if self.listWidget == obj and event.type() == QtCore.QEvent.KeyPress:
-            if (
-                event.key() == QtCore.Qt.Key_Delete
-                and self.listWidget.count() > 0
-            ):
+        if obj == self.listWidget and event.key() == QtCore.Qt.Key_Delete:
+            if self.listWidget.count() > 0:
                 self.delete_tag()
-            elif (
-                event.key() == QtCore.Qt.Key_Delete
-                and self.listWidget.count() == 0
-            ):
+            elif self.listWidget.count() == 0:
                 event.ignore()
 
         return super(MainApp, self).eventFilter(obj, event)
