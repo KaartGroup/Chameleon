@@ -510,13 +510,11 @@ class ChameleonDataFrameSet(set):
     @property
     def overpass_query_pages(self) -> List[str]:
         page_length = 200
-        query_pages = []
         all_ids = sorted(
             set(itertools.chain(*(df.index for df in self.nondeleted)))
         )
+        query_pages = []
         for page in pager(all_ids, page_length):
-            # for ftype, fid in separate_ids_by_feature_type(page).items():
-            #     feature_ids[ftype] |= set(fid)
             feature_ids = separate_ids_by_feature_type(page)
             query_pages.append(
                 ";".join(
