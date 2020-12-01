@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Union
 
 import geojson
+import overpass
 import pandas as pd
 import yaml
 
@@ -469,6 +470,14 @@ class Worker(QObject):
                 "Overpass timeout",
                 "The Overpass server did not respond in time.",
                 "critical",
+            )
+            return
+        except overpass.MultipleRequestsError:
+            logger.error("Too many Overpass requests in a period of time")
+            self.dialog(
+                "Too many Overpass requests",
+                "The Overpass server is refusing "
+                "to accept any more queries for a period of time",
             )
             return
         finally:
