@@ -232,7 +232,9 @@ class Worker(QObject):
                 cdf_set.add(result)
             self.write_output[self.format](cdf_set)
         except Exception as e:
-            self.dialog.emit("An unhandled exception occurred", e, "critical")
+            self.dialog.emit(
+                "An unhandled exception occurred", str(e), "critical"
+            )
             logger.exception(e)
         else:
             # If any modes aren't in either list,
