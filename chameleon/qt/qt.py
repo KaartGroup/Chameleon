@@ -10,7 +10,7 @@ import shlex
 import sys
 import time
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Union
 
@@ -146,7 +146,7 @@ class Worker(QObject):
     check_api_done = Signal()
     user_confirm_signal = Signal(str)
     dialog = Signal(str, str, str)
-    overpass_counter = Signal(int)
+    overpass_counter = Signal(datetime, datetime, int, int)
     overpass_complete = Signal()
 
     def __init__(self, parent):
@@ -452,10 +452,17 @@ class Worker(QObject):
         """
         timeout = 120
 
+        overpass_query = dataframe_set.OverpassQuery(dataframe_set, timeout)
+
+        logger.info("Querying Overpass…")
         try:
-            self.overpass_counter.emit(timeout)
-            logger.info("Querying Overpass…")
-            fcs = dataframe_set.to_geojson(timeout)
+            for _ in overpass_query.get():
+                self.overpass_counter.emit(
+                    overpass_query.overpass_start_time,
+                    overpass_query.overpass_timeout_time,
+                    overpass_query.queries_completed,
+                    overpass_query.number_of_queries,
+                )
         except TimeoutError:
             logger.error("Overpass timeout")
             self.dialog(
@@ -466,10 +473,10 @@ class Worker(QObject):
             return
         finally:
             self.overpass_complete.emit()
-        logger.info("Response recieved from Overpass.")
+        logger.info("All responses recieved from Overpass.")
 
         logger.info("Writing geojson…")
-        for fc in fcs:
+        for fc in overpass_query.geojson:
             file_name = self.files["output"].with_name(
                 f"{self.files['output'].name}_{fc['chameleon_mode']}.geojson"
             )
@@ -1170,6 +1177,8 @@ class ChameleonProgressDialog(QProgressDialog):
         self.osm_api_max = 0
         self.overpass_start_time = None
         self.overpass_timeout_time = None
+        self.overpass_queries_completed = 0
+        self.overpass_queries_max = 0
 
         self.is_overpass_complete = False
 
@@ -1192,7 +1201,9 @@ class ChameleonProgressDialog(QProgressDialog):
     @property
     def real_max(self) -> int:
         return (
-            self.overpass_timeout_duration * self.using_overpass
+            self.overpass_timeout_duration
+            * self.using_overpass
+            * self.overpass_queries_max
             + self.osm_api_max
             + self.mode_count * 10
         )
@@ -1206,10 +1217,15 @@ class ChameleonProgressDialog(QProgressDialog):
                     self.is_overpass_complete
                     * self.using_overpass
                     * self.overpass_timeout_duration
+                    * self.overpass_queries_max
                 )
                 or (
                     # Add the overpass timeout time if it's being used.
-                    self.overpass_elapsed
+                    (
+                        self.overpass_elapsed
+                        + self.overpass_queries_completed
+                        * self.overpass_timeout_duration
+                    )
                     * self.using_overpass
                 )
             )
@@ -1311,18 +1327,26 @@ class ChameleonProgressDialog(QProgressDialog):
         """
         self.cancel_button.setEnabled(False)
 
-    def overpass_counter(self, timeout: int):
+    def overpass_counter(
+        self,
+        overpass_start_time: datetime,
+        overpass_timeout_time: datetime,
+        overpass_queries_completed: int,
+        overpass_queries_max: int,
+    ):
         self.current_phase = "overpass"
-        self.overpass_start_time = datetime.now().astimezone()
-        self.overpass_timeout_time = self.overpass_start_time + timedelta(
-            seconds=timeout
-        )
-        while self.overpass_timeout_duration > 0:
+        self.overpass_start_time = overpass_start_time
+        self.overpass_timeout_time = overpass_timeout_time
+        self.overpass_queries_max = overpass_queries_max
+        self.overpass_queries_completed = overpass_queries_completed
+
+        while self.overpass_remaining > 0:
             if self.is_overpass_complete:
                 self.update_info("Overpass response returned")
                 break
             self.update_info(
-                "Getting geometry from Overpass. "
+                f"Getting query {self.overpass_queries_completed + 1} of "
+                f"{self.overpass_queries_max} from Overpass. "
                 f"{self.overpass_remaining} seconds until timeout"
             )
         else:

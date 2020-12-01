@@ -7,8 +7,20 @@ import itertools
 import logging
 import math
 import re
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Collection, Dict, List, Set, TextIO, Tuple, Union
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    Generator,
+    List,
+    Set,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import geojson
 import numpy as np
@@ -440,68 +452,97 @@ class ChameleonDataFrameSet(set):
                                 v,
                             )
 
-    def to_geojson(self, timeout: int = 120) -> List[geojson.FeatureCollection]:
-        if not self.overpass_query_pages:
-            return
+    class OverpassQuery:
+        """
+        Manages and tracks the progress of Overpass query or queries
+        """
 
-        api = overpass.API(timeout=timeout)
-        responses = [
-            api.get(query, verbosity="meta geom", responseformat="geojson",)
-            for query in self.overpass_query_pages
-        ]
+        request_interval = 5  # Time to wait between queries
 
-        responses_merged = list(
-            itertools.chain(*(fc["features"] for fc in responses))
-        )
+        def __init__(self, parent, timeout=120):
+            self.parent = parent
+            self.timeout = timeout
+            self.api = overpass.API(timeout=self.timeout)
+            self.queries_completed = 0
+            self._response_features = []
 
-        response_by_id = {
-            GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"]): i
-            for i in responses_merged
-        }
+        def get(self) -> Generator[None, None, None]:
+            sleeptime = 0
+            for query in self.parent.overpass_query_pages:
+                self.overpass_start_time = datetime.now().astimezone() + timedelta(
+                    seconds=sleeptime
+                )
+                self.overpass_timeout_time = (
+                    self.overpass_start_time + timedelta(seconds=self.timeout)
+                )
+                yield
+                time.sleep(sleeptime)
+                logger.info(
+                    "Making query number %s of %s from Overpass.",
+                    self.queries_completed + 1,
+                    self.number_of_queries,
+                )
+                r = self.api.get(
+                    query, verbosity="meta geom", responseformat="geojson",
+                )
+                logger.info("done")
+                self.queries_completed += 1
+                self._response_features += r["features"]
+                sleeptime = self.request_interval
 
-        all_fcs = []
-        for result in self.nondeleted:
-            if not len(result):
-                all_fcs.append(
-                    geojson.FeatureCollection(
+        @property
+        def geojson(self) -> Generator[geojson.FeatureCollection, None, None]:
+            if not self.complete:
+                return
+            response_by_id = {
+                GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"]): i
+                for i in self._response_features
+            }
+            for result in self.parent.nondeleted:
+                if not len(result):
+                    yield geojson.FeatureCollection(
                         [], chameleon_mode=result.chameleon_mode
                     )
+                    continue
+
+                columns_to_keep = ["url", "user", "timestamp", "version"]
+                if "changeset" in result.columns and "osmcha" in result.columns:
+                    columns_to_keep += ["changeset", "osmcha"]
+                if result.chameleon_mode != "name":
+                    columns_to_keep += ["name"]
+                if result.chameleon_mode != "highway":
+                    columns_to_keep += ["highway"]
+                if result.chameleon_mode not in SPECIAL_MODES:
+                    columns_to_keep += [
+                        f"old_{result.chameleon_mode_cleaned}",
+                        f"new_{result.chameleon_mode_cleaned}",
+                    ]
+                # else:
+                #     result[result.chameleon_mode] = result.chameleon_mode
+                #     columns_to_keep += [result.chameleon_mode]
+                columns_to_keep += ["action"]
+                result = result[columns_to_keep]
+
+                yield geojson.FeatureCollection(
+                    [
+                        geojson.Feature(
+                            id=fid,
+                            geometry=response_by_id.get(fid, {}).get("geometry"),
+                            properties=dict(row),
+                        )
+                        for fid, row in result.iterrows()
+                        if response_by_id.get(fid)
+                    ],
+                    chameleon_mode=result.chameleon_mode,
                 )
-                continue
 
-            columns_to_keep = ["url", "user", "timestamp", "version"]
-            if "changeset" in result.columns and "osmcha" in result.columns:
-                columns_to_keep += ["changeset", "osmcha"]
-            if result.chameleon_mode != "name":
-                columns_to_keep += ["name"]
-            if result.chameleon_mode != "highway":
-                columns_to_keep += ["highway"]
-            if result.chameleon_mode not in SPECIAL_MODES:
-                columns_to_keep += [
-                    f"old_{result.chameleon_mode_cleaned}",
-                    f"new_{result.chameleon_mode_cleaned}",
-                ]
-            # else:
-            #     result[result.chameleon_mode] = result.chameleon_mode
-            #     columns_to_keep += [result.chameleon_mode]
-            columns_to_keep += ["action"]
-            result = result[columns_to_keep]
+        @property
+        def complete(self) -> bool:
+            return self.queries_completed >= self.number_of_queries
 
-            fc = geojson.FeatureCollection(
-                [
-                    geojson.Feature(
-                        id=fid,
-                        geometry=response_by_id.get(fid, {}).get("geometry"),
-                        properties=dict(row),
-                    )
-                    for fid, row in result.iterrows()
-                    if response_by_id.get(fid)
-                ],
-                chameleon_mode=result.chameleon_mode,
-            )
-            all_fcs.append(fc)
-
-        return all_fcs
+        @property
+        def number_of_queries(self) -> int:
+            return len(self.parent.overpass_query_pages)
 
     @property
     def nondeleted(self) -> Set[ChameleonDataFrame]:
