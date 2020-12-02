@@ -12,6 +12,7 @@ import time
 from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Union
 
 import geojson
 import pandas as pd
@@ -844,17 +845,17 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender = self.sender()
         destination = sender.box_control
         # Gets first non-empty value in order
-        file_dir = str(
-            next(
+        file_dir = next(
+            (
                 e
                 for e in (
                     destination.text().strip(),
                     self.oldFileNameBox.text().strip(),
                     self.newFileNameBox.text().strip(),
-                    Path.home() / "Downloads",
                 )
                 if e
-            )
+            ),
+            str(Path.home() / "Downloads"),
         )
         file_name = QFileDialog.getOpenFileName(
             self,
@@ -873,14 +874,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         # If no previous location, default to Documents folder
         output_file_dir = str(
-            next(
-                e
-                for e in (
-                    os.path.dirname(self.outputFileNameBox.text().strip()),
-                    Path.home() / "Documents",
-                )
-                if e
-            )
+            dirname(
+                self.outputFileNameBox.text().strip()
+                or Path.home() / "Documents"
+            ),
         )
         output_file_name = QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir
@@ -1341,12 +1338,13 @@ class ChameleonProgressDialog(QProgressDialog):
         self.update()
 
 
-def dirname(the_path: Path) -> str:
+def dirname(the_path: Union[str, Path]) -> Path:
     """
     Return the URI of the nearest directory,
     which can be self if it is a directory
     or else the parent
     """
+    the_path = Path(the_path)
     return the_path.parent if not the_path.is_dir() else the_path
 
 
