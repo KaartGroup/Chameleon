@@ -4,3 +4,4 @@ gevent
 redis
 sqlalchemy
 werkzeug
+Flask-Cors>=3.0.8

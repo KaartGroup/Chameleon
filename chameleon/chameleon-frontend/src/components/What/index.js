@@ -143,7 +143,7 @@ export const What = () => {
                     Remove
                 </button>
                 <button onClick={(e) => { e.preventDefault(); selectRef.current.length = 0; setKeyVal([]); }}>Clear</button>
-                <select size="5" multiple="" ref={selectRef}></select>
+                <select size="5" name="filter_list" multiple="" ref={selectRef}></select>
                 <br></br>
             </div>
         </>

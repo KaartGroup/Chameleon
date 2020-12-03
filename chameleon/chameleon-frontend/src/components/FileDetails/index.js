@@ -8,9 +8,9 @@ import { ChameleonContext } from "../../common/ChameleonContext";
 export const FileDetails = () => {
     const [value, setValue] = useState("excel");
     const extensions = {
-        excel: ".xlsx",
-        geojson: ".geojson",
-        csv: ".zip",
+        excel: "xlsx",
+        geojson: "geojson",
+        csv: "zip",
     };
 
     const { setFileName, setFileType } = useContext(ChameleonContext);
@@ -42,6 +42,7 @@ export const FileDetails = () => {
                     <input
                         style={{ textAlign: "right" }}
                         type="text"
+                        name="output"
                         placeholder="chameleon"
                         onChange={inputChange}
                     />
@@ -51,7 +52,7 @@ export const FileDetails = () => {
                 <label>Format:</label>
                     <RadioGroup
                         aria-label="file_output"
-                        name="output"
+                        name="file_format"
                         value={value}
                         onChange={handleChange}
                     >

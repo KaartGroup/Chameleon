@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useContext } from "react";
 import { Where } from "../Where";
 import { When } from "../When";
 import { What } from "../What";
@@ -6,8 +6,17 @@ import { How } from "../How";
 import { FileDetails } from "../FileDetails";
 import { SubmitForm } from "../Submit";
 import "./styles.css";
+import { ChameleonContext } from "../../common/ChameleonContext";
 
+// TODO styling
 export const Chameleon = () => {
+    const { fetchJob } = useContext(ChameleonContext);
+
+
+    useEffect(() => {
+        fetchJob();
+    }, []);
+
     return (
         <>
             <form style={{ display: "flex", width: "100vw", flexDirection: "row", flexWrap: "wrap", justifyContent:"space-around" }}>

@@ -15,9 +15,10 @@ export const SubmitForm = () => {
         grouping,
         setGrouping,
         isBYOD,
+        submit,
     } = useContext(ChameleonContext);
 
-    const submit = (e) => {
+  /*const submit = (e) => {
         e.preventDefault();
 
         if (isValid()) {
@@ -25,7 +26,7 @@ export const SubmitForm = () => {
         } else if (isValidBYOD()) {
             console.log("valid BYOD", where, startDate, endDate, keyVal, tags, fileName, fileType, "grouping:", grouping, "isBYOD:", isBYOD);
         }
-    }
+    }*/
 
     const isValid = () => {
         return where !== "" && keyVal.length > 0 && tags.length > 0 && isBYOD != null;

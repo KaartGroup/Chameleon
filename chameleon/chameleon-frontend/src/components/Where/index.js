@@ -36,6 +36,7 @@ export const Where = () => {
                 <input
                     type="text"
                     placeholder="ISO Code"
+                    name="location"
                     maxLength={2}
                     onChange={(e) => { setWhere(e.target.value) } }
                 />

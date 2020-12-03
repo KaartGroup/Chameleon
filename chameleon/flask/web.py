@@ -8,6 +8,8 @@ from tempfile import TemporaryDirectory, TemporaryFile
 from typing import Generator, Iterator, List, TextIO, Dict
 from uuid import uuid4, UUID
 from zipfile import ZipFile
+import flask_cors
+import psycopg2
 
 import appdirs
 import gevent
@@ -30,13 +32,14 @@ from flask import (
 )
 from werkzeug.exceptions import UnprocessableEntity
 
-from chameleon.core import (
+from core import (
     TYPE_EXPANSION,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
 )
 
 app = Flask(__name__)
+flask_cors.CORS(app, support_credentials=True)
 
 backend_user_password = os.getenv("CELERY_BACKEND_USER", "")
 if backend_user_password and (pwd := os.getenv("CELERY_BACKEND_PASSWORD", "")):
@@ -62,7 +65,7 @@ celery = Celery(
 celery.conf.update(app.config)
 
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
-RESOURCES_DIR = Path("chameleon/resources")
+RESOURCES_DIR = Path("../resources")
 OVERPASS_TIMEOUT = (
     180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
 )
@@ -107,19 +110,22 @@ def result():
     file : signals end of processing, includes the url for the generated file
     """
 
+    print(request.json)
     args = {
-        "country": request.form.get("location", "", str.upper),
-        "startdate": request.form.get("startdate", type=datetime.fromisoformat),
-        "enddate": request.form.get("enddate"),
-        "modes": request.form.getlist("modes"),
-        "file_format": request.form["file_format"],
-        "filter_list": filter_processing(request.form.getlist("filters")),
-        "output": request.form.get("output") or "chameleon",
-        # Uses inbuilt UUID validation before converting back to string
-        "client_uuid": str(request.form.get("client_uuid", uuid4(), UUID)),
-        "grouping": request.form.get("grouping", False, bool),
-        "high_deletions_ok": request.form.get("high_deletions_ok", type=bool),
+        "country": request.json["location"],
+        "startdate": datetime.strptime(request.json["startdate"], "%Y-%m-%dT%H:%M:%S.%fZ"),
+        "enddate": datetime.strptime(request.json["enddate"], "%Y-%m-%dT%H:%M:%S.%fZ"),
+        "modes": request.json["modes"],
+        "file_format": request.json["file_format"],
+        "filter_list": filter_processing(request.json["filter_list"]),
+        "output": request.json["output"] or "chameleon",
+        # TODO use inbuilt UUID validation before converting back to string
+        "client_uuid": (str(request.json["job_uuid"]) if request.json["job_uuid"] else str(uuid4())),
+        "grouping": request.json["grouping"],
+        "high_deletions_ok": request.json["high_deletions_ok"],
     }
+
+    print(args["client_uuid"])
     if not args["modes"]:
         # Should only happen if client-side validation slips up
         raise UnprocessableEntity
@@ -571,7 +577,7 @@ def overpass_getter(
             overpass_query,
             responseformat=response_format,
             verbosity="meta",
-            date=date,
+            #date=date,
         )
         fp = TemporaryFile("w+")
         cwriter = csv.writer(fp, delimiter="\t")
