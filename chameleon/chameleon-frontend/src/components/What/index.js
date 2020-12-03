@@ -1,7 +1,20 @@
-import React from "react";
+import React, { useContext, useRef } from "react";
+import { ChameleonContext } from "../../common/ChameleonContext";
 import { Wrapper, Heading, StyledLabel } from "./styles";
 
+// TODO maybe autocomplete key and values for key?
+// TODO verify key and (maybe) values
+// TODO styling
 export const What = () => {
+    const keyRef = useRef();
+    const valueRef = useRef();
+    const selectRef = useRef();
+    const nodeRef = useRef();
+    const wayRef = useRef();
+    const relRef = useRef();
+
+    const { keyVal, setKeyVal } = useContext(ChameleonContext);
+    
     return (
         <>
             <Wrapper>
@@ -30,7 +43,7 @@ export const What = () => {
                     <input
                         type="text"
                         placeholder="OSM Key"
-                        onChange={() => console.log("handling OSM Key change")}
+                        ref={keyRef}
                     />
                 </StyledLabel>
 
@@ -43,7 +56,7 @@ export const What = () => {
                         placeholder="OSM Value(s)"
                         pattern="[A-z:,| ]"
                         title="Separate multiple values with commas (,), spaces, or pipes (|). Use asterisk (*) for all values"
-                        onChange={() => console.log("handling OSM Key change")}
+                        ref={valueRef}
                     />
                 </StyledLabel>
 
@@ -54,9 +67,8 @@ export const What = () => {
                     Node:
                     <input
                         type="checkbox"
-                        value="n"
-                        name="filterTypeBox"
-                        defaultChecked="Y"
+                        defaultChecked="y"
+                        ref={nodeRef}
                     />
                 </StyledLabel>
 
@@ -66,9 +78,8 @@ export const What = () => {
                     Way:
                     <input
                         type="checkbox"
-                        value="n"
-                        name="filterTypeBox"
-                        defaultChecked="Y"
+                        defaultChecked="y"
+                        ref={wayRef}
                     />
                 </StyledLabel>
 
@@ -78,18 +89,61 @@ export const What = () => {
                     Relation:
                     <input
                         type="checkbox"
-                        value="n"
-                        name="filterTypeBox"
-                        defaultChecked="Y"
+                        defaultChecked="y"
+                        ref={relRef}
                     />
                 </StyledLabel>
                 <br></br>
                 <br></br>
-                <button onClick={() => console.log("add")}>Add</button>
-                <button onClick={() => console.log("remove")}>Remove</button>
-                <button onClick={() => console.log("clear")}>Clear</button>
-                <select size="5" multiple=""></select>
+                <button onClick={(e) => { 
+                    e.preventDefault();
+                    
+                    if (keyRef.current.value !== "" && valueRef.current.value !== "") {
+                        var item = [
+                            keyRef.current.value.trim(),
+                            valueRef.current.value.trim().split(/[\s,|]+/),
+                            [nodeRef.current.checked ? "n" : "", wayRef.current.checked ? "w" : "", relRef.current.checked ? "r" : ""],
+                        ];
+                    
+                        const found = ["w", "n", "r"].some(r=> item[2].includes(r))
 
+                        if (found) {
+                            // TODO verify key has only one value
+                            item = item.filter((x) => x);
+                            var keyValue = [item[0], item[1].join(",")].filter((x) => x).join("=");
+                            var option = document.createElement("option");
+                            var optionString = `${keyValue} (${item[2].join("")})`;
+
+                            option.text = optionString;
+                            selectRef.current.add(option);
+                            setKeyVal(keyVal.concat(optionString));
+                            keyRef.current.value = "";
+                            valueRef.current.value = "";
+                        }     
+                    }
+
+                }}>
+                    Add
+                </button>
+                <button onClick={(e) => {
+                    e.preventDefault();
+
+                    if (selectRef.current.selectedIndex === -1) {
+                        selectRef.current.setCustomValidity("Please select a tag to remove");
+                        selectRef.current.reportValidity();
+                        selectRef.current.setCustomValidity("");
+                        return;
+                    }
+                    
+                    var index = keyVal.indexOf(selectRef.current.options[selectRef.current.selectedIndex].value);
+                    keyVal.splice(index, 1);
+                    selectRef.current.remove(selectRef.current.selectedIndex);
+                    setKeyVal(keyVal);
+                }}>
+                    Remove
+                </button>
+                <button onClick={(e) => { e.preventDefault(); selectRef.current.length = 0; setKeyVal([]); }}>Clear</button>
+                <select size="5" multiple="" ref={selectRef}></select>
                 <br></br>
             </div>
         </>

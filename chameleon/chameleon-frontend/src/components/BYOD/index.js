@@ -1,92 +1,58 @@
-import React, { useState } from "react";
-import ReactGridLayout, { WidthProvider } from "react-grid-layout";
+import React, { useContext, useState } from "react";
 import Button from "@material-ui/core/Button";
 
 import { FileDetails } from "../FileDetails";
 import { How } from "../How";
 import { Heading, Wrapper } from "./styles";
 import { SubmitForm } from "../Submit";
+import { ChameleonContext } from "../../common/ChameleonContext";
 
-const GridLayout = WidthProvider(ReactGridLayout);
-
+// TODO styling
 export const BYOD = () => {
-    const [name, setName] = useState("Old File");
-    const [layouts, setLayouts] = useState({});
-
-    const onLayoutChange = (layouts) => {
-        setLayouts(layouts);
-    };
-
-    const getViewHeight = () => {
-        return window.innerHeight;
-    };
+    const { oldFile, setOldFile, newFile, setNewFile } = useContext(ChameleonContext);
 
     return (
-        <>
-            <GridLayout
-                measureBeforeMount={true}
-                className="layout"
-                cols={6}
-                containerPadding={[10, 10]}
-                rowHeight={getViewHeight() / 2}
-                margin={[10, 10]}
-                layouts={layouts}
-                onLayoutChange={(layout) => onLayoutChange(layout)}
-            >
-                <div
-                    className="byod"
-                    key="1"
-                    data-grid={{
-                        x: 0,
-                        y: 0,
-                        w: 3,
-                        h: 1,
-                        i: "byod_grid",
-                        static: true,
-                    }}
-                >
-                    <Wrapper>
-                        <Heading>
-                            <abbr
-                                style={{ textDecoration: "none" }}
-                                title="Bring Your Own Data"
-                            >
-                                BYOD
-                            </abbr>
-                        </Heading>
-                    </Wrapper>
+    <>
+        <form style={{ display: "flex", width: "100vw", flexDirection: "row", flexWrap: "wrap", justifyContent:"space-around" }}>
+            <div style={{border: "1px solid black", width: "23vw", marginTop: "2.5%", marginBottom: "2.5%"}}>
+                <Wrapper>
+                    <Heading>
+                        <abbr
+                            style={{ textDecoration: "none" }}
+                            title="Bring Your Own Data"
+                        >
+                            BYOD
+                        </abbr>
+                    </Heading>
+                </Wrapper>
+                <div style={{ display: "flex", justifyContent: "center", marginTop: "30px" }}>
                     <Button variant="contained" component="label">
-                        {name}
+                        Old File
                         <input
                             type="file"
                             hidden
-                            onChange={() => {
-                                setName(name + " ✓");
+                            onChange={(e) => {
+                                setOldFile(e.target.value);
                             }}
                         />
                     </Button>
                     <Button variant="contained" component="label">
                         New File
-                        <input type="file" hidden />
+                        <input type="file"
+                            hidden
+                            onChange={(e) => { 
+                                setNewFile(e.target.value);
+                            }}
+                        />
                     </Button>
-                    <How />
                 </div>
-                <div
-                    className="what"
-                    key="2"
-                    data-grid={{
-                        x: 5,
-                        y: 0,
-                        w: 3,
-                        h: 1,
-                        i: "what_grid",
-                        static: true,
-                    }}
-                >
-                    <FileDetails />
-                    <SubmitForm />
-                </div>
-            </GridLayout>
-        </>
+                <How />
+            </div>
+            <div style={{border: "1px solid black", width: "23vw", marginTop: "2.5%", marginBottom: "2.5%"}}>
+                <FileDetails />
+                <SubmitForm />
+            </div>
+        </form>
+    </>
     );
 };

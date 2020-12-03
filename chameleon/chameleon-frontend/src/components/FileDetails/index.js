@@ -1,16 +1,27 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Wrapper, Heading } from "./styles";
 import Radio from "@material-ui/core/Radio";
 import RadioGroup from "@material-ui/core/RadioGroup";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormControl from "@material-ui/core/FormControl";
-import FormLabel from "@material-ui/core/FormLabel";
+import { ChameleonContext } from "../../common/ChameleonContext";
 
 export const FileDetails = () => {
-    const [value, setValue] = useState("female");
+    const [value, setValue] = useState("excel");
+    const extensions = {
+        excel: ".xlsx",
+        geojson: ".geojson",
+        csv: ".zip",
+    };
 
-    const handleChange = (event) => {
-        setValue(event.target.value);
+    const { setFileName, setFileType } = useContext(ChameleonContext);
+
+    const handleChange = (e) => {
+        setValue(e.target.value);
+        setFileType(extensions[e.target.value]);
+    };
+
+    const inputChange = (e) => {
+        setFileName(e.target.value);
     };
 
     return (
@@ -23,28 +34,21 @@ export const FileDetails = () => {
                     display: "grid",
                     justifyContent: "center",
                     alignItems: "center",
-                    height: "37%",
+                    marginTop: "5%",
                 }}
             >
-                <input
-                    type="hidden"
-                    className="high_deletions_ok"
-                    disabled=""
-                />
                 <label>
-                    {" "}
                     Output File Name:
                     <input
                         style={{ textAlign: "right" }}
                         type="text"
-                        className="output"
                         placeholder="chameleon"
+                        onChange={inputChange}
                     />
-                    <span className="fileExt">.xlsx</span>
+                    <span>{extensions[value]}</span>
                 </label>
 
-                <FormControl component="fieldset">
-                    <FormLabel component="legend">Format:</FormLabel>
+                <label>Format:</label>
                     <RadioGroup
                         aria-label="file_output"
                         name="output"
@@ -52,22 +56,21 @@ export const FileDetails = () => {
                         onChange={handleChange}
                     >
                         <FormControlLabel
-                            value="female"
+                            value="excel"
                             control={<Radio />}
                             label="Excel"
                         />
                         <FormControlLabel
-                            value="male"
+                            value="geojson"
                             control={<Radio />}
                             label="GeoJSON"
                         />
                         <FormControlLabel
-                            value="other"
+                            value="csv"
                             control={<Radio />}
                             label="CSV"
                         />
                     </RadioGroup>
-                </FormControl>
             </div>
         </>
     );

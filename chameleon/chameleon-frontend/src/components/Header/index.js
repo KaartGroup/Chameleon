@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import { NavLink } from "react-router-dom";
 import {
     AppBar,
@@ -14,6 +14,7 @@ import {
 import "./styles.css";
 import kaartLogo from "../../images/20-KAART-Color.svg";
 import { makeStyles } from "@material-ui/core/styles";
+import { ChameleonContext } from "../../common/ChameleonContext";
 
 const useStyles = makeStyles((theme) => ({
     button: {
@@ -29,6 +30,8 @@ const useStyles = makeStyles((theme) => ({
 
 export const Header = () => {
     const classes = useStyles();
+
+    const { setIsBYOD } = useContext(ChameleonContext);
 
     return (
         <AppBar>
@@ -101,7 +104,7 @@ export const Header = () => {
                         to="/chameleon"
                         activeClassName={classes.selectedNavLink}
                     >
-                        <Button color="inherit" size="large">
+                        <Button color="inherit" size="large" onClick={() => setIsBYOD(false)}>
                             Step-By-Step
                         </Button>
                     </NavLink>
@@ -111,7 +114,7 @@ export const Header = () => {
                         to="/byod"
                         activeClassName={classes.selectedNavLink}
                     >
-                        <Button color="inherit" size="large">
+                        <Button color="inherit" size="large" onClick={() => setIsBYOD(true)}>
                             <abbr
                                 title="Bring Your Own Data"
                                 style={{ textDecoration: "none" }}

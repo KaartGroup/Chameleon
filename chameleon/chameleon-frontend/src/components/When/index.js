@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useContext } from "react";
 import { Wrapper, Heading } from "./styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { ChameleonContext } from "../../common/ChameleonContext";
 
+// TODO styling
 export const When = () => {
-    const [startDate, setStartDate] = useState(new Date());
+    const { startDate, setStartDate, endDate, setEndDate } = useContext(ChameleonContext);
 
     return (
         <>
@@ -16,7 +18,7 @@ export const When = () => {
                     display: "grid",
                     justifyContent: "center",
                     alignItems: "center",
-                    height: "50%",
+                    paddingBottom: "10vh",
                 }}
             >
                 <p
@@ -30,6 +32,8 @@ export const When = () => {
                 </p>
                 <DatePicker
                     selected={startDate}
+                    minDate={new Date("2012", "08", "12")}
+                    maxDate={endDate}
                     onChange={(date) => setStartDate(date)}
                 />
                 <br></br>
@@ -43,8 +47,10 @@ export const When = () => {
                     End Date:
                 </p>
                 <DatePicker
-                    selected={startDate}
-                    onChange={(date) => setStartDate(date)}
+                    selected={endDate}
+                    minDate={startDate}
+                    maxDate={new Date()}
+                    onChange={(date) => setEndDate(date)}
                 />
             </div>
         </>

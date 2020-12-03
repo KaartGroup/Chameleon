@@ -1,10 +1,39 @@
-import React from "react";
+import React, { useContext, useState } from "react";
+import { ChameleonContext } from "../../common/ChameleonContext";
 import { Wrapper, Heading, StyledLabel } from "./styles";
 
+// TODO styling
 export const SubmitForm = () => {
-    const submitForm = () => {
-        console.log("submitting form!");
-    };
+    const {
+        where,
+        startDate,
+        endDate,
+        keyVal,
+        tags,
+        fileName,
+        fileType,
+        grouping,
+        setGrouping,
+        isBYOD,
+    } = useContext(ChameleonContext);
+
+    const submit = (e) => {
+        e.preventDefault();
+
+        if (isValid()) {
+            console.log("valid S-B-S",where, startDate, endDate, keyVal, tags, fileName, fileType, "grouping:", grouping, "isBYOD:", isBYOD);
+        } else if (isValidBYOD()) {
+            console.log("valid BYOD", where, startDate, endDate, keyVal, tags, fileName, fileType, "grouping:", grouping, "isBYOD:", isBYOD);
+        }
+    }
+
+    const isValid = () => {
+        return where !== "" && keyVal.length > 0 && tags.length > 0 && isBYOD != null;
+    } 
+
+    const isValidBYOD = () => {
+        return tags.length > 0 && isBYOD != null;
+    }
 
     return (
         <>
@@ -16,7 +45,8 @@ export const SubmitForm = () => {
                     display: "grid",
                     justifyContent: "center",
                     alignContent: "center",
-                    height: "40%",
+                    marginTop: "5%",
+                    marginBottom: "5%",
                 }}
             >
                 <StyledLabel>
@@ -25,11 +55,11 @@ export const SubmitForm = () => {
                         type="checkbox"
                         value="n"
                         name="filterTypeBox"
-                        defaultChecked=""
+                        onChange={() => setGrouping(!grouping)}
                     />
                 </StyledLabel>
                 <br></br>
-                <button type="submit" onClick={submitForm}>
+                <button type="submit" onClick={submit}>
                     Run
                 </button>
             </div>
