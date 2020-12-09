@@ -8,9 +8,9 @@ import { ChameleonContext } from "../../common/ChameleonContext";
 export const FileDetails = () => {
     const [value, setValue] = useState("excel");
     const extensions = {
-        excel: "xlsx",
-        geojson: "geojson",
-        csv: "zip",
+        excel: ".xlsx",
+        geojson: ".geojson",
+        csv: ".zip",
     };
 
     const { setFileName, setFileType } = useContext(ChameleonContext);

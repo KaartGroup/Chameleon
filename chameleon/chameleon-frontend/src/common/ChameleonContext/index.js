@@ -29,6 +29,8 @@ export const ChameleonProvider = ({ children }) => {
 
   const [isBYOD, setIsBYOD] = useState(false);
 
+  const progressRef = useRef();
+
   // fetch job uid onPageLoad
   const fetchJob = () => {
     if (getUUID()) {
@@ -102,7 +104,11 @@ export const ChameleonProvider = ({ children }) => {
       setUUID(jsonResponse["client_uuid"]);
       // long task api call here vv
       //this.checkStatus(this.uuid);
-    }).then(fetchJob);
+    })
+    .then(fetchJob)
+    .then(() => {
+      progressRef.current.style.display = "grid"
+    });
   }
 
 
@@ -139,6 +145,7 @@ export const ChameleonProvider = ({ children }) => {
     setGrouping,
     isBYOD,
     setIsBYOD,
+    progressRef,
     submit,
     fetchJob,
     getUUID,
