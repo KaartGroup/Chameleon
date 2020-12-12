@@ -1,126 +1,325 @@
-import React, { createContext, useState, useRef } from "react";
+import React, { createContext, useState, useRef, useEffect } from "react";
+import { useLocalStorageState } from "../LocalStorageState";
+import $ from 'jquery';
+window.$ = $;
 
 export const ChameleonContext = createContext({});
 
 export const ChameleonProvider = ({ children }) => {
   const API_URL = "http://localhost:5000/";
 
-  const [jobState, setJobState] = useState(null);
-
-  const [where, setWhere] = useState(null);
-
+  const [where, setWhere] = useState('BZ');
   const [oldFile, setOldFile] = useState(null);
-
   const [newFile, setNewFile] = useState(null);
-
-  const [startDate, setStartDate] = useState(new Date());
-
-  const [endDate, setEndDate] = useState(new Date());
-
+  const [startDate, setStartDate] = useState(new Date('02/27/2020'));
+  const [endDate, setEndDate] = useState(new Date('03/03/2020'));
   const [keyVal, setKeyVal] = useState([]);
-
   const [tags, setTags] = useState([]);
-
   const [fileName, setFileName] = useState("chameleon");
-
-  const [fileType, setFileType] = useState(".xlsx");
-
+  const [fileType, setFileType] = useState("excel");
   const [grouping, setGrouping] = useState(false);
-
   const [isBYOD, setIsBYOD] = useState(false);
 
-  const progressRef = useRef();
+  var overpassIntervalID;  
+  const [chameleonEventSource, setChameleonEventSource] = useState(null);
+  const [progbar, setProgbar] = useState();
+  const [label, setLabel] = useState(null);
+  const progressDialogueRef = useRef();
+  const progressBarRef = useRef();
+  const cancelRef = useRef();
+  const [UUID, setUUID] = useLocalStorageState("client_uuid", null);
 
-  // fetch job uid onPageLoad
-  const fetchJob = () => {
-    if (getUUID()) {
-      console.log('fetching job with uuid', getUUID());
-      let jobURL = API_URL + "longtask_status/" + getUUID();
-      let streaming = false;
-
-      fetch(jobURL)
-        .then((response) => {
-          if (!response.ok) throw response;
-          if (streaming) {
-            const reader = response.body.getReader();
-            let string = "";
-            let index = 1;
-            let job_state = "";
-            reader
-              .read()
-              .then(function processJson({ done, value }) {
-                if (done) {
-                  reader.releaseLock();
-                  return;
-                }
-                for (var i = 0; i < value.byteLength; i++) {
-                  let character = value[i]; 
-                  if (character !== 0x1e && character !== 0x0a) {
-                    string += String.fromCharCode(character);
-                  } else if (string.length > 0) {
-                    console.log('string',string);
-                    string = "";
-                  }
-                }
-                return reader.read().then(processJson);
-              })
-              .finally((data) => {
-                console.log(data);
-                //setJobState(job_state);
-              });
-          } else {
-            response.json().then((data) => setJobState(data));
-          }
-        })
-        .catch((error) => {
-          console.log('ERROR in fetching job status:', error);
-        })
+  useEffect(() => {
+    if (UUID != null && chameleonEventSource == null) {
+      setChameleonEventSource(new EventSource(API_URL + "longtask_status/" + UUID));
+      setProgbar(new Progbar());
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (UUID != null) {
+      setChameleonEventSource(new EventSource(API_URL + "longtask_status/" + UUID));
+      setProgbar(new Progbar());
+    }
+  }, [UUID]);
+
+  useEffect(() => {
+    if (chameleonEventSource != null) {
+      chameleonEventSource.addEventListener("error", () => {
+        console.log("error");
+      });
+      chameleonEventSource.addEventListener("open", () => {
+          console.log("SSE connection open");
+      });
+      chameleonEventSource.addEventListener("message", (event) => {
+          console.log(`message ${event.data}`);
+      });
+      checkStatus(chameleonEventSource);
+    }
+  }, [chameleonEventSource])
+
+  const isValid = () => {
+    return where !== "" && keyVal.length >= 0 && tags.length > 0 && isBYOD != null && !isBYOD;
+  } 
+
+  const isValidBYOD = () => {
+    return tags.length > 0 && isBYOD != null && isBYOD;
+  }
 
   const submit = (e) => {
     e.preventDefault();
 
-    fetch(API_URL + "result", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        location: where,
-        startdate: startDate,
-        enddate: endDate,
-        file_format: fileType,
-        output: fileName,
-        job_uuid: getUUID(),
-        modes: tags,
-        filter_list: keyVal,
-        grouping: grouping,
-        high_deletions_ok: false,
-      }),
-  })
-    .then((response) => response.json())
-    .then((jsonResponse) => {
-      setUUID(jsonResponse["client_uuid"]);
-      // long task api call here vv
-      //this.checkStatus(this.uuid);
+    if (isValid) {
+      fetch(API_URL + "result", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          location: where,
+          startdate: startDate,
+          enddate: endDate,
+          file_format: fileType,
+          output: fileName,
+          job_uuid: UUID,
+          modes: tags,
+          filter_list: keyVal,
+          grouping: grouping,
+          high_deletions_ok: false,
+        }),
     })
-    .then(fetchJob)
-    .then(() => {
-      progressRef.current.style.display = "grid"
-    });
+      .then((response) => response.json())
+      .then((jsonResponse) => {
+        setUUID(jsonResponse["client_uuid"]);
+      });
+    }
   }
 
 
-  const setUUID = (uuid) => {
-    if (uuid.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i))
-      localStorage.setItem("client_uuid", uuid);
-  }
-  
-  const getUUID = () => {
-    return localStorage.getItem("client_uuid");
+
+function jsonReviver(key, value) {
+    return ["overpass_start_time", "overpass_timeout_time"].includes(key)
+        ? new Date(value)
+        : value;
+}
+
+const cancelJob = () => {
+  fetch(API_URL + "abort", {
+      method: "DELETE",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: JSON.stringify({ client_uuid: UUID }),
+  }).then(
+      (response) => {
+          if (response.status == 200) {
+              progbar.current_phase = "abort";
+              progbar.updateMessage();
+          }
+      },
+      () => {
+          console.log("Task couldn't be canceled");
+      }
+  );
+}
+
+const endJob = () => {
+  chameleonEventSource.close();
+  setUUID(null);
+}
+
+const checkStatus = (chameleonEvent) => {
+  let progress = progbar;
+
+  chameleonEvent.addEventListener("task_update", (event) => {
+      let taskStatus = JSON.parse(event.data, jsonReviver);
+      if (taskStatus["state"] == "SUCCESS") {
+        if (progressDialogueRef.current.style.display != "grid") {
+          progressDialogueRef.current.style.display = "grid"
+        }
+          console.log("SUCCESS Closing SSE connection");
+          progress.current_phase = "success";
+          progress.updateMessage();
+          endJob();
+          window.setTimeout(function() { downloadFile(taskStatus); }, 5000);
+        } else if (
+            UUID &&
+            taskStatus["state"] == "PENDING"
+        ) {
+            // PENDING means unknown to the task manager
+            // Unless the UUID was recieved from the server, it's probably not valid
+            console.log("Bad UUID given, closing SSE connection");
+            endJob();
+        } else if (
+            UUID &&
+            taskStatus["state"] == "FAILURE" &&
+            taskStatus["deletion_percentage"]
+        ) {
+            // Task failed because of high deletion rate, indicating mismatched data
+            //this.highDeletionsInstance.askUser(
+            //    taskStatus["deletion_percentage"]
+            //);
+            console.log('task failed due to high deletion rate');
+            endJob();
+            
+        } else if (taskStatus["state"] == "ABORTED") {
+          console.log("Task aborted, closing SSE connection");
+          endJob();
+        } else if (taskStatus["state"] == "FAILURE") {
+            // Other, unknown failure
+            console.log(`Task failed with error: ${taskStatus["error"]}`, "Closing SSE connection");
+            endJob();
+        } 
+        progress.updateMessage();
+  });
+}
+
+const downloadFile = (taskStatus) => {
+  let downloadURL = API_URL + "download/" + taskStatus["uuid"] + "/" + taskStatus["file_name"];
+  fetch(downloadURL, {
+    method: "GET",
+    headers: new Headers({ "content-type": "application/octet-stream", "content-disposition": { "filename" : taskStatus["file_name"] } })
+  })
+}
+
+class Progbar {
+  // Snake case properties are direct from the server, camelCase are internal only
+  current_mode;
+  current_phase;
+  mode_count;
+  modes_completed;
+  osm_api_completed;
+  osm_api_max;
+  overpass_start_time;
+  overpass_timeout_time;
+
+  progressbar;
+  dialog;
+  message;
+  cancelButton;
+
+  constructor() {
+      this.progressbar = progressBarRef.current;
+      this.dialog = progressDialogueRef;
+      this.message = label;
+      this.cancelButton = cancelRef.current;
+
+      this.overpass_start_time = this.overpass_timeout_time = null;
+      this.osm_api_completed = this.osm_api_max = this.modes_completed = 0;
+      this.current_phase = "init";
   }
 
+  get usingOverpass() {
+      return (
+          this.overpass_start_time !== null &&
+          this.overpass_timeout_time !== null
+      );
+  }
+  get overpassElapsed() {
+      // Return whole seconds elapsed
+      return this.usingOverpass
+          ? Math.round((new Date() - this.overpass_start_time) / 1000)
+          : 0;
+  }
+  get overpassRemaining() {
+      // Return whole seconds until timeout
+      return this.usingOverpass
+          ? Math.max(
+                Math.round((this.overpass_timeout_time - new Date()) / 1000),
+                0
+            )
+          : 0;
+  }
+  get overpassTimeout() {
+      // Deduce the server's original timeout setting
+      return Math.round(
+          (this.overpass_timeout_time - this.overpass_start_time) / 1000
+      );
+  }
+  get realMax() {
+      return this.overpassTimeout + this.osm_api_max + this.mode_count * 10;
+  }
+  get realValue() {
+      return (
+          this.overpassElapsed +
+          this.osm_api_completed +
+          this.modes_completed * 10
+      );
+  }
+
+  updateMessage() {
+      if (["success", "cancel", "failure","abort"].includes(this.current_phase)) {
+          this.finished_message();
+      } else {
+          this.cancelButton.disabled = false;
+          console.log('current_phase', this.current_phase);
+
+          if (this.current_phase == "overpass") {
+              overpassIntervalID = window.setInterval(() => {
+                  if (this.overpassRemaining <= 0) {
+                      window.clearInterval(overpassIntervalID);
+                      this.current_phase = "failure";
+                      this.finished_message();
+                  } else {
+                      this.overpass_message();
+                  }
+              }, 1000);
+          } else {
+              if (overpassIntervalID) {
+                  window.clearInterval(overpassIntervalID);
+              }
+              this.progressDispatch[this.current_phase]();
+          }
+      }
+      if (this.dialog ? this.dialog.current.style.display != "grid" : false) {
+          this.dialog.current.style.display = "grid";
+      }
+  }
+
+  finished_message() {
+      this.cancelButton.disabled = true;
+      setLabel(this.finishedDispatch[this.current_phase] + " Refresh the page to start a new query.");
+      this.progressbar.value = this.progressbar.max = 1;
+      this.progressbar.innerText = "";
+  }
+
+  progressDispatch = {
+      init: () => {
+        setLabel("Initiating…");
+      },
+      pending: () => {
+        setLabel("Data recieved, beginning analysis…");
+      },
+      osm_api: () => this.osm_api_message(),
+      modes: () => this.modes_message(),
+  };
+
+  finishedDispatch = {
+      success: "Analysis complete!",
+      cancel: "Analysis canceled!",
+      failure: "Analysis failed!",
+      abort: "Analysis aborted!",
+  };
+
+  overpass_message() {
+    setLabel('Querying Overpass,' + this.overpassRemaining + 'seconds until timeout');
+    this.progressbar.value = this.realValue;
+    this.progressbar.max = this.realMax;
+    this.progressbar.innerText = `${this.overpassRemaining} seconds remain`;
+  }
+  osm_api_message() {
+      setLabel("Checking deleted features on OSM API (" + (this.osm_api_completed + 1/this.osm_api_max) + ")");
+      this.progressbar.value = this.realValue;
+      this.progressbar.max = this.realMax;
+      this.progressbar.innerText = `(${this.osm_api_completed + 1}/${
+          this.osm_api_max
+      })`;
+  }
+  modes_message() {
+      setLabel("Analyzing" + this.current_mode);
+      this.progressbar.value = this.realValue;
+      this.progressbar.max = this.realMax;
+      this.progressbar.innerText = `(${this.modes_completed}/${this.mode_count})`;
+  }
+}
 
   const value = {
     where,
@@ -145,10 +344,13 @@ export const ChameleonProvider = ({ children }) => {
     setGrouping,
     isBYOD,
     setIsBYOD,
-    progressRef,
+    progressDialogueRef,
+    progressBarRef,
+    cancelRef,
+    label,
     submit,
-    fetchJob,
-    getUUID,
+    cancelJob,
+    UUID,
   };
   
     return value ? (

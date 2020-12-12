@@ -6,7 +6,7 @@ import { ChameleonContext } from "../../common/ChameleonContext";
 // TODO maybe autocomplete list?
 // TODO styling
 export const Where = () => {
-    const { setWhere } = useContext(ChameleonContext);
+    const { setWhere, where } = useContext(ChameleonContext);
     
     return (
         <>
@@ -37,6 +37,7 @@ export const Where = () => {
                     type="text"
                     placeholder="ISO Code"
                     name="location"
+                    value={where}
                     maxLength={2}
                     onChange={(e) => { setWhere(e.target.value) } }
                 />

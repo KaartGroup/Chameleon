@@ -17,7 +17,7 @@ export const FileDetails = () => {
 
     const handleChange = (e) => {
         setValue(e.target.value);
-        setFileType(extensions[e.target.value]);
+        setFileType(e.target.value);
     };
 
     const inputChange = (e) => {
