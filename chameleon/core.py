@@ -262,6 +262,8 @@ class ChameleonDataFrameSet(set):
     Specialized dict that holds all dataframes in a run until they are written
     """
 
+    page_length = 2000
+
     def __init__(
         self,
         old: Union[str, Path, TextIO],
@@ -550,20 +552,20 @@ class ChameleonDataFrameSet(set):
 
     @property
     def overpass_query_pages(self) -> List[str]:
-        page_length = 200
         all_ids = sorted(
             set(itertools.chain(*(df.index for df in self.nondeleted)))
         )
         query_pages = []
-        for page in pager(all_ids, page_length):
+        for page in pager(all_ids, self.page_length):
             feature_ids = separate_ids_by_feature_type(page)
-            query_pages.append(
-                ";".join(
-                    f"{ftype}(id:{','.join(sorted(fid))})"
-                    for ftype, fid in feature_ids.items()
-                    if ftype != "relation" and fid
-                )
+            query_page = ";".join(
+                f"{ftype}(id:{','.join(sorted(fid))})"
+                for ftype, fid in feature_ids.items()
+                if ftype != "relation" and fid
             )
+            if query_page:
+                # Relations will create empty query pages, skip those
+                query_pages.append(query_page)
         return query_pages
 
 
