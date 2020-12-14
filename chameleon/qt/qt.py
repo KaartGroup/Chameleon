@@ -1043,7 +1043,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         logger.info("Modes to be processed: %s.", (self.modes))
 
-        self.progress_bar = ChameleonProgressDialog(len(self.modes))
+        self.progress_bar = ChameleonProgressDialog(
+            len(self.modes), self.file_format == "geojson"
+        )
         self.progress_bar.show()
 
         # Handles Worker class and QThreads for Worker
@@ -1174,9 +1176,7 @@ class ChameleonProgressDialog(QProgressDialog):
     Customizes QProgressDialog with methods specific to this app.
     """
 
-    # TODO Redefine properties in terms of major and minor increments,
-    # use getters and setters if it helps
-    def __init__(self, mode_count: int):
+    def __init__(self, mode_count: int, geojson: bool = False):
         self.mode_count = mode_count
         self.current_phase = None  # osm_api, overpass, or mode
         self.current_mode = None
@@ -1187,7 +1187,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.overpass_start_time = None
         self.overpass_timeout_time = None
         self.overpass_queries_completed = 0
-        self.overpass_queries_max = 0
+        self.overpass_queries_max = int(geojson)
 
         self.is_overpass_complete = False
 
@@ -1210,9 +1210,7 @@ class ChameleonProgressDialog(QProgressDialog):
     @property
     def real_max(self) -> int:
         return (
-            self.overpass_timeout_duration
-            * self.using_overpass
-            * self.overpass_queries_max
+            self.overpass_timeout_duration * self.overpass_queries_max
             + self.osm_api_max
             + self.mode_count * 10
         )
@@ -1224,18 +1222,14 @@ class ChameleonProgressDialog(QProgressDialog):
                 (
                     # Count full overpass time if it already completed
                     self.is_overpass_complete
-                    * self.using_overpass
                     * self.overpass_timeout_duration
                     * self.overpass_queries_max
                 )
                 or (
                     # Add the overpass timeout time if it's being used.
-                    (
-                        self.overpass_elapsed
-                        + self.overpass_queries_completed
-                        * self.overpass_timeout_duration
-                    )
-                    * self.using_overpass
+                    self.overpass_elapsed
+                    + self.overpass_queries_completed
+                    * self.overpass_timeout_duration
                 )
             )
             + self.osm_api_completed
