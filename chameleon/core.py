@@ -533,7 +533,7 @@ class ChameleonDataFrameSet(set):
                         for fid, row in result.iterrows()
                         if response_by_id.get(fid)
                     ],
-                    chameleon_mode=result.chameleon_mode,
+                    chameleon_mode=result.chameleon_mode_cleaned,
                 )
 
         @property
