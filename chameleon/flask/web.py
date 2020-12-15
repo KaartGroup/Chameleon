@@ -151,8 +151,8 @@ def result():
         raise UnprocessableEntity
 
     # Gets rid of any suffixes the user may have added
-    while args["output"] != Path(args["output"]).with_suffix("").name:
-        args["output"] = Path(args["output"]).with_suffix("").name
+    while args["output"] != Path(args["output"]).stem:
+        args["output"] = Path(args["output"]).stem
 
     task = celery_task.apply_async(args=[args], task_id=args["client_uuid"])
 
@@ -319,7 +319,7 @@ def process_data(
 
 
 @app.route("/longtask_status/<uuid:task_id>")
-def longtask_status(task_id):
+def longtask_status(task_id) -> Response:
     """
     Server Sent Event endpoint for monitoring a task's status until completion
     """
@@ -407,7 +407,7 @@ def longtask_status(task_id):
 
 
 @app.route("/abort", methods=["DELETE"])
-def abort_task():
+def abort_task() -> str:
     """
     Aborts the task with the given id
     """
@@ -417,14 +417,14 @@ def abort_task():
 
 
 @app.route("/download/<path:unique_id>")
-def download_file(unique_id):
+def download_file(unique_id) -> Response:
     return send_from_directory(
         USER_FILES_BASE.resolve(), unique_id, as_attachment=True
     )
 
 
 @app.route("/static/OSMtag.txt")
-def return_osm_tag():
+def return_osm_tag() -> Response:
     return send_file(RESOURCES_DIR.resolve() / "OSMtag.txt")
 
 
@@ -444,7 +444,7 @@ def load_extra_columns() -> dict:
     return extra_columns
 
 
-def write_csv(dataframe_set, base_dir, output):
+def write_csv(dataframe_set, base_dir, output) -> str:
     zip_name = f"{output}.zip"
     zip_path = Path(safe_join(base_dir, zip_name)).resolve()
 
@@ -459,7 +459,7 @@ def write_csv(dataframe_set, base_dir, output):
     return zip_name
 
 
-def write_excel(dataframe_set, base_dir, output):
+def write_excel(dataframe_set, base_dir, output) -> str:
     file_name = f"{output}.xlsx"
     file_path = Path(safe_join(base_dir, file_name)).resolve()
 
