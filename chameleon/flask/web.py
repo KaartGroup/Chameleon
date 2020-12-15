@@ -2,11 +2,11 @@ import csv
 import json
 import os
 import shlex
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
 from typing import Dict, Generator, Iterator, List, TextIO, Union
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
 from zipfile import ZipFile
 
 import appdirs
@@ -14,9 +14,8 @@ import gevent
 import overpass
 import pandas as pd
 import yaml
-from requests import Timeout, HTTPError
 from celery import Celery
-from celery.contrib.abortable import AbortableTask, AbortableAsyncResult
+from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import (
     Flask,
@@ -28,6 +27,7 @@ from flask import (
     send_file,
     send_from_directory,
 )
+from requests import HTTPError, Timeout
 from werkzeug.exceptions import UnprocessableEntity
 
 from chameleon.core import (
