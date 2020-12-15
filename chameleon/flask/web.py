@@ -575,8 +575,7 @@ def overpass_getter(
             date=date,
         )
         fp = TemporaryFile("w+")
-        cwriter = csv.writer(fp, delimiter="\t")
-        cwriter.writerows(response)
+        csv.writer(fp, delimiter="\t").writerows(response)
         fp.seek(0)
         yield fp
 
