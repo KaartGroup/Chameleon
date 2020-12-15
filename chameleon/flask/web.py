@@ -5,7 +5,7 @@ import shlex
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Generator, Iterator, List, TextIO, Dict
+from typing import Dict, Generator, Iterator, List, TextIO, Union
 from uuid import uuid4, UUID
 from zipfile import ZipFile
 
@@ -498,31 +498,36 @@ mimetype = {
 }
 
 
-def filter_processing(filters: List[str]) -> List[Dict[tuple, list]]:
+def filter_processing(
+    filters: List[str],
+) -> List[Dict[str, List[Union[str, dict]]]]:
     filter_list = []
     for filter in filters:
         filterstring, typestring = filter.rsplit(" (", 1)
         typestring = typestring[:-1]
 
-        types = (
-            [typestring]
-            if typestring == "nwr"
-            else [TYPE_EXPANSION[i] for i in typestring]
-        )
         filter_map = {
-            "types": types,
+            "types": (
+                [typestring]
+                if typestring == "nwr"
+                else [TYPE_EXPANSION[i] for i in typestring]
+            )
         }
 
         for separator in ("=", "~"):  # Probably add more separators
             filter_map["key"], _, filter_map["value"] = filterstring.partition(
                 separator
             )
-            if filter_map.get("value"):
+            if filter_map["value"] == "*":
+                filter_map["value"] = ""
+                break
+            if filter_map["value"]:
                 splitter = shlex.shlex(filter_map["value"])
                 splitter.whitespace += ",|"
                 splitter.whitespace_split = True
                 filter_map["value"] = list(splitter)
                 break
+
         if filter_map.get("key") or filter_map.get("value"):
             filter_list.append(filter_map)
     return filter_list

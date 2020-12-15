@@ -70,6 +70,42 @@ def test_result_overpass(
 
 
 @pytest.mark.parametrize(
+    "filter_list,goldfilter",
+    [
+        (
+            ["highway=* (w)"],
+            [{"types": ["way"], "key": "highway", "value": ""}],
+        ),
+        (
+            ["highway=* (w)", "construction (nwr)"],
+            [
+                {"types": ["way"], "key": "highway", "value": ""},
+                {"types": ["nwr"], "key": "construction", "value": ""},
+            ],
+        ),
+        (
+            ["highway (nwr)"],
+            [{"types": ["nwr"], "key": "highway", "value": ""}],
+        ),
+        (
+            ["highway=primary|secondary|tertiary (w)"],
+            [
+                {
+                    "types": ["way"],
+                    "key": "highway",
+                    "value": ["primary", "secondary", "tertiary"],
+                }
+            ],
+        ),
+    ],
+)
+def test_filter_processing(filter_list, goldfilter):
+
+    processed_filters = web.filter_processing(filter_list)
+    assert processed_filters == goldfilter
+
+
+@pytest.mark.parametrize(
     "newpath",
     ["test/BLZ_allroads_2020_02_27.csv", "test/BLZ_HPR_2020_02_03.csv"],
 )
