@@ -12,7 +12,7 @@ import time
 from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Union
+from typing import Tuple, Union
 
 import geojson
 import pandas as pd
@@ -296,7 +296,7 @@ class Worker(QObject):
             extra_columns = {"notes": None}
         return extra_columns
 
-    def history_writer(self):
+    def history_writer(self) -> None:
         staged_history_dict = {k: str(v) for k, v in self.files.items()}
         staged_history_dict["use_api"] = self.use_api
         staged_history_dict["file_format"] = self.format
@@ -350,7 +350,7 @@ class Worker(QObject):
         self.response = None
         return response
 
-    def check_api_deletions(self, cdfs: ChameleonDataFrameSet):
+    def check_api_deletions(self, cdfs: ChameleonDataFrameSet) -> None:
         """
         Pings OSM server to see if ways were actually deleted or just dropped
         """
@@ -400,7 +400,7 @@ class Worker(QObject):
             time.sleep(REQUEST_INTERVAL)
         self.check_api_done.emit()
 
-    def write_csv(self, dataframe_set: ChameleonDataFrameSet):
+    def write_csv(self, dataframe_set: ChameleonDataFrameSet) -> None:
         """
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
@@ -435,7 +435,7 @@ class Worker(QObject):
             )
         self.output_path = self.files["output"].parent
 
-    def write_excel(self, dataframe_set: ChameleonDataFrameSet):
+    def write_excel(self, dataframe_set: ChameleonDataFrameSet) -> None:
         """
         Writes all members of a ChameleonDataFrameSet as sheets in an Excel file
         """
@@ -451,7 +451,7 @@ class Worker(QObject):
                 {result.chameleon_mode: success_message(result)}
             )
 
-    def write_geojson(self, dataframe_set: ChameleonDataFrameSet):
+    def write_geojson(self, dataframe_set: ChameleonDataFrameSet) -> None:
         """
         Writes all members of a ChameleonDataFrameSet to a geojson file,
         using the overpass API
@@ -633,7 +633,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Set the output name template
         self.suffix_updater()
 
-    def about_menu(self):
+    def about_menu(self) -> None:
         """
         Handles about page information.
         """
@@ -672,14 +672,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         )
         about.show()
 
-    def auto_completer(self):
+    def auto_completer(self) -> None:
         """
         Autocompletion of user searches in searchBox.
         Utilizes resource file for associated autocomplete options.
         """
 
         # OSM tag resource file, construct list from file
-        with (RESOURCES_DIR / "OSMtag.txt").open() as read_file:
+        with (RESOURCES_DIR / "OSMtag.txt").open("r") as read_file:
             tags = read_file.read().splitlines()
 
         # Needs to have tags reference a resource file of OSM tags
@@ -688,7 +688,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         completer = QCompleter(tags)
         self.searchBox.setCompleter(completer)
 
-    def history_loader(self):
+    def history_loader(self) -> None:
         """
         Check for history file and load if exists
         """
@@ -712,7 +712,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.offlineRadio.setChecked(not self.history_dict.get("use_api", True))
         self.file_format = self.history_dict.get("file_format", "csv")
 
-    def fav_btn_populate(self, counter_location: Path = COUNTER_LOCATION):
+    def fav_btn_populate(self, counter_location: Path = COUNTER_LOCATION) -> None:
         """
         Populates the listed buttons with favorites from the given file
         """
@@ -756,7 +756,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             # The fav_btn and set_lists should have a 1:1 correspondence
             btn.setText(text)
 
-    def add_tag(self):
+    def add_tag(self) -> None:
         """
         Adds user defined tags into processing list on QListWidget.
         """
@@ -796,7 +796,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.listWidget.repaint()
         self.run_checker()
 
-    def delete_tag(self):
+    def delete_tag(self) -> None:
         """
         Clears selected list items with "Delete" button.
         Execute on `Delete` button signal.
@@ -812,7 +812,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.exception()
         self.listWidget.repaint()
 
-    def clear_tag(self):
+    def clear_tag(self) -> None:
         """
         Wipes all tags listed on QList with "Clear" button.
         Execute on `Clear` button signal.
@@ -824,7 +824,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     def document_tag(
         self, run_tags: set, counter_location: Path = COUNTER_LOCATION
-    ):
+    ) -> None:
         """
         Python counter for tags that are frequently chosen by user.
         Document counter and favorites using yaml file storage.
@@ -843,7 +843,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         else:
             logger.info(f"counter.yaml dump with: {self.tag_count}.")
 
-    def open_input_file(self):
+    def open_input_file(self) -> None:
         """
         Adds functionality to the Open Old/New File (…) button, opens the
         '/downloads' system path to find csv file.
@@ -873,7 +873,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             destination.selectAll()
             destination.insert(file_name)
 
-    def output_file(self):
+    def output_file(self) -> None:
         """
         Adds functionality to the Output File (…) button, opens the
         '/downloads' system path for user to name an output file.
@@ -894,7 +894,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.outputFileNameBox.selectAll()
             self.outputFileNameBox.insert(output_file_name)
 
-    def run_checker(self):
+    def run_checker(self) -> None:
         """
         Function that disable/enables run button based on list items.
         """
@@ -907,7 +907,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
         self.repaint()
 
-    def on_editing_finished(self):
+    def on_editing_finished(self) -> None:
         """
         If user types a value into a file name box, expand user if applicable
         """
@@ -918,7 +918,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender.insert(expanded)
         self.run_checker()
 
-    def dialog(self, text: str, info: str, icon: str = "information"):
+    def dialog(self, text: str, info: str, icon: str = "information") -> None:
         """
         Method to pop-up critical error box
 
@@ -969,7 +969,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         }[checked_box]
 
     @file_format.setter
-    def file_format(self, file_format):
+    def file_format(self, file_format) -> None:
         {
             "excel": self.excelRadio,
             "geojson": self.geojsonRadio,
@@ -1015,7 +1015,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             )
         return errors
 
-    def run_query(self):
+    def run_query(self) -> None:
         """
         Allows run button to execute based on selected tag parameters.
         Also Enables/disables run button while executing function and allows
@@ -1093,7 +1093,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         return super(MainApp, self).eventFilter(obj, event)
 
-    def finished(self):
+    def finished(self) -> None:
         """
         Helper method finalizes run process: re-enable run button
         and notify user of run process completion.
@@ -1108,7 +1108,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Re-enable run button when function complete
         self.run_checker()
 
-    def confirmation_dialog(self, message: str):
+    def confirmation_dialog(self, message: str) -> None:
         """
         Asks the user to confirm something.
 
@@ -1121,7 +1121,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.worker.response = self.QMB_MAP[confirm_response]
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         """
         Overrides the closeEvent method to allow an exit prompt.
         Checks if the user's input has changed from the saved value
@@ -1267,7 +1267,7 @@ class ChameleonProgressDialog(QProgressDialog):
             else 0
         )
 
-    def count_mode(self, mode: str):
+    def count_mode(self, mode: str) -> None:
         """
         Tracker for completion of individual modes in Worker class.
 
@@ -1284,7 +1284,7 @@ class ChameleonProgressDialog(QProgressDialog):
 
         self.update_info(f"Analyzing {self.current_mode} tag…")
 
-    def scale_with_api_items(self, item_count: int):
+    def scale_with_api_items(self, item_count: int) -> None:
         """
         Scales the bar by the number of items the API will be called for, so that the deleted mode
         is the same size as the other modes, but subdivided by the API item count
@@ -1302,20 +1302,20 @@ class ChameleonProgressDialog(QProgressDialog):
             f"({self.osm_api_completed} of {self.osm_api_max})"
         )
 
-    def increment_progbar_api(self):
+    def increment_progbar_api(self) -> None:
         self.osm_api_completed += 1
         self.update_info(
             "Checking deleted items on OSM server "
             f"({self.osm_api_completed} of {self.osm_api_max})"
         )
 
-    def check_api_done(self):
+    def check_api_done(self) -> None:
         """
         Disables the cancel button after the API check is complete
         """
         self.cancel_button.setEnabled(False)
 
-    def overpass_counter(self, timeout: int):
+    def overpass_counter(self, timeout: int) -> None:
         self.current_phase = "overpass"
         self.overpass_start_time = datetime.now().astimezone()
         self.overpass_timeout_time = self.overpass_start_time + timedelta(
@@ -1332,10 +1332,10 @@ class ChameleonProgressDialog(QProgressDialog):
         else:
             self.update_info("Overpass timeout")
 
-    def overpass_complete(self):
+    def overpass_complete(self) -> None:
         self.is_overpass_complete = True
 
-    def update_info(self, message):
+    def update_info(self, message) -> None:
         self.setLabelText(message)
         self.setMaximum(self.real_max)
         self.setValue(self.real_value)

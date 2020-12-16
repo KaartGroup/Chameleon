@@ -528,7 +528,7 @@ class ChameleonDataFrameSet(set):
         return query_pages
 
 
-def split_id(feature_id) -> Tuple[str, str]:
+def split_id(feature_id: Union[str, int]) -> Tuple[str, str]:
     """
     Separates an id like "n12345678" into the tuple ('node', '12345678')
     """
@@ -565,7 +565,7 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
     return the_dict
 
 
-def clean_for_presentation(uinput) -> str:
+def clean_for_presentation(uinput: str) -> str:
     """
     Sanitizes user input so that they can still recognize what they entered
     """
