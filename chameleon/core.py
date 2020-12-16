@@ -16,6 +16,8 @@ import overpass
 import pandas as pd
 import requests
 
+pd.options.mode.chained_assignment = None
+
 logger = logging.getLogger(__name__)
 
 SPECIAL_MODES = {"new", "deleted"}
