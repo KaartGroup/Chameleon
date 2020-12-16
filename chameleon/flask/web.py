@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 from zipfile import ZipFile
 
 import appdirs
+import geojson
 import gevent
 import overpass
 import pandas as pd
@@ -311,11 +312,21 @@ def process_data(
             continue
         cdfs.add(result)
 
-    task_metadata["file_name"] = write_output[file_format](
-        cdfs, user_dir, output
-    )
+    if file_format == "geojson":
+        for response in write_geojson(cdfs, user_dir, output):
+            if not response.get("file_name"):
+                yield {
+                    "state": "PROGRESS",
+                    "meta": task_metadata,
+                }
+            else:
+                yield {"state": "SUCCESS", "meta": task_metadata}
+    else:
+        task_metadata["file_name"] = write_output[file_format](
+            cdfs, user_dir, output
+        )
 
-    yield {"state": "SUCCESS", "meta": task_metadata}
+        yield {"state": "SUCCESS", "meta": task_metadata}
 
 
 @app.route("/longtask_status/<uuid:task_id>")
@@ -468,33 +479,57 @@ def write_excel(dataframe_set, base_dir, output) -> str:
     return file_name
 
 
-def write_geojson(dataframe_set, base_dir, output):
-    try:
-        response = dataframe_set.to_geojson(timeout=OVERPASS_TIMEOUT)
-    except TimeoutError:
-        # TODO Inform user about error
-        return
+def write_geojson(
+    dataframe_set, base_dir, output
+) -> Generator[dict, None, dict]:
+    overpass_query = dataframe_set.OverpassQuery(dataframe_set, OVERPASS_TIMEOUT)
 
-    file_name = f"{output}.geojson"
-    file_path = Path(safe_join(base_dir, file_name)).resolve()
+    for _ in overpass_query.get():
+        yield {
+            "start_time": overpass_query.overpass_start_time,
+            "timeout_time": overpass_query.overpass_timeout_time,
+            "queries_completed": overpass_query.queries_completed,
+            "query_count": overpass_query.number_of_queries,
+        }
+    # except TimeoutError:
+    #     self.dialog(
+    #         "Overpass timeout",
+    #         "The Overpass server did not respond in time.",
+    #         "critical",
+    #     )
+    #     return
+    # except overpass.MultipleRequestsError:
+    #     self.dialog(
+    #         "Too many Overpass requests",
+    #         "The Overpass server is refusing "
+    #         "to accept any more queries for a period of time",
+    #     )
 
-    with file_path.open("w") as output_file:
-        json.dump(response, output_file)
+    zip_name = f"{output}.zip"
+    zip_path = Path(safe_join(base_dir, zip_name)).resolve()
 
-    return file_name
+    with ZipFile(zip_path, "w") as myzip, TemporaryDirectory() as tempdir:
+        for fc in overpass_query.geojson:
+            file_name = f"{output}_{fc['chameleon_mode']}.geojson"
+            temp_path = Path(tempdir) / file_name
+            with temp_path.open("w") as output_file:
+                geojson.dump(fc, output_file, indent=4)
+            myzip.write(temp_path, arcname=file_name)
+
+    return {"file_name": zip_name}
 
 
 write_output = {
     "csv": write_csv,
     "excel": write_excel,
-    "geojson": write_geojson,
 }
 
 mimetype = {
     # "csv": "text/csv",
     "csv": "application/zip",
     "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "geojson": "application/vnd.geo+json",
+    # "geojson": "application/vnd.geo+json",
+    "geojson": "application/zip",
 }
 
 
