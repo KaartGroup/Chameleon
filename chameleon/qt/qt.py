@@ -241,48 +241,51 @@ class Worker(QObject):
             )
             logger.exception(e)
         else:
-            # If any modes aren't in either list,
-            # the process was cancelled before they could be completed
-            cancelled_list = self.modes - (
-                set(self.error_list) | set(self.successful_items.keys())
-            )
-            dialog_icon = "information"
-            if self.error_list:  # Some tags failed
-                dialog_icon = "critical"
-                headline = (
-                    "<p>A tag could not be queried</p>"
-                    if len(self.error_list) == 1
-                    else "<p>Tags could not be queried</p>"
-                )
-                summary = "\n".join(self.error_list)
-                if self.successful_items:
-                    headline = "<p>Some tags could not be queried</p>"
-                    summary += "\nThe following tags completed successfully:\n"
-                    summary += "\n".join(self.successful_items.values())
-            elif self.successful_items:  # Nothing failed, everything suceeded
-                headline = "<p>Success!</p>"
-                summary = "All tags completed!\n"
-                summary += "\n".join(self.successful_items.values())
-            # Nothing succeeded and nothing failed, probably because user declined to overwrite
-            else:
-                headline = "<p>Nothing saved</p>"
-                summary = "No files saved"
-            if cancelled_list:
-                summary += "\nThe process was cancelled before the following tags completed:\n"
-                summary += "\n".join(cancelled_list)
-            if self.successful_items:
-                s = "s" if self.format != "excel" else ""
-                # We want to always show in the file explorer, so we'll always link to a directory
-                headline += (
-                    f"<p>Output file{s} written to "
-                    f"<a href='{dirname(self.output_path).as_uri()}'>{self.output_path}</a></p>"
-                )
-            self.dialog.emit(headline, summary, dialog_icon)
+            self.dialog.emit(*self.summary_message())
         finally:
             self.modes.clear()
             logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
             self.done.emit()
+
+    def summary_message(self) -> Tuple[str, str, str]:
+        # If any modes aren't in either list,
+        # the process was cancelled before they could be completed
+        cancelled_list = self.modes - (
+            set(self.error_list) | set(self.successful_items.keys())
+        )
+        dialog_icon = "information"
+        if self.error_list:  # Some tags failed
+            dialog_icon = "critical"
+            headline = (
+                "<p>A tag could not be queried</p>"
+                if len(self.error_list) == 1
+                else "<p>Tags could not be queried</p>"
+            )
+            summary = "\n".join(self.error_list)
+            if self.successful_items:
+                headline = "<p>Some tags could not be queried</p>"
+                summary += "\nThe following tags completed successfully:\n"
+                summary += "\n".join(self.successful_items.values())
+        elif self.successful_items:  # Nothing failed, everything suceeded
+            headline = "<p>Success!</p>"
+            summary = "All tags completed!\n"
+            summary += "\n".join(self.successful_items.values())
+        # Nothing succeeded and nothing failed, probably because user declined to overwrite
+        else:
+            headline = "<p>Nothing saved</p>"
+            summary = "No files saved"
+        if cancelled_list:
+            summary += "\nThe process was cancelled before the following tags completed:\n"
+            summary += "\n".join(cancelled_list)
+        if self.successful_items:
+            s = "s" if self.format != "excel" else ""
+            # We want to always show in the file explorer, so we'll always link to a directory
+            headline += (
+                f"<p>Output file{s} written to "
+                f"<a href='{dirname(self.output_path).as_uri()}'>{self.output_path}</a></p>"
+            )
+        return (headline, summary, dialog_icon)
 
     def load_extra_columns(self) -> dict:
         try:
