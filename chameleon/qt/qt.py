@@ -392,7 +392,7 @@ class Worker(QObject):
                     logger.error(
                         "Server replied with a %s error", e.response.status_code
                     )
-                return {}
+                element_attribs = {}
 
             df.update(pd.DataFrame(element_attribs, index=[feature_id]))
 
