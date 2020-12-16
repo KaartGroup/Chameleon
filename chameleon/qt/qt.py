@@ -1076,7 +1076,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.work_thread.started.connect(self.worker.run)
         self.work_thread.start()
 
-    def eventFilter(self, obj, event):
+    def eventFilter(self, obj, event) -> bool:
         """
         Allows installed objects to filter QKeyEvents. Overrides the Qt default method.
 
@@ -1088,22 +1088,20 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         event : class
             Event which handles keystroke input
         """
-        if event.type() != QtCore.QEvent.KeyPress:
-            return
+        if event.type() == QtCore.QEvent.KeyPress:
+            # Sets up filter to enable keyboard input in listWidget
+            if obj == self.searchButton and event.key() == QtCore.Qt.Key_Tab:
+                if self.listWidget.count() > 0:
+                    self.listWidget.item(0).setSelected(True)
+                elif self.listWidget.count() == 0:
+                    event.ignore()
 
-        # Sets up filter to enable keyboard input in listWidget
-        if obj == self.searchButton and event.key() == QtCore.Qt.Key_Tab:
-            if self.listWidget.count() > 0:
-                self.listWidget.item(0).setSelected(True)
-            elif self.listWidget.count() == 0:
-                event.ignore()
-
-        # Set up filter to enable delete key within listWidget
-        if obj == self.listWidget and event.key() == QtCore.Qt.Key_Delete:
-            if self.listWidget.count() > 0:
-                self.delete_tag()
-            elif self.listWidget.count() == 0:
-                event.ignore()
+            # Set up filter to enable delete key within listWidget
+            if obj == self.listWidget and event.key() == QtCore.Qt.Key_Delete:
+                if self.listWidget.count() > 0:
+                    self.delete_tag()
+                elif self.listWidget.count() == 0:
+                    event.ignore()
 
         return super(MainApp, self).eventFilter(obj, event)
 
