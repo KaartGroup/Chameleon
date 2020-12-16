@@ -43,6 +43,9 @@ from chameleon.core import (
 )
 from chameleon.qt import design
 
+# Needed for Big Sur compatibility
+os.environ['QT_MAC_WANTS_LAYER'] = '1'
+
 # Differentiate sys settings between pre and post-bundling
 RESOURCES_DIR = (
     Path(sys._MEIPASS)
