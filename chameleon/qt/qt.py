@@ -287,7 +287,8 @@ class Worker(QObject):
             )
         return (headline, summary, dialog_icon)
 
-    def load_extra_columns(self) -> dict:
+    @staticmethod
+    def load_extra_columns() -> dict:
         try:
             with (RESOURCES_DIR / "extracolumns.yaml").open("r") as f:
                 extra_columns = yaml.safe_load(f)
