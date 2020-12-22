@@ -37,6 +37,9 @@ TYPE_EXPANSION = {"n": "node", "w": "way", "r": "relation"}
 GEOJSON_OSM = {"Point": "node", "LineString": "way", "Polygon": "way"}
 JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
 OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
+OVERPASS_TIMEOUT = (
+    180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
+)
 
 
 class ChameleonDataFrame(pd.DataFrame):
@@ -463,9 +466,9 @@ class ChameleonDataFrameSet(set):
 
         request_interval = 5  # Time to wait between queries
 
-        def __init__(self, parent, timeout=120):
+        def __init__(self, parent):
             self.parent = parent
-            self.timeout = timeout
+            self.timeout = OVERPASS_TIMEOUT
             self.api = overpass.API(timeout=self.timeout)
             self.queries_completed = 0
             self._response_features = []

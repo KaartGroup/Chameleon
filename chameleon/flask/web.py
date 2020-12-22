@@ -32,6 +32,7 @@ from requests import HTTPError, Timeout
 from werkzeug.exceptions import UnprocessableEntity
 
 from chameleon.core import (
+    OVERPASS_TIMEOUT,
     TYPE_EXPANSION,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
@@ -64,9 +65,6 @@ celery.conf.update(app.config)
 
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
 RESOURCES_DIR = Path("chameleon/resources")
-OVERPASS_TIMEOUT = (
-    180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
-)
 TASK_TIME_LIMIT = 7200
 
 try:

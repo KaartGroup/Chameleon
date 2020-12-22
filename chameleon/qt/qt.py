@@ -38,6 +38,7 @@ from requests import HTTPError, Timeout
 
 # Import generated UI file
 from chameleon.core import (
+    OVERPASS_TIMEOUT,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     clean_for_presentation,
@@ -458,9 +459,8 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a geojson file,
         using the overpass API
         """
-        timeout = 120
 
-        overpass_query = dataframe_set.OverpassQuery(dataframe_set, timeout)
+        overpass_query = dataframe_set.OverpassQuery(dataframe_set)
 
         logger.info("Querying Overpass…")
         try:
@@ -1188,6 +1188,8 @@ class ChameleonProgressDialog(QProgressDialog):
     Customizes QProgressDialog with methods specific to this app.
     """
 
+    overpass_timeout_duration = OVERPASS_TIMEOUT
+
     def __init__(self, mode_count: int, geojson: bool = False):
         self.mode_count = mode_count
         self.current_phase = None  # osm_api, overpass, or mode
@@ -1282,18 +1284,6 @@ class ChameleonProgressDialog(QProgressDialog):
             else 0
         )
 
-    @property
-    def overpass_timeout_duration(self) -> int:
-        return (
-            round(
-                (
-                    self.overpass_timeout_time - self.overpass_start_time
-                ).total_seconds()
-            )
-            if self.using_overpass
-            else 0
-        )
-
     def count_mode(self, mode: str) -> None:
         """
         Tracker for completion of individual modes in Worker class.
@@ -1355,15 +1345,14 @@ class ChameleonProgressDialog(QProgressDialog):
         self.overpass_queries_max = overpass_queries_max
         self.overpass_queries_completed = overpass_queries_completed
 
-        while self.overpass_remaining > 0:
-            if self.is_overpass_complete:
-                self.update_info("Overpass response returned")
-                break
+        while self.overpass_remaining > 0 and not self.is_overpass_complete:
             self.update_info(
                 f"Getting query {self.overpass_queries_completed + 1} of "
                 f"{self.overpass_queries_max} from Overpass. "
                 f"{self.overpass_remaining} seconds until timeout"
             )
+        if self.is_overpass_complete:
+            self.update_info("Overpass response returned")
         else:
             self.update_info("Overpass timeout")
 
