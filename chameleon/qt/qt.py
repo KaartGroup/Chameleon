@@ -715,7 +715,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.offlineRadio.setChecked(not self.history_dict.get("use_api", True))
         self.file_format = self.history_dict.get("file_format", "csv")
 
-    def fav_btn_populate(self, counter_location: Path = COUNTER_LOCATION) -> None:
+    def fav_btn_populate(self) -> None:
         """
         Populates the listed buttons with favorites from the given file
         """
@@ -723,7 +723,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         # Parse counter.yaml for user tag preference
         try:
-            with counter_location.open("r") as counter_read:
+            with COUNTER_LOCATION.open("r") as counter_read:
                 self.tag_count = Counter(yaml.safe_load(counter_read))
         # If file doesn't exist, fail silently
         except FileNotFoundError:
