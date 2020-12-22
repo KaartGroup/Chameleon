@@ -44,7 +44,7 @@ from chameleon.core import (
 from chameleon.qt import design
 
 # Needed for Big Sur compatibility
-os.environ['QT_MAC_WANTS_LAYER'] = '1'
+os.environ["QT_MAC_WANTS_LAYER"] = "1"
 
 # Differentiate sys settings between pre and post-bundling
 RESOURCES_DIR = (
@@ -447,10 +447,12 @@ class Worker(QObject):
 
         dataframe_set.write_excel(file_name)
 
-        for result in dataframe_set:
-            self.successful_items.update(
-                {result.chameleon_mode: success_message(result)}
-            )
+        self.successful_items.update(
+            {
+                result.chameleon_mode: success_message(result)
+                for result in dataframe_set
+            }
+        )
 
     def write_geojson(self, dataframe_set: ChameleonDataFrameSet) -> None:
         """
@@ -465,7 +467,7 @@ class Worker(QObject):
             fcs = dataframe_set.to_geojson(timeout)
         except TimeoutError:
             logger.error("Overpass timeout")
-            self.dialog(
+            self.dialog.emit(
                 "Overpass timeout",
                 "The Overpass server did not respond in time.",
                 "critical",
@@ -919,7 +921,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         sender.insert(expanded)
         self.run_checker()
 
-    def dialog(self, text: str, info: str, icon: str = "information") -> None:
+    def dialog_display(
+        self, text: str, info: str, icon: str = "information"
+    ) -> None:
         """
         Method to pop-up critical error box
 
@@ -1025,7 +1029,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         if self.validate_files():
             errormessage = "\n".join(self.validate_files().values())
-            self.dialog(
+            self.dialog_display(
                 "There are problems with your input!", errormessage, "critical"
             )
             return
@@ -1059,7 +1063,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.worker.done.connect(self.finished)
         # Connect signal from Worker to handle overwriting files
         self.worker.user_confirm_signal.connect(self.confirmation_dialog)
-        self.worker.dialog.connect(self.dialog)
+        self.worker.dialog.connect(self.dialog_display)
 
         self.worker.moveToThread(self.work_thread)
         self.work_thread.started.connect(self.worker.run)
