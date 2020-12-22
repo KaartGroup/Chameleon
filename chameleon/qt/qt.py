@@ -492,36 +492,43 @@ class Worker(QObject):
         logger.info("All responses recieved from Overpass.")
 
         logger.info("Writing geojson…")
-        for fc in overpass_query.geojson:
-            file_name = self.files["output"].with_name(
-                f"{self.files['output'].name}_{fc['chameleon_mode']}.geojson"
-            )
+        file_name = self.files["output"].with_suffix(".geojson")
 
-            try:
-                with file_name.open("x") as output_file:
+        try:
+            with file_name.open("x") as output_file:
+                geojson.dump(overpass_query.geojson, output_file, indent=4)
+        except FileExistsError:
+            if not self.overwrite_confirm(file_name):
+                logger.info("User chose not to overwrite")
+            else:
+                fc = (
+                    overpass_query.geojson
+                )  # Assign this before opening the file
+                with file_name.open("w") as output_file:
                     geojson.dump(fc, output_file, indent=4)
-            except FileExistsError:
-                if not self.overwrite_confirm(file_name):
-                    logger.info("User chose not to overwrite")
-                    continue
-                else:
-                    with file_name.open("w") as output_file:
-                        geojson.dump(fc, output_file, indent=4)
-            except OSError:
-                logger.exception("Write error.")
-                self.error_list.append(fc["chameleon_mode"])
-                continue
+                self.successful_items.update(
+                    {
+                        result.chameleon_mode: success_message(result)
+                        for result in dataframe_set.nondeleted
+                    }
+                )
+                logger.info(
+                    "Processing complete. %s written.", file_name,
+                )
+        except OSError:
+            logger.exception("Write error.")
+            self.error_list += [
+                result.chameleon_mode for result in dataframe_set.nondeleted
+            ]
+        else:
             self.successful_items.update(
                 {
-                    fc["chameleon_mode"]: success_message(
-                        dataframe_set[fc["chameleon_mode"]]
-                    )
+                    result.chameleon_mode: success_message(result)
+                    for result in dataframe_set.nondeleted
                 }
             )
             logger.info(
-                "Processing for %s complete. %s written.",
-                fc["chameleon_mode"],
-                file_name,
+                "Processing complete. %s written.", file_name,
             )
         self.output_path = self.files["output"].parent
 
@@ -538,7 +545,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     QMB_MAP = {QMessageBox.Yes: True, QMessageBox.No: False}
     EXTENSION_MAP = {
         "excel": ".xlsx",
-        "geojson": r"_{mode}.geojson",
+        "geojson": ".geojson",
         "csv": r"_{mode}.csv",
     }
 

@@ -505,18 +505,13 @@ def write_geojson(
     #         "to accept any more queries for a period of time",
     #     )
 
-    zip_name = f"{output}.zip"
-    zip_path = Path(safe_join(base_dir, zip_name)).resolve()
+    file_name = f"{output}.geojson"
+    file_path = Path(safe_join(base_dir, file_name)).resolve()
 
-    with ZipFile(zip_path, "w") as myzip, TemporaryDirectory() as tempdir:
-        for fc in overpass_query.geojson:
-            file_name = f"{output}_{fc['chameleon_mode']}.geojson"
-            temp_path = Path(tempdir) / file_name
-            with temp_path.open("w") as output_file:
-                geojson.dump(fc, output_file, indent=4)
-            myzip.write(temp_path, arcname=file_name)
+    with file_path.open("w") as output_file:
+        geojson.dump(overpass_query.geojson, output_file)
 
-    return {"file_name": zip_name}
+    return {"file_name": file_name}
 
 
 write_output = {
@@ -528,8 +523,7 @@ mimetype = {
     # "csv": "text/csv",
     "csv": "application/zip",
     "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    # "geojson": "application/vnd.geo+json",
-    "geojson": "application/zip",
+    "geojson": "application/vnd.geo+json",
 }
 
 

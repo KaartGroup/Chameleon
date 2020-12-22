@@ -495,50 +495,54 @@ class ChameleonDataFrameSet(set):
                 sleeptime = self.request_interval
 
         @property
-        def geojson(self) -> Generator[geojson.FeatureCollection, None, None]:
+        def geojson(self) -> geojson.FeatureCollection:
             if not self.complete:
-                return
+                raise RuntimeError
             response_by_id = {
                 GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"]): i
                 for i in self._response_features
             }
-            for result in self.parent.nondeleted:
-                if not len(result):
-                    yield geojson.FeatureCollection(
-                        [], chameleon_mode=result.chameleon_mode
+            agg_functions = {
+                "user": lambda user: ",".join(user.unique()),
+                "timestamp": "max",
+                "version": "max",
+                "changeset": lambda changeset: ",".join(changeset.unique()),
+                "name": lambda changeset: ",".join(changeset.unique()),
+                "highway": lambda changeset: ",".join(changeset.unique()),
+                "old_tag": lambda old_tag: ",".join(old_tag.unique()),
+                "new_tag": lambda new_tag: ",".join(new_tag.unique()),
+                "change_type": ",".join,
+            }
+
+            combined = pd.concat(self.with_mode_column)
+            combined.fillna("", inplace=True)
+            combined = combined.astype(str)
+            combined.reset_index(inplace=True)
+            combined = combined.groupby("id").aggregate(agg_functions)
+
+            columns_to_keep = ["user", "timestamp", "version"]
+            if "changeset" in combined.columns and "osmcha" in combined.columns:
+                columns_to_keep += ["changeset", "osmcha"]
+            columns_to_keep += [
+                "name",
+                "highway",
+                "old_tag",
+                "new_tag",
+                "change_type",
+            ]
+            combined = combined[columns_to_keep]
+
+            return geojson.FeatureCollection(
+                [
+                    geojson.Feature(
+                        id=fid,
+                        geometry=response_by_id.get(fid, {}).get("geometry"),
+                        properties=dict(row),
                     )
-                    continue
-
-                columns_to_keep = ["url", "user", "timestamp", "version"]
-                if "changeset" in result.columns and "osmcha" in result.columns:
-                    columns_to_keep += ["changeset", "osmcha"]
-                if result.chameleon_mode != "name":
-                    columns_to_keep += ["name"]
-                if result.chameleon_mode != "highway":
-                    columns_to_keep += ["highway"]
-                if result.chameleon_mode not in SPECIAL_MODES:
-                    columns_to_keep += [
-                        f"old_{result.chameleon_mode_cleaned}",
-                        f"new_{result.chameleon_mode_cleaned}",
-                    ]
-                # else:
-                #     result[result.chameleon_mode] = result.chameleon_mode
-                #     columns_to_keep += [result.chameleon_mode]
-                columns_to_keep += ["action"]
-                result = result[columns_to_keep]
-
-                yield geojson.FeatureCollection(
-                    [
-                        geojson.Feature(
-                            id=fid,
-                            geometry=response_by_id.get(fid, {}).get("geometry"),
-                            properties=dict(row),
-                        )
-                        for fid, row in result.iterrows()
-                        if response_by_id.get(fid)
-                    ],
-                    chameleon_mode=result.chameleon_mode_cleaned,
-                )
+                    for fid, row in combined.iterrows()
+                    if response_by_id.get(fid)
+                ]
+            )
 
         @property
         def complete(self) -> bool:
@@ -547,6 +551,35 @@ class ChameleonDataFrameSet(set):
         @property
         def number_of_queries(self) -> int:
             return len(self.parent.overpass_query_pages)
+
+        @property
+        def with_mode_column(self) -> Generator[ChameleonDataFrame, None, None]:
+            # the_cdfs = set()
+            for cdf in self.parent.nondeleted:
+                cdf_copy = cdf.copy()
+                cdf_copy.rename(
+                    columns={
+                        next(
+                            (
+                                name
+                                for name in cdf.columns
+                                if name.startswith("old_")
+                            ),
+                            "old",
+                        ): "old_tag",
+                        next(
+                            (
+                                name
+                                for name in cdf.columns
+                                if name.startswith("new_")
+                            ),
+                            "new",
+                        ): "new_tag",
+                    },
+                    inplace=True,
+                )
+                cdf_copy["change_type"] = cdf.chameleon_mode
+                yield cdf_copy
 
     @property
     def nondeleted(self) -> Set[ChameleonDataFrame]:
