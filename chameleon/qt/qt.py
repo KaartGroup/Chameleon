@@ -693,7 +693,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Check for history file and load if exists
         """
-        self.history_dict = {}
         try:
             with HISTORY_LOCATION.open("r") as history_file:
                 self.history_dict = yaml.safe_load(history_file)
@@ -703,10 +702,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 "History file could not be found. "
                 "This is normal when running the program for the first time."
             )
-        except PermissionError:
+            self.history_dict = {}
+        except OSError:
             logger.exception("History file found but not readable.")
-        except AttributeError as e:
-            logger.exception(e)
+            self.history_dict = {}
 
         for k, v in self.text_fields.items():
             v.insert(self.history_dict.get(k, ""))
