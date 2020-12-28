@@ -806,11 +806,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             for item in self.listWidget.selectedItems():
                 self.listWidget.takeItem(self.listWidget.row(item))
                 logger.info("Deleted %s from processing list.", (item.text()))
-            self.run_checker()
         # Fails silently if nothing is selected
         except AttributeError:
             logger.exception()
-        self.listWidget.repaint()
+        self.run_checker()
 
     def clear_tag(self) -> None:
         """
@@ -820,7 +819,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.listWidget.clear()
         logger.info("Cleared tag list.")
         self.run_checker()
-        self.listWidget.repaint()
 
     def document_tag(
         self, run_tags: set, counter_location: Path = COUNTER_LOCATION
