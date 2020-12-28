@@ -544,9 +544,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.work_thread = None
         self.worker = None
 
-        logo_path = str((RESOURCES_DIR / "chameleon.png").resolve())
-        self.setWindowIcon(QtGui.QIcon(logo_path))
-        self.logo = logo_path
+        self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
+        self.setWindowIcon(QtGui.QIcon(self.logo))
 
         self.tag_count = Counter()
 
@@ -556,37 +555,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             "output": self.outputFileNameBox,
         }
 
-        # Menu bar customization
-        # Define QActions for menu bar
-        # About action for File menu
-        info_action = QAction("&About Chameleon", self)
-        info_action.setShortcut("Ctrl+I")
-        info_action.setStatusTip("Software description.")
-        info_action.triggered.connect(self.about_menu)
-        # Exit action for File menu
-        extract_action = QAction("&Exit Chameleon", self)
-        extract_action.setShortcut("Ctrl+Q")
-        extract_action.setStatusTip("Close application.")
-        extract_action.triggered.connect(self.close)
-        # Declare menu bar settings
-        main_menu = self.menuBar()
-        file_menu = main_menu.addMenu("&File")
-        file_menu.addAction(info_action)
-        file_menu.addAction(extract_action)
-
         # Logging initialization of Chameleon
         logger.info("Chameleon started at %s.", datetime.now())
 
-        # Sets run button to not enabled
-        self.run_checker()
-
-        # OSM tag resource file, construct list from file
-        self.auto_completer()
-
         # YAML file loaders
-        # Load file paths into boxes from previous session
-        self.history_loader()
-
         # List all of our buttons to populate so we can iterate through them
         self.fav_btn = (
             self.popTag1,
@@ -595,9 +567,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.popTag4,
             self.popTag5,
         )
-
         # Populate the buttons defined above
         self.fav_btn_populate()
+        # Load file paths into boxes from previous session
+        self.history_loader()
+        # OSM tag resource file, construct list from file
+        self.auto_completer()
+
 
         # Connecting signals to slots within init
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
@@ -635,6 +611,28 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         # Set the output name template
         self.suffix_updater()
+        # Sets run button to not enabled
+        self.run_checker()
+
+    def actions_setup(self) -> None:
+        """
+        Menu bar customization
+        """
+        # Define QActions for menu bar
+        # About action for File menu
+        info_action = QAction("&About Chameleon", self)
+        info_action.setShortcut("Ctrl+I")
+        info_action.setStatusTip("Software description.")
+        info_action.triggered.connect(self.about_menu)
+        # Exit action for File menu
+        extract_action = QAction("&Exit Chameleon", self)
+        extract_action.setShortcut("Ctrl+Q")
+        extract_action.setStatusTip("Close application.")
+        extract_action.triggered.connect(self.close)
+        # Declare menu bar settings
+        file_menu = self.menuBar().addMenu("&File")
+        file_menu.addAction(info_action)
+        file_menu.addAction(extract_action)
 
     def about_menu(self) -> None:
         """
@@ -962,6 +960,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     @property
     def file_format(self) -> str:
+        """
+        Returns the selected file format
+        """
         checked_box = next(
             box
             for box in self.fileFormatGroup.children()
@@ -975,14 +976,18 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     @file_format.setter
     def file_format(self, file_format) -> None:
-        {
-            "excel": self.excelRadio,
-            "geojson": self.geojsonRadio,
-            "csv": self.csvRadio,
-        }.get(file_format, self.csvRadio).setChecked(True)
+        """
+        Sets the file format radio to the given format
+        """
+        {"excel": self.excelRadio, "geojson": self.geojsonRadio}.get(
+            file_format, self.csvRadio
+        ).setChecked(True)
 
     @property
     def modes(self) -> set:
+        """
+        Returns the modes the user has input as a set
+        """
         return {
             i.text()
             for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
@@ -990,9 +995,15 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     @property
     def group_output(self) -> bool:
+        """
+        Returns True if the user has selected grouping
+        """
         return self.groupingCheckBox.isChecked()
 
     def validate_files(self) -> dict:
+        """
+        Validates the file paths the user has given
+        """
         errors = {}
         # Check for blank values
         try:
@@ -1002,16 +1013,17 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         except KeyError as e:
             errors["blank"] = f"{e.args[0].title()} file field is blank."
         badfiles = []
-        for key, path in [(k, self.file_fields.get(k)) for k in {"old", "new"}]:
+        for key, path in ((k, self.file_fields.get(k)) for k in {"old", "new"}):
             try:
                 with path.open("r"):
                     pass
-            except FileNotFoundError:
+            except OSError:
                 badfiles.append(key)
         if badfiles:
+            s = plur(len(badfiles))
             errors[
                 "notfound"
-            ] = f"{' and '.join(badfiles)} file{plur(len(badfiles))} not found.".capitalize()
+            ] = f"{' and '.join(badfiles)} file{s} not found.".capitalize()
         # Check if output directory is writable
         if not os.access(self.file_fields["output"].parent, os.W_OK):
             errors["notwritable"] = (
