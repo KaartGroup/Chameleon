@@ -960,16 +960,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Returns the selected file format
         """
-        checked_box = next(
-            box
-            for box in self.fileFormatGroup.children()
-            if isinstance(box, QRadioButton) and box.isChecked()
-        )
-        return {
+        checkbox_map = {
             self.excelRadio: "excel",
             self.geojsonRadio: "geojson",
             self.csvRadio: "csv",
-        }[checked_box]
+        }
+        return next(
+            extension
+            for box, extension in checkbox_map.items()
+            if box.isChecked()
+        )
 
     @file_format.setter
     def file_format(self, file_format) -> None:
