@@ -1385,6 +1385,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.overpass_queries_completed = overpass_queries_completed
 
         while self.overpass_remaining > 0 and not self.is_overpass_complete:
+            QApplication.processEvents()
             self.update_info(
                 f"Getting query {self.overpass_queries_completed + 1} of "
                 f"{self.overpass_queries_max} from Overpass. "
