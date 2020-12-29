@@ -40,10 +40,10 @@ from requests import HTTPError, Timeout
 # Import generated UI file
 from chameleon.core import (
     OVERPASS_TIMEOUT,
+    SPECIAL_MODES,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     clean_for_presentation,
-    SPECIAL_MODES,
 )
 from chameleon.qt import design
 
