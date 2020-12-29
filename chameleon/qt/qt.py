@@ -822,7 +822,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 self.listWidget.addItem(label)
                 logger.info("Adding to list: %s", label)
         self.clear_search_box.emit()
-        self.listWidget.repaint()
         self.run_checker()
 
     def delete_tag(self) -> None:
