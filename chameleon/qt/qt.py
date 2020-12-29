@@ -785,25 +785,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             # The fav_btn and set_lists should have a 1:1 correspondence
             btn.setText(text)
 
-    def update_default_frames(self) -> None:
-        """
-        Hides "deleted" from the list widget if geojson format selected,
-        shows it otherwise
-        """
-        deleted_item = next(
-            iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
-            None,
-        )
-        if self.file_format == "geojson" and deleted_item:
-            self.listWidget.takeItem(self.listWidget.row(deleted_item))
-        elif self.file_format != "geojson" and not deleted_item:
-            new_item = QListWidgetItem("deleted")
-            new_item.setFlags(QtCore.Qt.NoItemFlags)
-            self.listWidget.addItem(new_item)
-        else:
-            return
-        self.repaint()
-
     def add_tag(self) -> None:
         """
         Adds user defined tags into processing list on QListWidget.
@@ -947,11 +928,30 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.runButton.setEnabled(
             bool(self.modes) and all(self.file_fields.values())
         )
-        self.repaint()
+        self.update()
 
     def suffix_updater(self) -> None:
         self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
-        self.repaint()
+        self.update()
+
+    def update_default_frames(self) -> None:
+        """
+        Hides "deleted" from the list widget if geojson format selected,
+        shows it otherwise
+        """
+        deleted_item = next(
+            iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
+            None,
+        )
+        if self.file_format == "geojson" and deleted_item:
+            self.listWidget.takeItem(self.listWidget.row(deleted_item))
+        elif self.file_format != "geojson" and not deleted_item:
+            new_item = QListWidgetItem("deleted")
+            new_item.setFlags(QtCore.Qt.NoItemFlags)
+            self.listWidget.addItem(new_item)
+        else:
+            return
+        self.update()
 
     def on_editing_finished(self) -> None:
         """
