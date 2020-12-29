@@ -419,6 +419,22 @@
            <property name="sortingEnabled">
             <bool>true</bool>
            </property>
+           <item>
+            <property name="text">
+             <string>deleted</string>
+            </property>
+            <property name="flags">
+             <set>NoItemFlags</set>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>new</string>
+            </property>
+            <property name="flags">
+             <set>NoItemFlags</set>
+            </property>
+           </item>
           </widget>
          </item>
          <item row="2" column="1">

@@ -28,6 +28,7 @@ from PySide2.QtWidgets import (
     QApplication,
     QCompleter,
     QFileDialog,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QProgressDialog,
@@ -42,6 +43,7 @@ from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     clean_for_presentation,
+    SPECIAL_MODES,
 )
 from chameleon.qt import design
 
@@ -597,16 +599,15 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # OSM tag resource file, construct list from file
         self.auto_completer()
 
-
         # Connecting signals to slots within init
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
         self.newFileSelectButton.clicked.connect(self.open_input_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
 
         # Changes the displayed file name template depending on the selected file format
-        self.excelRadio.clicked.connect(self.suffix_updater)
-        self.csvRadio.clicked.connect(self.suffix_updater)
-        self.geojsonRadio.clicked.connect(self.suffix_updater)
+        self.excelRadio.clicked.connect(self.file_format_action)
+        self.csvRadio.clicked.connect(self.file_format_action)
+        self.geojsonRadio.clicked.connect(self.file_format_action)
 
         for i in self.fav_btn:
             i.clicked.connect(self.add_tag)
@@ -633,7 +634,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.newFileSelectButton.box_control = self.newFileNameBox
 
         # Set the output name template
-        self.suffix_updater()
+        # Set the default deleted item in the list
+        self.file_format_action()
         # Sets run button to not enabled
         self.run_checker()
 
@@ -712,6 +714,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         completer = QCompleter(tags)
         self.searchBox.setCompleter(completer)
 
+    def file_format_action(self) -> None:
+        self.suffix_updater()
+        self.update_default_frames()
+
     def history_loader(self) -> None:
         """
         Check for history file and load if exists
@@ -778,6 +784,25 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         for btn, text in zip(self.fav_btn, fav_list):
             # The fav_btn and set_lists should have a 1:1 correspondence
             btn.setText(text)
+
+    def update_default_frames(self) -> None:
+        """
+        Hides "deleted" from the list widget if geojson format selected,
+        shows it otherwise
+        """
+        deleted_item = next(
+            iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
+            None,
+        )
+        if self.file_format == "geojson" and deleted_item:
+            self.listWidget.takeItem(self.listWidget.row(deleted_item))
+        elif self.file_format != "geojson" and not deleted_item:
+            new_item = QListWidgetItem("deleted")
+            new_item.setFlags(QtCore.Qt.NoItemFlags)
+            self.listWidget.addItem(new_item)
+        else:
+            return
+        self.repaint()
 
     def add_tag(self) -> None:
         """
@@ -1011,6 +1036,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         return {
             i.text()
             for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+            if i.text() not in SPECIAL_MODES
         }
 
     @property
