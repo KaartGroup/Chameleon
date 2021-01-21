@@ -32,6 +32,7 @@ from requests import HTTPError, Timeout
 from werkzeug.exceptions import UnprocessableEntity
 
 from chameleon.core import (
+    HIGH_DELETIONS_THRESHOLD,
     OVERPASS_TIMEOUT,
     TYPE_EXPANSION,
     ChameleonDataFrame,
@@ -246,7 +247,8 @@ def process_data(
     if (
         not easy_mode
         and not high_deletions_ok
-        and (deletion_percentage := high_deletions_checker(cdfs)) > 20
+        and (deletion_percentage := high_deletions_checker(cdfs))
+        > HIGH_DELETIONS_THRESHOLD
     ):
         raise HighDeletionPercentageError(round(deletion_percentage, 2))
 

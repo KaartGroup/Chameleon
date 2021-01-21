@@ -39,6 +39,7 @@ from requests import HTTPError, Timeout
 
 # Import generated UI file
 from chameleon.core import (
+    HIGH_DELETIONS_THRESHOLD,
     OVERPASS_TIMEOUT,
     SPECIAL_MODES,
     ChameleonDataFrame,

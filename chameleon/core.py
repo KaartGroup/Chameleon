@@ -41,6 +41,8 @@ OVERPASS_TIMEOUT = (
     180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
 )
 
+HIGH_DELETIONS_THRESHOLD = 5
+
 
 class ChameleonDataFrame(pd.DataFrame):
     """
