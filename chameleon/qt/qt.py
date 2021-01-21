@@ -161,7 +161,7 @@ class Worker(QObject):
         # Define set of selected modes
         self.parent = parent
         self.modes = parent.modes
-        self.files = parent.file_fields
+        self.files = parent.file_paths
         self.group_output = parent.group_output
         self.use_api = parent.use_api
         self.format = parent.file_format
@@ -335,11 +335,14 @@ class Worker(QObject):
 
         # The order matters here. user_confirm() waits for user input,
         # so we only want to evaluate it if the deletion_percentage is high
-        return deletion_percentage > 20 and not self.user_confirm(
-            "There is an unusually high proportion of deletions "
-            f"({round(deletion_percentage,2)}%). "
-            "This often indicates that the two input files have different scope. "
-            "Would you like to continue?"
+        return (
+            deletion_percentage > HIGH_DELETIONS_THRESHOLD
+            and not self.user_confirm(
+                "There is an unusually high proportion of deletions "
+                f"({round(deletion_percentage,2)}%). "
+                "This often indicates that the two input files have different scope. "
+                "Would you like to continue?"
+            )
         )
 
     def overwrite_confirm(self, file_name: str) -> bool:
@@ -995,7 +998,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         dialog_box.exec()
 
     @property
-    def file_paths(self) -> Dict[Optional[Path]]:
+    def file_paths(self) -> Dict[str, Path]:
         # Wrap the file references in Path object to prepare "file not found" warning
         return {
             name: Path(stripped) if (stripped := field.text().strip()) else None
@@ -1089,7 +1092,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.document_tag(self.modes)  # Execute favorite tracking
 
-        logger.info("Modes to be processed: %s.", (self.modes))
+        logger.info("Modes to be processed: %s.", (self.modes | SPECIAL_MODES))
 
         self.progress_bar = ChameleonProgressDialog(
             len(self.modes), self.file_format == "geojson"
