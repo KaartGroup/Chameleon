@@ -5,7 +5,7 @@ import shlex
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Dict, Generator, Iterator, List, TextIO, Union
+from typing import Dict, Generator, List, TextIO, Union
 from uuid import UUID, uuid4
 from zipfile import ZipFile
 
@@ -194,7 +194,7 @@ def process_data(
     output: str = "chameleon",
     filter_list: List[dict] = [],
     **_,
-) -> Iterator[dict]:
+) -> Generator[dict, None, None]:
     """
     task_metadata:
         current_mode
@@ -314,18 +314,19 @@ def process_data(
 
     if file_format == "geojson":
         for response in write_geojson(cdfs, user_dir, output):
-            if not response.get("file_name"):
+            if fname := response.get("file_name"):
+                task_metadata["file_name"] = fname
+                yield {"state": "SUCCESS", "meta": task_metadata}
+            else:
+                task_metadata.update(response)
                 yield {
                     "state": "PROGRESS",
                     "meta": task_metadata,
                 }
-            else:
-                yield {"state": "SUCCESS", "meta": task_metadata}
     else:
-        task_metadata["file_name"] = write_output[file_format](
-            cdfs, user_dir, output
-        )
-
+        task_metadata["file_name"] = {"csv": write_csv, "excel": write_excel}[
+            file_format
+        ](cdfs, user_dir, output)
         yield {"state": "SUCCESS", "meta": task_metadata}
 
 
@@ -338,7 +339,7 @@ def longtask_status(task_id) -> Response:
     task_id = str(task_id)
     task = celery_task.AsyncResult(task_id)
 
-    def stream_events() -> Generator:
+    def stream_events() -> Generator[str, None, None]:
         if task.state == "PENDING":
             # job is unknown
             response = {
@@ -481,25 +482,25 @@ def write_excel(dataframe_set, base_dir, output) -> str:
 
 def write_geojson(
     dataframe_set, base_dir, output
-) -> Generator[dict, None, dict]:
+) -> Generator[Dict[Union[str, int]], None, Dict[str]]:
     overpass_query = dataframe_set.OverpassQuery(dataframe_set, OVERPASS_TIMEOUT)
 
     for _ in overpass_query.get():
         yield {
-            "start_time": overpass_query.overpass_start_time,
-            "timeout_time": overpass_query.overpass_timeout_time,
+            "overpass_start_time": overpass_query.overpass_start_time.isoformat(),
+            "overpass_timeout_time": overpass_query.overpass_timeout_time.isoformat(),
             "queries_completed": overpass_query.queries_completed,
             "query_count": overpass_query.number_of_queries,
+            "current_phase": "overpass_geojson",
         }
     # except TimeoutError:
-    #     self.dialog(
+    #     return (
     #         "Overpass timeout",
     #         "The Overpass server did not respond in time.",
     #         "critical",
     #     )
-    #     return
     # except overpass.MultipleRequestsError:
-    #     self.dialog(
+    #     return (
     #         "Too many Overpass requests",
     #         "The Overpass server is refusing "
     #         "to accept any more queries for a period of time",
@@ -513,11 +514,6 @@ def write_geojson(
 
     return {"file_name": file_name}
 
-
-write_output = {
-    "csv": write_csv,
-    "excel": write_excel,
-}
 
 mimetype = {
     # "csv": "text/csv",
@@ -568,7 +564,7 @@ def overpass_getter(
     startdate: datetime,
     enddate: datetime,
     filter_list: list,
-) -> Iterator[TextIO]:
+) -> Generator[TextIO, None, None]:
     api = overpass.API(timeout=OVERPASS_TIMEOUT)
 
     formatted_tags = []
