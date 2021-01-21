@@ -21,6 +21,7 @@ import yaml
 
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
+from bidict import bidict
 from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject, QThread, Signal
 from PySide2.QtWidgets import (
@@ -33,7 +34,6 @@ from PySide2.QtWidgets import (
     QMessageBox,
     QProgressDialog,
     QPushButton,
-    QRadioButton,
 )
 from requests import HTTPError, Timeout
 
@@ -574,16 +574,24 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.tag_count = Counter()
 
-        self.text_fields = {
-            "old": self.oldFileNameBox,
-            "new": self.newFileNameBox,
-            "output": self.outputFileNameBox,
-        }
+        self.file_fields = bidict(
+            {
+                "old": self.oldFileNameBox,
+                "new": self.newFileNameBox,
+                "output": self.outputFileNameBox,
+            }
+        )
 
         # Logging initialization of Chameleon
         logger.info("Chameleon started at %s.", datetime.now())
 
-        # YAML file loaders
+        self.file_format_radio = bidict(
+            {
+                self.excelRadio: "excel",
+                self.csvRadio: "csv",
+                self.geojsonRadio: "geojson",
+            }
+        )
         # List all of our buttons to populate so we can iterate through them
         self.fav_btn = (
             self.popTag1,
@@ -592,6 +600,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.popTag4,
             self.popTag5,
         )
+
+        # YAML file loaders
         # Populate the buttons defined above
         self.fav_btn_populate()
         # Load file paths into boxes from previous session
@@ -605,9 +615,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.outputFileSelectButton.clicked.connect(self.output_file)
 
         # Changes the displayed file name template depending on the selected file format
-        self.excelRadio.clicked.connect(self.file_format_action)
-        self.csvRadio.clicked.connect(self.file_format_action)
-        self.geojsonRadio.clicked.connect(self.file_format_action)
+        for radio in self.file_format_radio:
+            radio.clicked.connect(self.file_format_action)
 
         for i in self.fav_btn:
             i.clicked.connect(self.add_tag)
@@ -626,9 +635,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.newFileNameBox.editingFinished.connect(self.on_editing_finished)
         self.outputFileNameBox.editingFinished.connect(self.on_editing_finished)
 
-        # Labelling strings for filename boxes
-        self.oldFileSelectButton.shortname = "old"
-        self.newFileSelectButton.shortname = "new"
         # Define which button controls which filename box
         self.oldFileSelectButton.box_control = self.oldFileNameBox
         self.newFileSelectButton.box_control = self.newFileNameBox
@@ -736,8 +742,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.exception("History file found but not readable.")
             self.history_dict = {}
 
-        for k, v in self.text_fields.items():
-            v.insert(self.history_dict.get(k, ""))
+        for label, field in self.file_fields.items():
+            field.insert(self.history_dict.get(label, ""))
         self.offlineRadio.setChecked(not self.history_dict.get("use_api", True))
         self.file_format = self.history_dict.get("file_format", "csv")
 
@@ -894,9 +900,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             ),
             str(Path.home() / "Downloads"),
         )
+        shortname = self.file_fields.inverse[sender]
         file_name = QFileDialog.getOpenFileName(
             self,
-            f"Select CSV file with {sender.shortname} data",
+            f"Select CSV file with {shortname} data",
             file_dir,
             "CSV (*.csv)",
         )[0]
@@ -927,11 +934,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     def run_checker(self) -> None:
         """
-        Function that disable/enables run button based on list items.
+        Function that enables run button if form is complete
         """
-        self.runButton.setEnabled(
-            bool(self.modes) and all(self.file_fields.values())
-        )
+        self.runButton.setEnabled(all(self.file_paths.values()))
         self.update()
 
     def suffix_updater(self) -> None:
@@ -993,12 +998,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         dialog_box.exec()
 
     @property
-    def file_fields(self) -> dict:
+    def file_paths(self) -> Dict[Optional[Path]]:
         # Wrap the file references in Path object to prepare "file not found" warning
         return {
-            name: Path(field.text().strip())
-            for name, field in self.text_fields.items()
-            if field.text().strip()
+            name: Path(stripped) if (stripped := field.text().strip()) else None
+            for name, field in self.file_fields.items()
         }
 
     @property
@@ -1012,23 +1016,17 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Returns the selected file format
         """
-        checked_box = next(
-            box
-            for box in self.fileFormatGroup.children()
-            if isinstance(box, QRadioButton) and box.isChecked()
+        checked_radio = next(
+            radio for radio in self.file_format_radio if radio.isChecked()
         )
-        return {
-            self.excelRadio: "excel",
-            self.geojsonRadio: "geojson",
-            self.csvRadio: "csv",
-        }[checked_box]
+        return self.file_format_radio[checked_radio]
 
     @file_format.setter
     def file_format(self, file_format) -> None:
         """
         Sets the file format radio to the given format
         """
-        {"excel": self.excelRadio, "geojson": self.geojsonRadio}.get(
+        self.file_format_radio.inverse.get(
             file_format, self.csvRadio
         ).setChecked(True)
 
@@ -1056,14 +1054,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         errors = {}
         # Check for blank values
-        try:
-            # TODO Fix this
-            for k in {"old", "new", "output"}:
-                self.file_fields[k]
-        except KeyError as e:
-            errors["blank"] = f"{e.args[0].title()} file field is blank."
+        if name := next((k for k, v in self.file_paths.items() if not v), None):
+            errors["blank"] = f"{name} file field is blank."
         badfiles = []
-        for key, path in ((k, self.file_fields.get(k)) for k in {"old", "new"}):
+        for key, path in ((k, self.file_paths.get(k)) for k in ["old", "new"]):
             try:
                 with path.open("r"):
                     pass
@@ -1075,9 +1069,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 "notfound"
             ] = f"{' and '.join(badfiles)} file{s} not found.".capitalize()
         # Check if output directory is writable
-        if not os.access(self.file_fields["output"].parent, os.W_OK):
+        if not os.access(self.file_paths["output"].parent, os.W_OK):
             errors["notwritable"] = (
-                f"{self.file_fields['output'].parent} "
+                f"{self.file_paths['output'].parent} "
                 "is not a writable directory"
             )
         return errors
@@ -1202,11 +1196,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             Event which handles the exit prompt.
         """
         # Make a dict of text field values
-        files = {name: field.text() for name, field in self.text_fields.items()}
+        files = {name: field.text() for name, field in self.file_fields.items()}
         # Prompt if user has changed input values from what was loaded
         try:
-            if {k: self.history_dict[k] for k in self.text_fields.keys()} != {
-                k: files[k] for k in self.text_fields.keys()
+            if {k: self.history_dict[k] for k in self.file_fields.keys()} != {
+                k: files[k] for k in self.file_fields.keys()
             }:
                 exit_prompt = QMessageBox()
                 exit_prompt.setIcon(QMessageBox.Question)
