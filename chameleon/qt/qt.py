@@ -12,7 +12,7 @@ import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import geojson
 import overpass
@@ -618,8 +618,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         for radio in self.file_format_radio:
             radio.clicked.connect(self.file_format_action)
 
-        for i in self.fav_btn:
-            i.clicked.connect(self.add_tag)
+        for btn in self.fav_btn:
+            btn.clicked.connect(self.add_tag)
         self.searchButton.clicked.connect(self.add_tag)
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
@@ -770,22 +770,19 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         fav_list = sorted(self.tag_count, key=self.tag_count.get, reverse=True)
 
-        def_count = len(self.fav_btn) - len(fav_list)
-        if def_count > 0:
+        if len(self.fav_btn) - len(fav_list) > 0:
             # If we run out of favorites, start adding non-redundant default tags
             # We use these when there aren't enough favorites
-            default_tags = [
+            default_tags = (
                 "highway",
                 "name",
                 "ref",
                 "addr:housenumber",
                 "addr:street",
-            ]
+            )
             # Count how many def tags are needed
             # Add requisite number of non-redundant tags from the default list
-            fav_list += [i for i in default_tags if i not in fav_list][
-                :def_count
-            ]
+            fav_list += [tag for tag in default_tags if tag not in fav_list]
         # Loop through the buttons and apply our ordered tag values
         for btn, text in zip(self.fav_btn, fav_list):
             # The fav_btn and set_lists should have a 1:1 correspondence
@@ -1036,9 +1033,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Returns the modes the user has input as a set
         """
         return {
-            i.text()
-            for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
-            if i.text() not in SPECIAL_MODES
+            mode
+            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+            if (mode := item.text()) not in SPECIAL_MODES
         }
 
     @property
