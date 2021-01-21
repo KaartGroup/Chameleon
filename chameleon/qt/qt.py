@@ -844,7 +844,12 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Wipes all tags listed on QList with "Clear" button.
         Execute on `Clear` button signal.
         """
-        self.listWidget.clear()
+        for row in (
+            self.listWidget.row(item)
+            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+            if item.text() not in SPECIAL_MODES
+        ):
+            self.listWidget.takeItem(row)
         logger.info("Cleared tag list.")
         self.run_checker()
 
