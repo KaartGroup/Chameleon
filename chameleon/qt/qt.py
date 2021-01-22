@@ -1032,14 +1032,24 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         ).setChecked(True)
 
     @property
-    def modes(self) -> set:
+    def modes_inclusive(self) -> set:
         """
-        Returns the modes the user has input as a set
+        For testing purposes
+        Returns modes including the special "new" and "deleted" modes
         """
         return {
-            mode
+            item.text()
             for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
-            if (mode := item.text()) not in SPECIAL_MODES
+        }
+
+    @property
+    def modes(self) -> set:
+        """
+        Returns the modes the user has input as a set,
+        ignoring the special "new" and "deleted" modes
+        """
+        return {
+            mode for mode in self.modes_inclusive if mode not in SPECIAL_MODES
         }
 
     @property

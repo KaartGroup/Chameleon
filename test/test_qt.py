@@ -35,7 +35,7 @@ def favorite_location():
 @pytest.fixture
 def mainapp(monkeypatch, favorite_location, qtbot, worker_files):
     monkeypatch.setattr(qt, "COUNTER_LOCATION", favorite_location)
-    monkeypatch.setattr(qt.MainApp, "file_fields", worker_files)
+    monkeypatch.setattr(qt.MainApp, "file_paths", worker_files)
     monkeypatch.setattr(
         qt.MainApp, "closeEvent", lambda *args: None
     )  # Disable the confirmation dialog while testing
@@ -195,15 +195,16 @@ def test_clear_list_widget(mainapp, qtbot):
         ]
     )
     qtbot.mouseClick(mainapp.clearListButton, Qt.LeftButton)
-    assert mainapp.listWidget.count() == 0
+    assert mainapp.modes_inclusive == {"new", "deleted"}
+    assert not mainapp.modes
 
 
-def test_fav_btn_populate(mainapp, favorite_location):
+def test_fav_btn_populate(mainapp):
     """
     Verifies all favorite buttons are populated with
     the correct default and history values.
     """
-    mainapp.fav_btn_populate(favorite_location)
+    mainapp.fav_btn_populate()
     assert mainapp.popTag1.text() == "name"
     assert mainapp.popTag2.text() == "highway"
     assert mainapp.popTag3.text() == "addr:place"
@@ -211,19 +212,20 @@ def test_fav_btn_populate(mainapp, favorite_location):
     assert mainapp.popTag5.text() == "addr:housenumber"
 
 
-def test_fav_btn_click(mainapp, qtbot, favorite_location):
+def test_fav_btn_click(mainapp, qtbot):
     """
     Verifies favorite button function and reception
     of favorite values by the QListWidget.
     """
-    mainapp.fav_btn_populate(favorite_location)
+    mainapp.fav_btn_populate()
     qtbot.wait(500)
-    assert mainapp.listWidget.count() == 0
+    assert mainapp.modes_inclusive == {"new", "deleted"}
+    assert not mainapp.modes
     assert mainapp.popTag1.text() == "name"
     qtbot.mouseClick(mainapp.popTag1, Qt.LeftButton)
     qtbot.wait(500)
 
-    assert len(mainapp.listWidget.findItems("name", Qt.MatchExactly)) > 0
+    assert mainapp.modes == {"name"}
 
 
 def test_autocompleter(mainapp):
@@ -246,12 +248,12 @@ def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
     Test running chameleon without existing counter.yaml/settings.yaml
     """
 
-    text_fields = worker_files
+    file_fields = worker_files
     history_path = tmp_path / "history.yaml"
     counter_path = tmp_path / "counter.yaml"
     monkeypatch.setattr(qt, "HISTORY_LOCATION", history_path)
     monkeypatch.setattr(qt, "COUNTER_LOCATION", counter_path)
-    monkeypatch.setattr(mainapp, "text_fields", text_fields)
+    monkeypatch.setattr(mainapp, "file_fields", file_fields)
 
     mainapp.run_query()
 
@@ -271,7 +273,7 @@ def test_dirname(path, returned):
 
 @pytest.mark.parametrize(
     "modes,button_enabled",
-    [([], False), (["highway"], True), (["ref", "oneway"], True)],
+    [([], True), (["highway"], True), (["ref", "oneway"], True)],
 )
 def test_run_checker(mainapp, qtbot, modes, button_enabled):
     for mode in modes:
@@ -284,7 +286,7 @@ def test_run_checker(mainapp, qtbot, modes, button_enabled):
 
 
 @pytest.mark.parametrize(
-    "modes,button_enabled", [(("highway",), True), (("highway", "ref"), False)],
+    "modes,button_enabled", [(("highway",), True), (("highway", "ref"), True)],
 )
 def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     for tag in ("highway", "ref"):
