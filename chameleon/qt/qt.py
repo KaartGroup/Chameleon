@@ -999,7 +999,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         dialog_box.exec()
 
     @property
-    def file_paths(self) -> Dict[str, Path]:
+    def file_paths(self) -> Dict[str, Optional[Path]]:
         # Wrap the file references in Path object to prepare "file not found" warning
         return {
             name: Path(stripped) if (stripped := field.text().strip()) else None
@@ -1008,6 +1008,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     @property
     def use_api(self) -> bool:
+        """
+        Returns whether the user has selected to use the OSM API
+        to check deleted features
+        """
         # The offline radio button is a dummy. The online button functions as a checkbox
         # rather than as true radio buttons
         return self.onlineRadio.isChecked()
@@ -1065,8 +1069,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         errors = {}
         # Check for blank values
-        if name := next((k for k, v in self.file_paths.items() if not v), None):
+        if name := next(
+            (label for label, path in self.file_paths.items() if not path), None
+        ):
             errors["blank"] = f"{name} file field is blank."
+
         badfiles = []
         for key, path in ((k, self.file_paths.get(k)) for k in ["old", "new"]):
             try:
@@ -1079,6 +1086,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             errors[
                 "notfound"
             ] = f"{' and '.join(badfiles)} file{s} not found.".capitalize()
+
         # Check if output directory is writable
         if not os.access(self.file_paths["output"].parent, os.W_OK):
             errors["notwritable"] = (
