@@ -11,6 +11,7 @@ import sys
 import time
 from collections import Counter
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
@@ -413,22 +414,26 @@ class Worker(QObject):
         """
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
+
+        def to_csv(output_file: BytesIO, mode: str) -> None:
+            result.to_csv(
+                output_file, mode=mode, sep="\t", index=True, encoding="utf-8"
+            )
+
         for result in dataframe_set:
             file_name = Path(
                 f"{self.files['output']}_{result.chameleon_mode_cleaned}.csv"
             )
             logger.info("Writing %s", file_name)
             try:
-                with file_name.open("x") as output_file:
-                    result.to_csv(output_file, sep="\t", index=True)
+                to_csv(file_name, "x")
             except FileExistsError:
                 # Prompt and wait for confirmation before overwriting
                 if not self.overwrite_confirm(file_name):
                     logger.info("Skipping %s.", result.chameleon_mode)
                     continue
                 else:
-                    with file_name.open("w") as output_file:
-                        result.to_csv(output_file, sep="\t", index=True)
+                    to_csv(file_name, "w")
             except OSError:
                 logger.exception("Write error.")
                 self.error_list.append(result.chameleon_mode)
