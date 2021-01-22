@@ -482,7 +482,7 @@ def write_excel(dataframe_set, base_dir, output) -> str:
 
 def write_geojson(
     dataframe_set, base_dir, output
-) -> Generator[Dict[Union[str, int]], None, Dict[str]]:
+) -> Generator[Dict[str, Union[str, int]], None, Dict[str, str]]:
     overpass_query = dataframe_set.OverpassQuery(dataframe_set, OVERPASS_TIMEOUT)
 
     for _ in overpass_query.get():
