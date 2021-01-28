@@ -276,9 +276,11 @@ class ChameleonDataFrameSet(set):
         old: Union[str, Path, TextIO],
         new: Union[str, Path, TextIO],
         use_api=False,
-        extra_columns: dict = {},
+        extra_columns=None,
     ):
         super().__init__(self)
+        if extra_columns is None:
+            extra_columns = {}
         self.oldfile = old
         self.newfile = new
         if isinstance(self.oldfile, str):
@@ -646,21 +648,21 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
     return the_dict
 
 
-def clean_for_presentation(uinput: str) -> str:
+def clean_for_presentation(user_input: str) -> str:
     """
     Sanitizes user input so that they can still recognize what they entered
     """
-    uinput = uinput.strip(" \"'")
-    uinput = uinput.partition("=")[0]
-    return uinput
+    user_input = user_input.strip(" \"'")
+    user_input = user_input.partition("=")[0]
+    return user_input
 
 
-def pager(orig_iterable: Collection[Any], page_length: int) -> List[List[Any]]:
+def pager(orig_iterable: Collection[Any], page_length: int) -> List[Collection]:
     """
     Chunks a Collection into pages, for use with an API
     """
     page_count = math.ceil(len(orig_iterable) / page_length)
     return [
-        orig_iterable[(page * page_length) : (page + 1) * page_length]
+        orig_iterable[(page * page_length): (page + 1) * page_length]
         for page in range(page_count)
     ]
