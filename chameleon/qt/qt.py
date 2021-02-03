@@ -225,6 +225,13 @@ class Worker(QObject):
             # Separate out the new and deleted dataframes
             cdf_set.separate_special_dfs()
 
+            # Check for resource file in directory
+            config = (
+                path
+                if (path := RESOURCES_DIR / "filter.yaml").is_file()
+                else None
+            )
+
             for mode in self.modes:
                 logger.debug("Executing processing for %s.", mode)
                 self.mode_start.emit(mode)
@@ -233,6 +240,7 @@ class Worker(QObject):
                         cdf_set.source_data,
                         mode=mode,
                         grouping=self.group_output,
+                        config=config,
                     ).query_cdf()
                 except KeyError as e:
                     # File reading failed, usually because a nonexistent column
