@@ -5,12 +5,12 @@ import json
 from pathlib import Path
 
 import pytest
+from more_itertools import chunked as pager
 from pandas.testing import assert_frame_equal
 
 from chameleon.core import (
     ChameleonDataFrame,
     ChameleonDataFrameSet,
-    pager,
     separate_ids_by_feature_type,
     split_id,
 )
