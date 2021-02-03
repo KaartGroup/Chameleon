@@ -5,28 +5,18 @@ from __future__ import annotations
 
 import itertools
 import logging
-import math
 import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import (
-    Any,
-    Collection,
-    Dict,
-    Generator,
-    List,
-    Set,
-    TextIO,
-    Tuple,
-    Union,
-)
+from typing import Dict, Generator, List, Set, TextIO, Tuple, Union
 
 import geojson
 import numpy as np
 import overpass
 import pandas as pd
 import requests
+from more_itertools import chunked as pager
 
 pd.options.mode.chained_assignment = None
 
@@ -655,14 +645,3 @@ def clean_for_presentation(user_input: str) -> str:
     user_input = user_input.strip(" \"'")
     user_input = user_input.partition("=")[0]
     return user_input
-
-
-def pager(orig_iterable: Collection[Any], page_length: int) -> List[Collection]:
-    """
-    Chunks a Collection into pages, for use with an API
-    """
-    page_count = math.ceil(len(orig_iterable) / page_length)
-    return [
-        orig_iterable[(page * page_length): (page + 1) * page_length]
-        for page in range(page_count)
-    ]
