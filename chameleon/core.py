@@ -9,7 +9,7 @@ import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Generator, List, Set, TextIO, Tuple, Union
+from typing import Dict, Generator, List, Mapping, Set, TextIO, Tuple, Union
 
 import appdirs
 import geojson
@@ -17,6 +17,7 @@ import numpy as np
 import overpass
 import pandas as pd
 import requests_cache
+import yaml
 from more_itertools import chunked as pager
 from requests_cache.backends import sqlite
 
@@ -50,6 +51,7 @@ class ChameleonDataFrame(pd.DataFrame):
         mode: str = "",
         grouping=False,
         dtype=None,
+        config: Mapping = None,
     ):
         # dtypes = {
         #     '@id': int,
@@ -59,6 +61,7 @@ class ChameleonDataFrame(pd.DataFrame):
 
         self.chameleon_mode = mode
         self.grouping = grouping
+        self.config = config or {}
         # Initialize as an "empty" dataframe,
         # with the source data in an attribute
         super().__init__(data=df, index=None, dtype=dtype, copy=False)
@@ -255,6 +258,41 @@ class ChameleonDataFrame(pd.DataFrame):
             pass
         return self
 
+    def filter(self) -> ChameleonDataFrame:
+        # Drop rows with Kaart users tagged
+        if whitelist := self.config.get("user_whitelist", []):
+            self = self[self["user"] not in whitelist]
+
+        highway_vals = {
+            "motorway": 1,
+            "trunk": 2,
+            "primary": 3,
+            "secondary": 4,
+            "tertiary": 5,
+            "unclassified": 6,
+            "residential": 6,
+            "service": 6,
+            "track": 6,
+            "footway": 6,
+            "path": 6,
+            "steps": 6,
+            "cycleway": 6,
+        }
+        self["highway_change_score"] = abs(
+            self["old_highway"].map(highway_vals)
+            - self["new_highway"].map(highway_vals)
+        )
+
+        if type_filter := self.config.get("type_filter"):
+            self = self[
+                self["old_highway"] in type_filter.get("always_include", [])
+                or self["new_highway"] in type_filter.get("always_include", [])
+                or self["highway_change_score"]
+                >= type_filter.get("highway_step_change", 0)
+            ]
+
+        return self
+
 
 class ChameleonDataFrameSet(set):
     """
@@ -269,6 +307,7 @@ class ChameleonDataFrameSet(set):
         new: Union[str, Path, TextIO],
         use_api=False,
         extra_columns=None,
+        config: Union[Mapping, str, Path] = None,
     ):
         super().__init__(self)
         if extra_columns is None:
@@ -281,6 +320,14 @@ class ChameleonDataFrameSet(set):
             self.newfile = Path(self.newfile)
 
         self.extra_columns = extra_columns
+
+        if isinstance(config, Mapping):
+            self.config = config
+        elif config:
+            with open(config) as f:
+                self.config = yaml.safe_load(f)
+        else:
+            self.config = {}
 
         self.source_data = None
         self.deleted_way_members = {}
@@ -369,7 +416,9 @@ class ChameleonDataFrameSet(set):
             ~self.source_data["action"].isin(SPECIAL_MODES)
         ]
         for mode, df in special_dataframes.items():
-            i = ChameleonDataFrame(df=df, mode=mode).query_cdf()
+            i = ChameleonDataFrame(
+                df=df, mode=mode, config=self.config
+            ).query_cdf()
             self.add(i)
         return self
 
@@ -480,8 +529,8 @@ class ChameleonDataFrameSet(set):
         def get(self) -> Generator[None, None, None]:
             sleeptime = 0
             for query in self.parent.overpass_query_pages:
-                self.overpass_start_time = datetime.now().astimezone() + timedelta(
-                    seconds=sleeptime
+                self.overpass_start_time = (
+                    datetime.now().astimezone() + timedelta(seconds=sleeptime)
                 )
                 self.overpass_timeout_time = (
                     self.overpass_start_time + timedelta(seconds=self.timeout)
@@ -494,7 +543,9 @@ class ChameleonDataFrameSet(set):
                     self.number_of_queries,
                 )
                 r = self.api.get(
-                    query, verbosity="meta geom", responseformat="geojson",
+                    query,
+                    verbosity="meta geom",
+                    responseformat="geojson",
                 )
                 logger.info("done")
                 self.queries_completed += 1
