@@ -891,8 +891,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Adds functionality to the Open Old/New File (…) button, opens the
         '/downloads' system path to find csv file.
         """
-        sender = self.sender()
-        destination = sender.box_control
+        destination = self.sender().box_control
         # Gets first non-empty value in order
         file_dir = next(
             (
@@ -906,7 +905,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             ),
             str(Path.home() / "Downloads"),
         )
-        shortname = self.file_fields.inverse[sender]
+        shortname = self.file_fields.inverse[destination]
         file_name = QFileDialog.getOpenFileName(
             self,
             f"Select CSV file with {shortname} data",
