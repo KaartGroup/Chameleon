@@ -2,13 +2,16 @@ import styled from "styled-components";
 
 export const Wrapper = styled.div`
     display: flex;
-    border-bottom: 1px solid black;
+    border-bottom: 2px solid #f4753c;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0px 2px;
+    // box-shadow-color: #f4753c;
 `;
 
 export const Heading = styled.p`
     display: flex;
     font-family: "Hind Guntur",sans-serif;
-    text-decoration: underline #f4753c;
     width: 100%;
     font-size: 20px;
     font-weight: bold;
@@ -59,4 +62,5 @@ text-decoration: underline;
 
 export const Tag = styled.img`
 height: 19px;
+padding: 1%; 
 `;

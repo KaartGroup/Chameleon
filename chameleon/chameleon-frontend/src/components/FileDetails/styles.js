@@ -2,7 +2,11 @@ import styled from "styled-components";
 
 export const Wrapper = styled.div`
     display: flex;
-    border-bottom: 1px solid black;
+    border-bottom: 2px solid #f4753c;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0px 2px;
+    // box-shadow-color: #f4753c;
 `;
 
 export const Heading = styled.p`
@@ -13,7 +17,6 @@ export const Heading = styled.p`
     font-weight: bold;
     justify-content: center;
     align-items: center;
-    text-decoration: underline #f4753c;
 `;
 
 export const FormWrapper = styled.div`
@@ -21,6 +24,8 @@ display: "grid",
 justifyContent: "center",
 alignItems: "center",
 marginTop: "5%",
+align-items: center;
+padding: 10px;
 `;
 
 export const FileDetailsInput = styled.input`
@@ -30,6 +35,7 @@ export const FileDetailsInput = styled.input`
   border: 1px solid #ccc;
   border-radius: 6px;
   box-sizing: border-box;
+  align-items: center;
 `;
 
 export const Label = styled.p`
@@ -38,5 +44,5 @@ font-size: 15px;
 
 export const FolderIMG = styled.img`
 height: 19px;
-color: #f4753c;
+padding: 1%; 
 `;

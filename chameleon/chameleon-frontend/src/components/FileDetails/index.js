@@ -34,7 +34,6 @@ export const FileDetails = () => {
             <FormWrapper>
                 <Label>
                     Output File Name:
-                    </Label>
                     <FileDetailsInput
                         type="text"
                         name="output"
@@ -42,6 +41,7 @@ export const FileDetails = () => {
                         onChange={inputChange}
                     />
                     <span>{extensions[value]}</span>
+                    </Label>
                 <Label>Format:</Label>
                     <RadioGroup
                         aria-label="file_output"

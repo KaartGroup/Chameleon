@@ -2,13 +2,19 @@ import styled from "styled-components";
 
 export const Wrapper = styled.div`
     display: flex;
-    border-top: 1px dashed black;
+    border-bottom: 2px solid #f4753c;
+    border-top: 2px solid #f4753c;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0px 2px;
+    // box-shadow-color: #f4753c;
+    padding: 6px;
 `;
 
 export const Heading = styled.p`
     display: flex;
+    font-family: "Hind Guntur",sans-serif;
     width: 100%;
-    text-decoration: underline #f4753c;
     font-size: 20px;
     font-weight: bold;
     justify-content: center;
@@ -21,6 +27,8 @@ justifyContent: "center",
 alignContent: "center",
 marginTop: "5%",
 marginBottom: "5%",
+padding: 15px;
+// transform:translate(5%, 80%);
 `;
 
 export const SubmitInput = styled.input`
@@ -34,12 +42,13 @@ export const SubmitInput = styled.input`
 
 export const Label = styled.p`
 font-size: 15px;
+padding: 5px;
 `;
 
 export const Button = styled.button`
 border-radius: 6px;
   border: 0;
-  margin: 8px 0px;
+  margin: 8px 80%;
   background-color: #f4753c;
   color: white;
   padding: 5px 20px;

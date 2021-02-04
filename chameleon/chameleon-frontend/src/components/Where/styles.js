@@ -2,8 +2,11 @@ import styled from "styled-components";
 
 export const Wrapper = styled.div`
     display: flex;
-    border-bottom: 1px solid black;
-    // background: #f4753c;
+    border-bottom: 2px solid #f4753c;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0px 2px;
+    // box-shadow-color: #f4753c;
 `;
 
 export const Heading = styled.p`
@@ -14,7 +17,6 @@ export const Heading = styled.p`
     font-weight: bold;
     justify-content: center;
     align-items: center;
-    text-decoration: underline #f4753c;
 `;
 
 export const WhereInput = styled.input`
@@ -44,4 +46,5 @@ export const Caution = styled.div`
 
 export const WhereIMG = styled.img`
 height: 19px;
+padding: 1%; 
 `;
