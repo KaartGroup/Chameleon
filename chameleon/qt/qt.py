@@ -162,14 +162,14 @@ class Worker(QObject):
         super().__init__()
         # Define set of selected modes
         self.parent = parent
-        self.modes = parent.modes
+        self.modes = parent.modes.copy()
         self.files = parent.file_paths
         self.group_output = parent.group_output
         self.use_api = parent.use_api
         self.format = parent.file_format
         self.response = None
         self.output_path = None
-        self.config = parent.config
+        self.config = parent.config_format.copy()
 
         self.error_list = []
         self.successful_items = {}
@@ -956,16 +956,20 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     def update_default_frames(self) -> None:
         """
-        Hides "deleted" from the list widget if geojson format selected,
-        shows it otherwise
+        Hides special modes from the list widget if geojson format selected,
+        or if explicitly excluded in config file, shows it otherwise
         """
-        ignored_modes = self.config.get("ignored_modes")
+
+        def add_special_item(name) -> None:
+            item_to_add = QListWidgetItem(name)
+            item_to_add.setFlags(QtCore.Qt.NoItemFlags)
+            self.listWidget.addItem(item_to_add)
+
+        ignored_modes = self.config_format.get("ignored_modes")
+
         deleted_item = next(
             iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
             None,
-        )
-        new_item = next(
-            iter(self.listWidget.findItems("new", QtCore.Qt.MatchExactly)), None,
         )
         if deleted_item and (
             self.file_format == "geojson" or "deleted" in ignored_modes
@@ -976,11 +980,17 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             and not deleted_item
             and "deleted" not in ignored_modes
         ):
-            new_item = QListWidgetItem("deleted")
-            new_item.setFlags(QtCore.Qt.NoItemFlags)
-            self.listWidget.addItem(new_item)
+            add_special_item("deleted")
+
+        new_item = next(
+            iter(self.listWidget.findItems("new", QtCore.Qt.MatchExactly)),
+            None,
+        )
         if new_item and "new" in ignored_modes:
             self.listWidget.takeItem(self.listWidget.row(new_item))
+        elif not new_item and "new" not in ignored_modes:
+            add_special_item("new")
+
         self.update()
 
     def on_editing_finished(self) -> None:
@@ -1083,6 +1093,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         return self.groupingCheckBox.isChecked()
 
+    @property
+    def config_format(self) -> dict:
+        """
+        Returns the subset of config that applies to
+        the currently-selected file format
+        """
+        return self.config.get("all", {}) | self.config.get(self.file_format, {})
+
     def validate_files(self) -> dict:
         """
         Validates the file paths the user has given
@@ -1119,12 +1137,22 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Check for resource file in directory
         try:
             with (RESOURCES_DIR / "filter.yaml").open() as f:
-                self.config = yaml.safe_load(f)
-            self.config["ignored_modes"] = set(
-                self.config.get("ignored_modes") or []
-            )
+                config = yaml.safe_load(f)
         except OSError:
             self.config = None
+            return
+
+        # If keys are not sorted by file type, put them all under "all" key
+        if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
+            config["all"] = config
+
+        new_config = config.copy()
+        for file_format, file_format_config in config.items():
+            new_config[file_format]["ignored_modes"] = set(
+                file_format_config.get("ignored_modes") or []
+            )
+
+        self.config = new_config
 
     def run_query(self) -> None:
         """
@@ -1143,7 +1171,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.document_tag(self.modes)  # Execute favorite tracking
 
         logger.info(
-            "Modes to be processed: %s.", self.modes_inclusive,
+            "Modes to be processed: %s.",
+            self.modes_inclusive,
         )
 
         self.progress_bar = ChameleonProgressDialog(
