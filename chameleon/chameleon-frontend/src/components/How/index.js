@@ -1,7 +1,7 @@
 import React, { useContext, useRef } from "react";
 import { ChameleonContext } from "../../common/ChameleonContext";
-import { Wrapper, Heading, StyledLabel } from "./styles";
-
+import { Wrapper, Heading, Label, FormWrapper, HowInput, Button, Tag } from "./styles";
+import tag from "../../images/tag.svg"; 
 // TODO add history of favorite tags, make into buttons see old chameleon.kaart.com
 export const How = () => {
     const tagRef = useRef();
@@ -12,30 +12,20 @@ export const How = () => {
     return (
         <>
             <Wrapper>
-                <Heading> How </Heading>
+                <Heading> 
+                 How<Tag src={tag} alt="tag IMG"/>
+                </Heading>
             </Wrapper>
-            <div
-                style={{
-                    display: "grid",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "40%",
-                }}
-            >
-                <br></br>
-                <StyledLabel>
+            <FormWrapper>
+                <Label>
                     Tag:
-                    <input
+                    <HowInput
                         type="text"
                         placeholder="OSM Tag"
                         ref={tagRef}
                     />
-                </StyledLabel>
-
-                <br></br>
-                <br></br>
-
-                <button onClick={(e) => { 
+                    </Label>
+                <Button onClick={(e) => { 
                     e.preventDefault();
 
                     let oldVals = [];
@@ -58,8 +48,8 @@ export const How = () => {
                     }
                 }}>
                     Add
-                </button>
-                <button onClick={(e) => { 
+                </Button>
+                <Button onClick={(e) => { 
                     e.preventDefault();
 
                     if (selectRef.current.selectedIndex === -1) {
@@ -78,12 +68,10 @@ export const How = () => {
 
                 }}>
                     Remove
-                </button>
-                <button onClick={(e) => { e.preventDefault(); selectRef.current.length = 0; setTags([]); }}>Clear</button>
+                </Button>
+                <Button onClick={(e) => { e.preventDefault(); selectRef.current.length = 0; setTags([]); }}>Clear</Button>
                 <select size="5" multiple="" ref={selectRef} />
-                <br></br>
-                <br></br>
-            </div>
+            </FormWrapper>
         </>
     );
 };

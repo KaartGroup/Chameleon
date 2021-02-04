@@ -1,6 +1,7 @@
 import React, { useContext, useRef } from "react";
 import { ChameleonContext } from "../../common/ChameleonContext";
-import { Wrapper, Heading, StyledLabel } from "./styles";
+import { Wrapper, Heading, WhatInput, FormWrapper, Label, Button, Title, WhatIMG } from "./styles";
+import whatIMG from "../../images/whatIMG.svg"; 
 
 // TODO maybe autocomplete key and values for key?
 // TODO verify key and (maybe) values
@@ -18,84 +19,57 @@ export const What = () => {
     return (
         <>
             <Wrapper>
-                <Heading> What </Heading>
+                <Heading> 
+                    What<WhatIMG src={whatIMG} alt="what IMG"/> 
+                </Heading>
             </Wrapper>
-            <div
-                style={{
-                    display: "grid",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "80%",
-                }}
-            >
-                <p
-                    style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                    }}
-                >
+            <FormWrapper>
+                <Title>
                     Filters
-                </p>
-
-                <StyledLabel>
+                </Title>
+                <Label>
                     Key:
-                    <input
+                    <WhatInput
                         type="text"
                         placeholder="OSM Key"
                         ref={keyRef}
                     />
-                </StyledLabel>
-
-                <br></br>
-
-                <StyledLabel>
+                </Label>
+                <Label>
                     Values(s):
-                    <input
+                    <WhatInput
                         type="text"
                         placeholder="OSM Value(s)"
                         pattern="[A-z:,| ]"
                         title="Separate multiple values with commas (,), spaces, or pipes (|). Use asterisk (*) for all values"
                         ref={valueRef}
                     />
-                </StyledLabel>
-
-                <br></br>
-                <br></br>
-
-                <StyledLabel>
+                    </Label>
+                <Label>
                     Node:
-                    <input
+                    <WhatInput
                         type="checkbox"
                         defaultChecked="y"
                         ref={nodeRef}
                     />
-                </StyledLabel>
-
-                <br></br>
-
-                <StyledLabel>
+                    </Label>
+                <Label>
                     Way:
-                    <input
+                    <WhatInput
                         type="checkbox"
                         defaultChecked="y"
                         ref={wayRef}
                     />
-                </StyledLabel>
-
-                <br></br>
-
-                <StyledLabel>
+                    </Label>
+                <Label>
                     Relation:
-                    <input
+                    <WhatInput
                         type="checkbox"
                         defaultChecked="y"
                         ref={relRef}
                     />
-                </StyledLabel>
-                <br></br>
-                <br></br>
-                <button onClick={(e) => { 
+                    </Label>
+                <Button onClick={(e) => { 
                     e.preventDefault();
                     
                     if (keyRef.current.value !== "" && valueRef.current.value !== "") {
@@ -124,8 +98,8 @@ export const What = () => {
 
                 }}>
                     Add
-                </button>
-                <button onClick={(e) => {
+                </Button>
+                <Button onClick={(e) => {
                     e.preventDefault();
 
                     if (selectRef.current.selectedIndex === -1) {
@@ -141,11 +115,11 @@ export const What = () => {
                     setKeyVal(keyVal);
                 }}>
                     Remove
-                </button>
-                <button onClick={(e) => { e.preventDefault(); selectRef.current.length = 0; setKeyVal([]); }}>Clear</button>
+                </Button>
+                <Button onClick={(e) => { e.preventDefault(); selectRef.current.length = 0; setKeyVal([]); }}>Clear</Button>
                 <select size="5" name="filter_list" multiple="" ref={selectRef}></select>
                 <br></br>
-            </div>
+            </FormWrapper>
         </>
     );
 };

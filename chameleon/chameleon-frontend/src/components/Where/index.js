@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
-import { Wrapper, Heading } from "./styles";
-import { ChameleonContext } from "../../common/ChameleonContext"; 
-
+import { Wrapper, Heading, WhereInput, FormWrapper, Label, WhereIMG } from "./styles";
+import { ChameleonContext } from "../../common/ChameleonContext";
+import whereIMG from "../../images/whereIMG.svg"; 
 // TODO verify input is Alpha letters only
 // TODO maybe autocomplete list?
 // TODO styling
@@ -11,29 +11,18 @@ export const Where = () => {
     return (
         <>
             <Wrapper>
-                <Heading> Where </Heading>
+            <Heading>
+                Where<WhereIMG src={whereIMG} alt="where IMG"/>
+            </Heading>
             </Wrapper>
-            <div
-                style={{
-                    display: "grid",
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-            >
-                <p
-                    style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                    }}
-                >
+            <FormWrapper>
+                <Label>
                     2 Letter{" "}
                     <u style={{ paddingRight: "3px", paddingLeft: "3px" }}>
                         ISO
                     </u>{" "}
                     Country Code:
-                </p>
-                <input
+                <WhereInput
                     type="text"
                     placeholder="ISO Code"
                     name="location"
@@ -41,7 +30,14 @@ export const Where = () => {
                     maxLength={2}
                     onChange={(e) => { setWhere(e.target.value) } }
                 />
-            </div>
+                </Label>
+            </FormWrapper>
         </>
     );
 };
+
+// {!confirmationFailed && (
+//     <Text>
+//       <Caution>&#x26A0; </Caution>The passwords do not match
+//     </Text>
+//   )}

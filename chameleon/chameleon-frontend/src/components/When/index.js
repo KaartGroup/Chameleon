@@ -1,9 +1,9 @@
 import React, { useContext } from "react";
-import { Wrapper, Heading } from "./styles";
+import { Wrapper, Heading, FormWrapper, Label, Calander } from "./styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ChameleonContext } from "../../common/ChameleonContext";
-
+import calander from "../../images/calander.svg"; 
 // TODO styling
 export const When = () => {
     const { startDate, setStartDate, endDate, setEndDate } = useContext(ChameleonContext);
@@ -11,25 +11,11 @@ export const When = () => {
     return (
         <>
             <Wrapper>
-                <Heading> When </Heading>
+                <Heading> When<Calander src={calander} alt="calander IMG"/></Heading>
             </Wrapper>
-            <div
-                style={{
-                    display: "grid",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    paddingBottom: "10vh",
-                }}
-            >
-                <p
-                    style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                    }}
-                >
+            <FormWrapper>
+                <Label>
                     Start Date:
-                </p>
                 <DatePicker
                     selected={startDate}
                     minDate={new Date("2012", "08", "12")}
@@ -37,16 +23,9 @@ export const When = () => {
                     name="startdate"
                     onChange={(date) => setStartDate(date)}
                 />
-                <br></br>
-                <p
-                    style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                    }}
-                >
+                </Label>
+                <Label>
                     End Date:
-                </p>
                 <DatePicker
                     selected={endDate}
                     minDate={startDate}
@@ -54,7 +33,8 @@ export const When = () => {
                     name="enddate"
                     onChange={(date) => setEndDate(date)}
                 />
-            </div>
+                </Label>
+            </FormWrapper>
         </>
     );
 };

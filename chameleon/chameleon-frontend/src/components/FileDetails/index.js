@@ -1,10 +1,10 @@
 import React, { useContext, useState } from "react";
-import { Wrapper, Heading } from "./styles";
+import { Wrapper, Heading, FileDetailsInput, FormWrapper, Label, FolderIMG } from "./styles";
 import Radio from "@material-ui/core/Radio";
 import RadioGroup from "@material-ui/core/RadioGroup";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import { ChameleonContext } from "../../common/ChameleonContext";
-
+import folder from "../../images/folder.svg"; 
 export const FileDetails = () => {
     const [value, setValue] = useState("excel");
     const extensions = {
@@ -27,29 +27,22 @@ export const FileDetails = () => {
     return (
         <>
             <Wrapper>
-                <Heading>File Details</Heading>
+                <Heading>
+                    File Details<FolderIMG src={folder} alt="where IMG"/>
+                </Heading>
             </Wrapper>
-            <div
-                style={{
-                    display: "grid",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginTop: "5%",
-                }}
-            >
-                <label>
+            <FormWrapper>
+                <Label>
                     Output File Name:
-                    <input
-                        style={{ textAlign: "right" }}
+                    </Label>
+                    <FileDetailsInput
                         type="text"
                         name="output"
                         placeholder="chameleon"
                         onChange={inputChange}
                     />
                     <span>{extensions[value]}</span>
-                </label>
-
-                <label>Format:</label>
+                <Label>Format:</Label>
                     <RadioGroup
                         aria-label="file_output"
                         name="file_format"
@@ -72,7 +65,7 @@ export const FileDetails = () => {
                             label="CSV"
                         />
                     </RadioGroup>
-            </div>
+            </FormWrapper>
         </>
     );
 };
