@@ -170,6 +170,8 @@ class ChameleonDataFrame(pd.DataFrame):
         if self.grouping:
             self = self.group()
         self.dropna(subset=["action"], inplace=True)
+        if set(self.config.keys()) > {"ignored_modes"}:
+            self.filter()
         self.fillna("", inplace=True)
         self.sort()
         return self
@@ -263,32 +265,33 @@ class ChameleonDataFrame(pd.DataFrame):
         if whitelist := self.config.get("user_whitelist", []):
             self = self[self["user"] not in whitelist]
 
-        highway_vals = {
-            "motorway": 1,
-            "trunk": 2,
-            "primary": 3,
-            "secondary": 4,
-            "tertiary": 5,
-            "unclassified": 6,
-            "residential": 6,
-            "service": 6,
-            "track": 6,
-            "footway": 6,
-            "path": 6,
-            "steps": 6,
-            "cycleway": 6,
-        }
-        self["highway_change_score"] = abs(
-            self["old_highway"].map(highway_vals)
-            - self["new_highway"].map(highway_vals)
-        )
+        if self.chameleon_mode == "highway":
+            highway_vals = {
+                "motorway": 1,
+                "trunk": 2,
+                "primary": 3,
+                "secondary": 4,
+                "tertiary": 5,
+                "unclassified": 6,
+                "residential": 6,
+                "service": 6,
+                "track": 6,
+                "footway": 6,
+                "path": 6,
+                "steps": 6,
+                "cycleway": 6,
+            }
+            self["highway_change_score"] = abs(
+                self["old_highway"].map(highway_vals)
+                - self["new_highway"].map(highway_vals)
+            )
 
-        if type_filter := self.config.get("type_filter"):
+            always_include = self.config.get("always_include", [])
+            step_change = self.config.get("highway_step_change", 0)
             self = self[
-                self["old_highway"] in type_filter.get("always_include", [])
-                or self["new_highway"] in type_filter.get("always_include", [])
-                or self["highway_change_score"]
-                >= type_filter.get("highway_step_change", 0)
+                self["old_highway"] in always_include
+                or self["new_highway"] in always_include
+                or self["highway_change_score"] >= step_change
             ]
 
         return self
@@ -408,18 +411,19 @@ class ChameleonDataFrameSet(set):
         Separate creations and deletions into their own dataframes
         """
         special_dataframes = {
-            "new": self.source_data[self.source_data["action"] == "new"],
-            "deleted": self.source_data[self.source_data["action"] == "deleted"],
+            mode: self.source_data[self.source_data["action"] == mode]
+            for mode in SPECIAL_MODES - self.config.get("ignored_modes", set())
         }
         # Remove the new/deleted ways from the source_data
         self.source_data = self.source_data[
             ~self.source_data["action"].isin(SPECIAL_MODES)
         ]
         for mode, df in special_dataframes.items():
-            i = ChameleonDataFrame(
-                df=df, mode=mode, config=self.config
-            ).query_cdf()
-            self.add(i)
+            self.add(
+                ChameleonDataFrame(
+                    df=df, mode=mode, config=self.config
+                ).query_cdf()
+            )
         return self
 
     def check_feature_on_api(
