@@ -494,7 +494,7 @@ class Worker(QObject):
             return
         except overpass.MultipleRequestsError:
             logger.error("Too many Overpass requests in a period of time")
-            self.dialog(
+            self.dialog.emit(
                 "Too many Overpass requests",
                 "The Overpass server is refusing "
                 "to accept any more queries for a period of time",
