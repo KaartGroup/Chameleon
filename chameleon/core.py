@@ -41,7 +41,7 @@ class ChameleonDataFrame(pd.DataFrame):
     """
 
     # pandas will maintain these instance attributes across manipulations
-    _metadata = ["chameleon_mode", "grouping"]
+    _metadata = ["chameleon_mode", "grouping", "config"]
 
     def __init__(
         self,
@@ -169,7 +169,7 @@ class ChameleonDataFrame(pd.DataFrame):
             self = self.group()
         self.dropna(subset=["action"], inplace=True)
         if set(self.config.keys()) > {"ignored_modes"}:
-            self.filter()
+            self = self.filter()
         self.fillna("", inplace=True)
         self.sort()
         return self
@@ -261,7 +261,7 @@ class ChameleonDataFrame(pd.DataFrame):
     def filter(self) -> ChameleonDataFrame:
         # Drop rows with Kaart users tagged
         if whitelist := self.config.get("user_whitelist", []):
-            self = self[self["user"] not in whitelist]
+            self = self[~self["user"].isin(whitelist)]
 
         if self.chameleon_mode == "highway":
             highway_vals = {
@@ -287,9 +287,9 @@ class ChameleonDataFrame(pd.DataFrame):
             always_include = self.config.get("always_include", [])
             step_change = self.config.get("highway_step_change", 0)
             self = self[
-                self["old_highway"] in always_include
-                or self["new_highway"] in always_include
-                or self["highway_change_score"] >= step_change
+                self["old_highway"].isin(always_include)
+                | self["new_highway"].isin(always_include)
+                | (self["highway_change_score"] >= step_change)
             ]
 
         return self
