@@ -274,10 +274,10 @@ class ChameleonDataFrame(pd.DataFrame):
                 "residential": 6,
                 "service": 6,
                 "track": 6,
-                "footway": 6,
-                "path": 6,
-                "steps": 6,
-                "cycleway": 6,
+                "footway": 7,
+                "path": 7,
+                "steps": 7,
+                "cycleway": 7,
             }
             self["highway_change_score"] = abs(
                 self["old_highway"].map(highway_vals)
@@ -523,8 +523,8 @@ class ChameleonDataFrameSet(set):
         def get(self) -> Generator[None, None, None]:
             sleeptime = 0
             for query in self.parent.overpass_query_pages:
-                self.overpass_start_time = datetime.now().astimezone() + timedelta(
-                    seconds=sleeptime
+                self.overpass_start_time = (
+                    datetime.now().astimezone() + timedelta(seconds=sleeptime)
                 )
                 self.overpass_timeout_time = (
                     self.overpass_start_time + timedelta(seconds=self.timeout)
@@ -537,7 +537,9 @@ class ChameleonDataFrameSet(set):
                     self.number_of_queries,
                 )
                 r = self.api.get(
-                    query, verbosity="meta geom", responseformat="geojson",
+                    query,
+                    verbosity="meta geom",
+                    responseformat="geojson",
                 )
                 logger.info("done")
                 self.queries_completed += 1
