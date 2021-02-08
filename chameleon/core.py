@@ -276,10 +276,10 @@ class ChameleonDataFrame(pd.DataFrame):
                 "residential": 6,
                 "service": 6,
                 "track": 6,
-                "footway": 6,
-                "path": 6,
-                "steps": 6,
-                "cycleway": 6,
+                "footway": 7,
+                "path": 7,
+                "steps": 7,
+                "cycleway": 7,
             }
             self["highway_change_score"] = abs(
                 self["old_highway"].map(highway_vals)
