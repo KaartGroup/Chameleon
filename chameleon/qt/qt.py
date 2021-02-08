@@ -208,6 +208,7 @@ class Worker(QObject):
                 self.files["new"],
                 use_api=self.use_api,
                 extra_columns=self.load_extra_columns(),
+                config=self.config,
             )
 
             if self.high_deletions_checker(cdf_set):
