@@ -162,14 +162,14 @@ class Worker(QObject):
         super().__init__()
         # Define set of selected modes
         self.parent = parent
-        self.modes = parent.modes.copy()
+        self.modes = parent.modes
         self.files = parent.file_paths
         self.group_output = parent.group_output
         self.use_api = parent.use_api
         self.format = parent.file_format
         self.response = None
         self.output_path = None
-        self.config = parent.config_format.copy()
+        self.config = parent.config_format
 
         self.error_list = []
         self.successful_items = {}
