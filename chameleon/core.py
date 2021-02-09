@@ -11,12 +11,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Generator, List, Set, TextIO, Tuple, Union
 
+import appdirs
 import geojson
 import numpy as np
 import overpass
 import pandas as pd
-import requests
+import requests_cache
 from more_itertools import chunked as pager
+from requests_cache.backends import sqlite
 
 pd.options.mode.chained_assignment = None
 
@@ -30,7 +32,7 @@ OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 OVERPASS_TIMEOUT = (
     180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
 )
-
+CACHE_LOCATION = Path(appdirs.user_cache_dir("Chameleon", "Kaart"))
 HIGH_DELETIONS_THRESHOLD = 5
 
 
@@ -373,17 +375,25 @@ class ChameleonDataFrameSet(set):
 
     def check_feature_on_api(
         self, feature_id: str, app_version: str = ""
-    ) -> dict:
+    ) -> Tuple(dict, bool):
         """
         Checks whether a way was deleted on the server
         """
+        expiry = timedelta(hours=12)
+        session = requests_cache.CachedSession(
+            backend=sqlite.DbCache(
+                location=str(CACHE_LOCATION / "cache"),
+                expire_after=expiry,
+            )
+        )
+
         if app_version:
             app_version = f" {app_version}".rstrip()
 
         if feature_id in self.overpass_result_attribs:
             return self.overpass_result_attribs[feature_id]
         feature_type, feature_id_num = split_id(feature_id)
-        response = requests.get(
+        response = session.get(
             "https://www.openstreetmap.org/api/0.6/"
             f"{feature_type}/{feature_id_num}/history.json",
             timeout=5,
@@ -423,7 +433,7 @@ class ChameleonDataFrameSet(set):
         else:
             # The way was not deleted, just dropped from the latter dataset
             element_attribs.update({"action": "dropped"})
-        return element_attribs
+        return (element_attribs, response.from_cache)
 
     def write_excel(self, file_name: Union[Path, str]):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
