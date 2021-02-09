@@ -1,20 +1,25 @@
 # -*- mode: python -*-
 
-import re
 import platform
-
+import re
+from os.path import isfile
 
 is_mac = platform.system().lower() == "darwin"
 
 block_cipher = None
 
 VERSION_FILE = "chameleon/resources/version.txt"
+FILTER_FILE = "chameleon/resources/filter.yaml"
 
 added_files = [
     ("chameleon/resources/chameleon.png", "."),
     ("chameleon/resources/extracolumns.yaml", "."),
     ("chameleon/resources/OSMtag.txt", "."),
 ]
+if isfile(FILTER_FILE):
+    added_files.append(
+        (FILTER_FILE, "."),
+    )
 try:
     with open(VERSION_FILE, "r") as fp:
         version_string = fp.read()
@@ -43,7 +48,7 @@ a = Analysis(
     ],
     hookspath=[],
     runtime_hooks=[],
-    excludes=["ptvsd",],
+    excludes=["ptvsd"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
