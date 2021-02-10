@@ -444,6 +444,7 @@ class ChameleonDataFrameSet(set):
             app_version = f" {app_version}".rstrip()
 
         if feature_id in self.overpass_result_attribs:
+            # TODO May be obsoleted by use of cache
             return self.overpass_result_attribs[feature_id]
         feature_type, feature_id_num = split_id(feature_id)
         response = session.get(
