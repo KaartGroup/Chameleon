@@ -16,6 +16,7 @@ import geojson
 import numpy as np
 import overpass
 import pandas as pd
+import requests
 import requests_cache
 import yaml
 from more_itertools import chunked as pager
@@ -345,6 +346,23 @@ class ChameleonDataFrameSet(set):
             if i.chameleon_mode == key or i.chameleon_mode_cleaned == key
         )
 
+    def setup_cache(self) -> None:
+        try:
+            CACHE_LOCATION.mkdir(exist_ok=True, parents=True)
+        except OSError:
+            logger.error(
+                "Could not create cache directory. Caching will be disabled."
+            )
+            self.session = requests.Session()
+        else:
+            expiry = timedelta(hours=12)
+            self.session = requests_cache.CachedSession(
+                backend=sqlite.DbCache(
+                    location=str(CACHE_LOCATION / "cache"),
+                    expire_after=expiry,
+                )
+            )
+
     @property
     def modes(self) -> Set[str]:
         return {i.chameleon_mode for i in self}
@@ -432,13 +450,6 @@ class ChameleonDataFrameSet(set):
         """
         Checks whether a way was deleted on the server
         """
-        expiry = timedelta(hours=12)
-        session = requests_cache.CachedSession(
-            backend=sqlite.DbCache(
-                location=str(CACHE_LOCATION / "cache"),
-                expire_after=expiry,
-            )
-        )
 
         if app_version:
             app_version = f" {app_version}".rstrip()
@@ -447,7 +458,7 @@ class ChameleonDataFrameSet(set):
             # TODO May be obsoleted by use of cache
             return self.overpass_result_attribs[feature_id]
         feature_type, feature_id_num = split_id(feature_id)
-        response = session.get(
+        response = self.session.get(
             "https://www.openstreetmap.org/api/0.6/"
             f"{feature_type}/{feature_id_num}/history.json",
             timeout=5,
@@ -487,7 +498,7 @@ class ChameleonDataFrameSet(set):
         else:
             # The way was not deleted, just dropped from the latter dataset
             element_attribs.update({"action": "dropped"})
-        return (element_attribs, response.from_cache)
+        return (element_attribs, getattr(response, "from_cache", False))
 
     def write_excel(self, file_name: Union[Path, str]):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
