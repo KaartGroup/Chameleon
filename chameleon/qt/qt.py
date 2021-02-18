@@ -377,13 +377,14 @@ class Worker(QObject):
         deleted_ids = list(df.loc[df["action"] == "deleted"].index)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
+            from_cache = False
             # Ends the API check early if the user cancels it
             if self.thread().isInterruptionRequested():
                 raise UserCancelledError
             self.increment_progbar_api.emit()
 
             try:
-                element_attribs = cdfs.check_feature_on_api(
+                element_attribs, from_cache = cdfs.check_feature_on_api(
                     feature_id, app_version=APP_VERSION
                 )
             except (Timeout, ConnectionError) as e:
@@ -410,8 +411,9 @@ class Worker(QObject):
 
             df.update(pd.DataFrame(element_attribs, index=[feature_id]))
 
-            # Wait between iterations to avoid ratelimit problems
-            time.sleep(REQUEST_INTERVAL)
+            if not from_cache:
+                # Wait between iterations to avoid ratelimit problems
+                time.sleep(REQUEST_INTERVAL)
         self.check_api_done.emit()
 
     def write_csv(self, dataframe_set: ChameleonDataFrameSet) -> None:
@@ -1147,16 +1149,25 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         return errors
 
     def filter_load(self) -> None:
-
         # Check for resource file in directory
         try:
             with (RESOURCES_DIR / "filter.yaml").open() as f:
-                raw_config = yaml.safe_load(f)
+                config = yaml.safe_load(f)
         except OSError:
             self.config = None
             return
 
-        self.config = filter_process(raw_config)
+        # If keys are not sorted by file type, put them all under "all" key
+        if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
+            config["all"] = config
+
+        new_config = config.copy()
+        for file_format, file_format_config in config.items():
+            new_config[file_format]["ignored_modes"] = set(
+                file_format_config.get("ignored_modes") or []
+            )
+
+        self.config = new_config
 
     def run_query(self) -> None:
         """

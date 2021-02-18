@@ -11,13 +11,16 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Generator, List, Mapping, Set, TextIO, Tuple, Union
 
+import appdirs
 import geojson
 import numpy as np
 import overpass
 import pandas as pd
 import requests
+import requests_cache
 import yaml
 from more_itertools import chunked as pager
+from requests_cache.backends import sqlite
 
 pd.options.mode.chained_assignment = None
 
@@ -31,7 +34,7 @@ OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 OVERPASS_TIMEOUT = (
     180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
 )
-
+CACHE_LOCATION = Path(appdirs.user_cache_dir("Chameleon", "Kaart"))
 HIGH_DELETIONS_THRESHOLD = 5
 
 
@@ -274,10 +277,11 @@ class ChameleonDataFrame(pd.DataFrame):
                 "residential": 6,
                 "service": 6,
                 "track": 6,
-                "footway": 7,
-                "path": 7,
-                "steps": 7,
-                "cycleway": 7,
+                "footway": 8,
+                "path": 8,
+                "steps": 8,
+                "cycleway": 8,
+                "pedestrian": 8,
             }
             self["highway_change_score"] = abs(
                 self["old_highway"].map(highway_vals)
@@ -342,6 +346,23 @@ class ChameleonDataFrameSet(set):
             for i in self
             if i.chameleon_mode == key or i.chameleon_mode_cleaned == key
         )
+
+    def setup_cache(self) -> None:
+        try:
+            CACHE_LOCATION.mkdir(exist_ok=True, parents=True)
+        except OSError:
+            logger.error(
+                "Could not create cache directory. Caching will be disabled."
+            )
+            self.session = requests.Session()
+        else:
+            expiry = timedelta(hours=12)
+            self.session = requests_cache.CachedSession(
+                backend=sqlite.DbCache(
+                    location=str(CACHE_LOCATION / "cache"),
+                    expire_after=expiry,
+                )
+            )
 
     @property
     def modes(self) -> Set[str]:
@@ -426,17 +447,19 @@ class ChameleonDataFrameSet(set):
 
     def check_feature_on_api(
         self, feature_id: str, app_version: str = ""
-    ) -> dict:
+    ) -> Tuple(dict, bool):
         """
         Checks whether a way was deleted on the server
         """
+
         if app_version:
             app_version = f" {app_version}".rstrip()
 
         if feature_id in self.overpass_result_attribs:
+            # TODO May be obsoleted by use of cache
             return self.overpass_result_attribs[feature_id]
         feature_type, feature_id_num = split_id(feature_id)
-        response = requests.get(
+        response = self.session.get(
             "https://www.openstreetmap.org/api/0.6/"
             f"{feature_type}/{feature_id_num}/history.json",
             timeout=5,
@@ -476,7 +499,7 @@ class ChameleonDataFrameSet(set):
         else:
             # The way was not deleted, just dropped from the latter dataset
             element_attribs.update({"action": "dropped"})
-        return element_attribs
+        return (element_attribs, getattr(response, "from_cache", False))
 
     def write_excel(self, file_name: Union[Path, str]):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
