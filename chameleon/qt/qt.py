@@ -13,7 +13,7 @@ from collections import Counter
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Mapping, Optional, Tuple, Union
 
 import geojson
 import overpass
@@ -29,6 +29,7 @@ from PySide2.QtWidgets import (
     QAction,
     QApplication,
     QCompleter,
+    QDialog,
     QFileDialog,
     QListWidgetItem,
     QMainWindow,
@@ -47,7 +48,7 @@ from chameleon.core import (
     ChameleonDataFrameSet,
     clean_for_presentation,
 )
-from chameleon.qt import design
+from chameleon.qt import design, filter_config
 
 # Needed for Big Sur compatibility
 os.environ["QT_MAC_WANTS_LAYER"] = "1"
@@ -529,7 +530,8 @@ class Worker(QObject):
                     }
                 )
                 logger.info(
-                    "Processing complete. %s written.", file_name,
+                    "Processing complete. %s written.",
+                    file_name,
                 )
         except OSError:
             logger.exception("Write error.")
@@ -544,7 +546,8 @@ class Worker(QObject):
                 }
             )
             logger.info(
-                "Processing complete. %s written.", file_name,
+                "Processing complete. %s written.",
+                file_name,
             )
         self.output_path = self.files["output"].parent
 
@@ -583,6 +586,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
         self.setWindowIcon(QtGui.QIcon(self.logo))
+        self.filter_menu = FilterDialog()
+        self.actions_setup()
 
         self.tag_count = Counter()
 
@@ -674,10 +679,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         extract_action.setShortcut("Ctrl+Q")
         extract_action.setStatusTip("Close application.")
         extract_action.triggered.connect(self.close)
+        # Filter config
+        config_action = QAction("&Configure filters", self)
+        config_action.triggered.connect(self.config_menu)
         # Declare menu bar settings
         file_menu = self.menuBar().addMenu("&File")
         file_menu.addAction(info_action)
         file_menu.addAction(extract_action)
+        file_menu.addAction(config_action)
 
     def about_menu(self) -> None:
         """
@@ -717,6 +726,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             "and <a href=https://www.pyinstaller.org>PyInstaller</a>.</i>"
         )
         about.show()
+
+    def config_menu(self) -> None:
+        self.filter_menu.show()
 
     def auto_completer(self) -> None:
         """
@@ -1135,25 +1147,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         return errors
 
     def filter_load(self) -> None:
+
         # Check for resource file in directory
         try:
             with (RESOURCES_DIR / "filter.yaml").open() as f:
-                config = yaml.safe_load(f)
+                raw_config = yaml.safe_load(f)
         except OSError:
             self.config = None
             return
 
-        # If keys are not sorted by file type, put them all under "all" key
-        if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
-            config["all"] = config
-
-        new_config = config.copy()
-        for file_format, file_format_config in config.items():
-            new_config[file_format]["ignored_modes"] = set(
-                file_format_config.get("ignored_modes") or []
-            )
-
-        self.config = new_config
+        self.config = filter_process(raw_config)
 
     def run_query(self) -> None:
         """
@@ -1300,6 +1303,76 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # Fail silently if history.yaml does not exist
         except AttributeError:
             logger.warning("All Chameleon analysis processing completed.")
+
+
+class FilterDialog(QDialog, filter_config.Ui_Dialog):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setupUi(self)
+
+        self.add_mapping = {
+            self.whitelistAdd: self.whitelistLineEdit,
+            self.alwaysIncludeAdd: self.alwaysIncludeLineEdit,
+        }
+
+        # Matches buttons to correct
+        self.list_mapping = {
+            self.whitelistAdd: self.whitelistList,
+            self.alwaysIncludeAdd: self.alwaysIncludeList,
+            self.whitelistRemove: self.whitelistList,
+            self.alwaysIncludeRemove: self.alwaysIncludeList,
+            self.whitelistClear: self.whitelistList,
+            self.alwaysIncludeClear: self.alwaysIncludeList,
+        }
+
+        self.whitelistAdd.clicked.connect(self.add_item)
+        self.alwaysIncludeAdd.clicked.connect(self.add_item)
+
+        self.whitelistRemove.clicked.connect(self.remove_item)
+        self.alwaysIncludeRemove.clicked.connect(self.add_item)
+
+    def add_item(self) -> None:
+        """
+        Add item to list
+        """
+        # TODO Add splitter for multi input at once
+        # TODO Clear input box on add
+        dest = self.list_mapping.get(self.sender())
+        if not dest:
+            return
+        source_field = self.add_mapping[self.sender()]
+        the_input = source_field.text().strip()
+        dest.addItem(the_input)
+
+    def remove_item(self) -> None:
+        dest = self.list_mapping.get(self.sender())
+        if not dest:
+            return
+        for item in dest.selectedItems():
+            dest.takeItem(dest.row(item))
+
+    def clear_list(self) -> None:
+        dest = self.list_mapping.get(self.sender())
+        if not dest:
+            return
+        dest.clear()
+
+    @property
+    def properties(self) -> Dict[str, Union[List[str], int]]:
+        return {
+            "user_whitelist": [item.text() for item in self.whitelistList],
+            "always_include": [item.text() for item in self.alwaysIncludeList],
+            "highway_step_change": self.value(),
+        }
+
+    @properties.setter
+    def properties(self, config: Mapping) -> None:
+        for item in config.get("user_whitelist", []):
+            self.whitelistList.addItem(item)
+        for item in config.get("always_include", []):
+            self.alwaysIncludeList.addItem(item)
+        if val := config.get("highway_step_change"):
+            self.highwayStepChanges.setValue(max(val, 1))
 
 
 class ChameleonProgressDialog(QProgressDialog):
@@ -1516,6 +1589,24 @@ def success_message(frame: ChameleonDataFrame) -> str:
             f"with {row_count} row{plur(row_count)}."
         )
     )
+
+
+def filter_process(config: Optional[Mapping]) -> Optional[dict]:
+    # Check for resource file in directory
+    if config is None:
+        return
+
+    # If keys are not sorted by file type, put them all under "all" key
+    if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
+        config["all"] = config
+
+    new_config = config.copy()
+    for file_format, file_format_config in config.items():
+        new_config[file_format]["ignored_modes"] = set(
+            file_format_config.get("ignored_modes") or []
+        )
+
+    return new_config
 
 
 if __name__ == "__main__":
