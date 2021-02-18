@@ -10,16 +10,19 @@ import shlex
 import sys
 import time
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
+from io import BytesIO
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import geojson
+import overpass
 import pandas as pd
 import yaml
 
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
+from bidict import bidict
 from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject, QThread, Signal
 from PySide2.QtWidgets import (
@@ -27,16 +30,19 @@ from PySide2.QtWidgets import (
     QApplication,
     QCompleter,
     QFileDialog,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QProgressDialog,
     QPushButton,
-    QRadioButton,
 )
 from requests import HTTPError, Timeout
 
 # Import generated UI file
 from chameleon.core import (
+    HIGH_DELETIONS_THRESHOLD,
+    OVERPASS_TIMEOUT,
+    SPECIAL_MODES,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     clean_for_presentation,
@@ -149,7 +155,7 @@ class Worker(QObject):
     check_api_done = Signal()
     user_confirm_signal = Signal(str)
     dialog = Signal(str, str, str)
-    overpass_counter = Signal(int)
+    overpass_counter = Signal(datetime, datetime, int, int)
     overpass_complete = Signal()
 
     def __init__(self, parent):
@@ -157,7 +163,7 @@ class Worker(QObject):
         # Define set of selected modes
         self.parent = parent
         self.modes = parent.modes
-        self.files = parent.file_fields
+        self.files = parent.file_paths
         self.group_output = parent.group_output
         self.use_api = parent.use_api
         self.format = parent.file_format
@@ -331,11 +337,14 @@ class Worker(QObject):
 
         # The order matters here. user_confirm() waits for user input,
         # so we only want to evaluate it if the deletion_percentage is high
-        return deletion_percentage > 20 and not self.user_confirm(
-            "There is an unusually high proportion of deletions "
-            f"({round(deletion_percentage,2)}%). "
-            "This often indicates that the two input files have different scope. "
-            "Would you like to continue?"
+        return (
+            deletion_percentage > HIGH_DELETIONS_THRESHOLD
+            and not self.user_confirm(
+                "There is an unusually high proportion of deletions "
+                f"({round(deletion_percentage,2)}%). "
+                "This often indicates that the two input files have different scope. "
+                "Would you like to continue?"
+            )
         )
 
     def overwrite_confirm(self, file_name: str) -> bool:
@@ -405,22 +414,26 @@ class Worker(QObject):
         """
         Writes all members of a ChameleonDataFrameSet to a set of CSV files
         """
+
+        def to_csv(output_file: BytesIO, mode: str) -> None:
+            result.to_csv(
+                output_file, mode=mode, sep="\t", index=True, encoding="utf-8"
+            )
+
         for result in dataframe_set:
             file_name = Path(
                 f"{self.files['output']}_{result.chameleon_mode_cleaned}.csv"
             )
             logger.info("Writing %s", file_name)
             try:
-                with file_name.open("x") as output_file:
-                    result.to_csv(output_file, sep="\t", index=True)
+                to_csv(file_name, "x")
             except FileExistsError:
                 # Prompt and wait for confirmation before overwriting
                 if not self.overwrite_confirm(file_name):
                     logger.info("Skipping %s.", result.chameleon_mode)
                     continue
                 else:
-                    with file_name.open("w") as output_file:
-                        result.to_csv(output_file, sep="\t", index=True)
+                    to_csv(file_name, "w")
             except OSError:
                 logger.exception("Write error.")
                 self.error_list.append(result.chameleon_mode)
@@ -459,12 +472,18 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a geojson file,
         using the overpass API
         """
-        timeout = 120
 
+        overpass_query = dataframe_set.OverpassQuery(dataframe_set)
+
+        logger.info("Querying Overpass…")
         try:
-            self.overpass_counter.emit(timeout)
-            logger.info("Querying Overpass…")
-            fcs = dataframe_set.to_geojson(timeout)
+            for _ in overpass_query.get():
+                self.overpass_counter.emit(
+                    overpass_query.overpass_start_time,
+                    overpass_query.overpass_timeout_time,
+                    overpass_query.queries_completed,
+                    overpass_query.number_of_queries,
+                )
         except TimeoutError:
             logger.error("Overpass timeout")
             self.dialog.emit(
@@ -473,41 +492,56 @@ class Worker(QObject):
                 "critical",
             )
             return
+        except overpass.MultipleRequestsError:
+            logger.error("Too many Overpass requests in a period of time")
+            self.dialog.emit(
+                "Too many Overpass requests",
+                "The Overpass server is refusing "
+                "to accept any more queries for a period of time",
+            )
+            return
         finally:
             self.overpass_complete.emit()
-        logger.info("Response recieved from Overpass.")
+        logger.info("All responses recieved from Overpass.")
 
         logger.info("Writing geojson…")
-        for fc in fcs:
-            file_name = self.files["output"].with_name(
-                f"{self.files['output'].name}_{fc['chameleon_mode']}.geojson"
-            )
+        file_name = self.files["output"].with_suffix(".geojson")
 
-            try:
-                with file_name.open("x") as output_file:
+        try:
+            with file_name.open("x") as output_file:
+                geojson.dump(overpass_query.geojson, output_file, indent=4)
+        except FileExistsError:
+            if not self.overwrite_confirm(file_name):
+                logger.info("User chose not to overwrite")
+            else:
+                fc = (
+                    overpass_query.geojson
+                )  # Assign this before opening the file
+                with file_name.open("w") as output_file:
                     geojson.dump(fc, output_file, indent=4)
-            except FileExistsError:
-                if not self.overwrite_confirm(file_name):
-                    logger.info("User chose not to overwrite")
-                    continue
-                else:
-                    with file_name.open("w") as output_file:
-                        geojson.dump(fc, output_file, indent=4)
-            except OSError:
-                logger.exception("Write error.")
-                self.error_list.append(fc["chameleon_mode"])
-                continue
+                self.successful_items.update(
+                    {
+                        result.chameleon_mode: success_message(result)
+                        for result in dataframe_set.nondeleted
+                    }
+                )
+                logger.info(
+                    "Processing complete. %s written.", file_name,
+                )
+        except OSError:
+            logger.exception("Write error.")
+            self.error_list += [
+                result.chameleon_mode for result in dataframe_set.nondeleted
+            ]
+        else:
             self.successful_items.update(
                 {
-                    fc["chameleon_mode"]: success_message(
-                        dataframe_set[fc["chameleon_mode"]]
-                    )
+                    result.chameleon_mode: success_message(result)
+                    for result in dataframe_set.nondeleted
                 }
             )
             logger.info(
-                "Processing for %s complete. %s written.",
-                fc["chameleon_mode"],
-                file_name,
+                "Processing complete. %s written.", file_name,
             )
         self.output_path = self.files["output"].parent
 
@@ -524,7 +558,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     QMB_MAP = {QMessageBox.Yes: True, QMessageBox.No: False}
     EXTENSION_MAP = {
         "excel": ".xlsx",
-        "geojson": r"_{mode}.geojson",
+        "geojson": ".geojson",
         "csv": r"_{mode}.csv",
     }
 
@@ -549,16 +583,24 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.tag_count = Counter()
 
-        self.text_fields = {
-            "old": self.oldFileNameBox,
-            "new": self.newFileNameBox,
-            "output": self.outputFileNameBox,
-        }
+        self.file_fields = bidict(
+            {
+                "old": self.oldFileNameBox,
+                "new": self.newFileNameBox,
+                "output": self.outputFileNameBox,
+            }
+        )
 
         # Logging initialization of Chameleon
         logger.info("Chameleon started at %s.", datetime.now())
 
-        # YAML file loaders
+        self.file_format_radio = bidict(
+            {
+                self.excelRadio: "excel",
+                self.csvRadio: "csv",
+                self.geojsonRadio: "geojson",
+            }
+        )
         # List all of our buttons to populate so we can iterate through them
         self.fav_btn = (
             self.popTag1,
@@ -567,6 +609,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.popTag4,
             self.popTag5,
         )
+
+        # YAML file loaders
         # Populate the buttons defined above
         self.fav_btn_populate()
         # Load file paths into boxes from previous session
@@ -574,19 +618,17 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         # OSM tag resource file, construct list from file
         self.auto_completer()
 
-
         # Connecting signals to slots within init
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
         self.newFileSelectButton.clicked.connect(self.open_input_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
 
         # Changes the displayed file name template depending on the selected file format
-        self.excelRadio.clicked.connect(self.suffix_updater)
-        self.csvRadio.clicked.connect(self.suffix_updater)
-        self.geojsonRadio.clicked.connect(self.suffix_updater)
+        for radio in self.file_format_radio:
+            radio.clicked.connect(self.file_format_action)
 
-        for i in self.fav_btn:
-            i.clicked.connect(self.add_tag)
+        for btn in self.fav_btn:
+            btn.clicked.connect(self.add_tag)
         self.searchButton.clicked.connect(self.add_tag)
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
@@ -602,15 +644,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.newFileNameBox.editingFinished.connect(self.on_editing_finished)
         self.outputFileNameBox.editingFinished.connect(self.on_editing_finished)
 
-        # Labelling strings for filename boxes
-        self.oldFileSelectButton.shortname = "old"
-        self.newFileSelectButton.shortname = "new"
         # Define which button controls which filename box
         self.oldFileSelectButton.box_control = self.oldFileNameBox
         self.newFileSelectButton.box_control = self.newFileNameBox
 
         # Set the output name template
-        self.suffix_updater()
+        # Set the default deleted item in the list
+        self.file_format_action()
         # Sets run button to not enabled
         self.run_checker()
 
@@ -689,6 +729,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         completer = QCompleter(tags)
         self.searchBox.setCompleter(completer)
 
+    def file_format_action(self) -> None:
+        self.suffix_updater()
+        self.update_default_frames()
+
     def history_loader(self) -> None:
         """
         Check for history file and load if exists
@@ -707,8 +751,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.exception("History file found but not readable.")
             self.history_dict = {}
 
-        for k, v in self.text_fields.items():
-            v.insert(self.history_dict.get(k, ""))
+        for label, field in self.file_fields.items():
+            field.insert(self.history_dict.get(label, ""))
         self.offlineRadio.setChecked(not self.history_dict.get("use_api", True))
         self.file_format = self.history_dict.get("file_format", "csv")
 
@@ -735,22 +779,19 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         fav_list = sorted(self.tag_count, key=self.tag_count.get, reverse=True)
 
-        def_count = len(self.fav_btn) - len(fav_list)
-        if def_count > 0:
+        if len(self.fav_btn) - len(fav_list) > 0:
             # If we run out of favorites, start adding non-redundant default tags
             # We use these when there aren't enough favorites
-            default_tags = [
+            default_tags = (
                 "highway",
                 "name",
                 "ref",
                 "addr:housenumber",
                 "addr:street",
-            ]
+            )
             # Count how many def tags are needed
             # Add requisite number of non-redundant tags from the default list
-            fav_list += [i for i in default_tags if i not in fav_list][
-                :def_count
-            ]
+            fav_list += [tag for tag in default_tags if tag not in fav_list]
         # Loop through the buttons and apply our ordered tag values
         for btn, text in zip(self.fav_btn, fav_list):
             # The fav_btn and set_lists should have a 1:1 correspondence
@@ -793,7 +834,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 self.listWidget.addItem(label)
                 logger.info("Adding to list: %s", label)
         self.clear_search_box.emit()
-        self.listWidget.repaint()
         self.run_checker()
 
     def delete_tag(self) -> None:
@@ -816,7 +856,12 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Wipes all tags listed on QList with "Clear" button.
         Execute on `Clear` button signal.
         """
-        self.listWidget.clear()
+        for row in (
+            self.listWidget.row(item)
+            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+            if item.text() not in SPECIAL_MODES
+        ):
+            self.listWidget.takeItem(row)
         logger.info("Cleared tag list.")
         self.run_checker()
 
@@ -846,8 +891,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Adds functionality to the Open Old/New File (…) button, opens the
         '/downloads' system path to find csv file.
         """
-        sender = self.sender()
-        destination = sender.box_control
+        destination = self.sender().box_control
         # Gets first non-empty value in order
         file_dir = next(
             (
@@ -861,9 +905,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             ),
             str(Path.home() / "Downloads"),
         )
+        shortname = self.file_fields.inverse[destination]
         file_name = QFileDialog.getOpenFileName(
             self,
-            f"Select CSV file with {sender.shortname} data",
+            f"Select CSV file with {shortname} data",
             file_dir,
             "CSV (*.csv)",
         )[0]
@@ -894,16 +939,33 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     def run_checker(self) -> None:
         """
-        Function that disable/enables run button based on list items.
+        Function that enables run button if form is complete
         """
-        self.runButton.setEnabled(
-            bool(self.modes) and all(self.file_fields.values())
-        )
-        self.repaint()
+        self.runButton.setEnabled(all(self.file_paths.values()))
+        self.update()
 
     def suffix_updater(self) -> None:
         self.fileSuffix.setText(self.EXTENSION_MAP[self.file_format])
-        self.repaint()
+        self.update()
+
+    def update_default_frames(self) -> None:
+        """
+        Hides "deleted" from the list widget if geojson format selected,
+        shows it otherwise
+        """
+        deleted_item = next(
+            iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
+            None,
+        )
+        if self.file_format == "geojson" and deleted_item:
+            self.listWidget.takeItem(self.listWidget.row(deleted_item))
+        elif self.file_format != "geojson" and not deleted_item:
+            new_item = QListWidgetItem("deleted")
+            new_item.setFlags(QtCore.Qt.NoItemFlags)
+            self.listWidget.addItem(new_item)
+        else:
+            return
+        self.update()
 
     def on_editing_finished(self) -> None:
         """
@@ -941,16 +1003,19 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         dialog_box.exec()
 
     @property
-    def file_fields(self) -> dict:
+    def file_paths(self) -> Dict[str, Optional[Path]]:
         # Wrap the file references in Path object to prepare "file not found" warning
         return {
-            name: Path(field.text().strip())
-            for name, field in self.text_fields.items()
-            if field.text().strip()
+            name: Path(stripped) if (stripped := field.text().strip()) else None
+            for name, field in self.file_fields.items()
         }
 
     @property
     def use_api(self) -> bool:
+        """
+        Returns whether the user has selected to use the OSM API
+        to check deleted features
+        """
         # The offline radio button is a dummy. The online button functions as a checkbox
         # rather than as true radio buttons
         return self.onlineRadio.isChecked()
@@ -960,34 +1025,39 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Returns the selected file format
         """
-        checkbox_map = {
-            self.excelRadio: "excel",
-            self.geojsonRadio: "geojson",
-            self.csvRadio: "csv",
-        }
-        return next(
-            extension
-            for box, extension in checkbox_map.items()
-            if box.isChecked()
+        checked_radio = next(
+            radio for radio in self.file_format_radio if radio.isChecked()
         )
+        return self.file_format_radio[checked_radio]
 
     @file_format.setter
     def file_format(self, file_format) -> None:
         """
         Sets the file format radio to the given format
         """
-        {"excel": self.excelRadio, "geojson": self.geojsonRadio}.get(
+        self.file_format_radio.inverse.get(
             file_format, self.csvRadio
         ).setChecked(True)
 
     @property
-    def modes(self) -> set:
+    def modes_inclusive(self) -> set:
         """
-        Returns the modes the user has input as a set
+        For testing purposes
+        Returns modes including the special "new" and "deleted" modes
         """
         return {
-            i.text()
-            for i in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+            item.text()
+            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+        }
+
+    @property
+    def modes(self) -> set:
+        """
+        Returns the modes the user has input as a set,
+        ignoring the special "new" and "deleted" modes
+        """
+        return {
+            mode for mode in self.modes_inclusive if mode not in SPECIAL_MODES
         }
 
     @property
@@ -1003,14 +1073,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         errors = {}
         # Check for blank values
-        try:
-            # TODO Fix this
-            for k in {"old", "new", "output"}:
-                self.file_fields[k]
-        except KeyError as e:
-            errors["blank"] = f"{e.args[0].title()} file field is blank."
+        if name := next(
+            (label for label, path in self.file_paths.items() if not path), None
+        ):
+            errors["blank"] = f"{name} file field is blank."
+
         badfiles = []
-        for key, path in ((k, self.file_fields.get(k)) for k in {"old", "new"}):
+        for key, path in ((k, self.file_paths.get(k)) for k in ["old", "new"]):
             try:
                 with path.open("r"):
                     pass
@@ -1021,10 +1090,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             errors[
                 "notfound"
             ] = f"{' and '.join(badfiles)} file{s} not found.".capitalize()
+
         # Check if output directory is writable
-        if not os.access(self.file_fields["output"].parent, os.W_OK):
+        if not os.access(self.file_paths["output"].parent, os.W_OK):
             errors["notwritable"] = (
-                f"{self.file_fields['output'].parent} "
+                f"{self.file_paths['output'].parent} "
                 "is not a writable directory"
             )
         return errors
@@ -1045,9 +1115,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.document_tag(self.modes)  # Execute favorite tracking
 
-        logger.info("Modes to be processed: %s.", (self.modes))
+        logger.info("Modes to be processed: %s.", (self.modes | SPECIAL_MODES))
 
-        self.progress_bar = ChameleonProgressDialog(len(self.modes))
+        self.progress_bar = ChameleonProgressDialog(
+            len(self.modes), self.file_format == "geojson"
+        )
         self.progress_bar.show()
 
         # Handles Worker class and QThreads for Worker
@@ -1147,11 +1219,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             Event which handles the exit prompt.
         """
         # Make a dict of text field values
-        files = {name: field.text() for name, field in self.text_fields.items()}
+        files = {name: field.text() for name, field in self.file_fields.items()}
         # Prompt if user has changed input values from what was loaded
         try:
-            if {k: self.history_dict[k] for k in self.text_fields.keys()} != {
-                k: files[k] for k in self.text_fields.keys()
+            if {k: self.history_dict[k] for k in self.file_fields.keys()} != {
+                k: files[k] for k in self.file_fields.keys()
             }:
                 exit_prompt = QMessageBox()
                 exit_prompt.setIcon(QMessageBox.Question)
@@ -1176,9 +1248,9 @@ class ChameleonProgressDialog(QProgressDialog):
     Customizes QProgressDialog with methods specific to this app.
     """
 
-    # TODO Redefine properties in terms of major and minor increments,
-    # use getters and setters if it helps
-    def __init__(self, mode_count: int):
+    overpass_timeout_duration = OVERPASS_TIMEOUT
+
+    def __init__(self, mode_count: int, geojson: bool = False):
         self.mode_count = mode_count
         self.current_phase = None  # osm_api, overpass, or mode
         self.current_mode = None
@@ -1188,6 +1260,8 @@ class ChameleonProgressDialog(QProgressDialog):
         self.osm_api_max = 0
         self.overpass_start_time = None
         self.overpass_timeout_time = None
+        self.overpass_queries_completed = 0
+        self.overpass_queries_max = int(geojson)
 
         self.is_overpass_complete = False
 
@@ -1210,7 +1284,7 @@ class ChameleonProgressDialog(QProgressDialog):
     @property
     def real_max(self) -> int:
         return (
-            self.overpass_timeout_duration * self.using_overpass
+            self.overpass_timeout_duration * self.overpass_queries_max
             + self.osm_api_max
             + self.mode_count * 10
         )
@@ -1222,13 +1296,14 @@ class ChameleonProgressDialog(QProgressDialog):
                 (
                     # Count full overpass time if it already completed
                     self.is_overpass_complete
-                    * self.using_overpass
                     * self.overpass_timeout_duration
+                    * self.overpass_queries_max
                 )
                 or (
                     # Add the overpass timeout time if it's being used.
                     self.overpass_elapsed
-                    * self.using_overpass
+                    + self.overpass_queries_completed
+                    * self.overpass_timeout_duration
                 )
             )
             + self.osm_api_completed
@@ -1263,18 +1338,6 @@ class ChameleonProgressDialog(QProgressDialog):
             round(
                 (
                     datetime.now().astimezone() - self.overpass_start_time
-                ).total_seconds()
-            )
-            if self.using_overpass
-            else 0
-        )
-
-    @property
-    def overpass_timeout_duration(self) -> int:
-        return (
-            round(
-                (
-                    self.overpass_timeout_time - self.overpass_start_time
                 ).total_seconds()
             )
             if self.using_overpass
@@ -1329,20 +1392,29 @@ class ChameleonProgressDialog(QProgressDialog):
         """
         self.cancel_button.setEnabled(False)
 
-    def overpass_counter(self, timeout: int) -> None:
+    def overpass_counter(
+        self,
+        overpass_start_time: datetime,
+        overpass_timeout_time: datetime,
+        overpass_queries_completed: int,
+        overpass_queries_max: int,
+    ) -> None:
         self.current_phase = "overpass"
-        self.overpass_start_time = datetime.now().astimezone()
-        self.overpass_timeout_time = self.overpass_start_time + timedelta(
-            seconds=timeout
-        )
-        while self.overpass_timeout_duration > 0:
-            if self.is_overpass_complete:
-                self.update_info("Overpass response returned")
-                break
+        self.overpass_start_time = overpass_start_time
+        self.overpass_timeout_time = overpass_timeout_time
+        self.overpass_queries_max = overpass_queries_max
+        self.overpass_queries_completed = overpass_queries_completed
+
+        while self.overpass_remaining > 0 and not self.is_overpass_complete:
+            QApplication.processEvents()
             self.update_info(
-                "Getting geometry from Overpass. "
+                f"Getting query {self.overpass_queries_completed + 1} of "
+                f"{self.overpass_queries_max} from Overpass. "
                 f"{self.overpass_remaining} seconds until timeout"
             )
+            time.sleep(0.1)
+        if self.is_overpass_complete:
+            self.update_info("Overpass response returned")
         else:
             self.update_info("Overpass timeout")
 

@@ -5,11 +5,12 @@ import shlex
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Dict, Generator, Iterator, List, TextIO, Union
+from typing import Dict, Generator, List, TextIO, Union
 from uuid import UUID, uuid4
 from zipfile import ZipFile
 
 import appdirs
+import geojson
 import gevent
 import overpass
 import pandas as pd
@@ -31,6 +32,8 @@ from requests import HTTPError, Timeout
 from werkzeug.exceptions import UnprocessableEntity
 
 from chameleon.core import (
+    HIGH_DELETIONS_THRESHOLD,
+    OVERPASS_TIMEOUT,
     TYPE_EXPANSION,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
@@ -63,9 +66,6 @@ celery.conf.update(app.config)
 
 USER_FILES_BASE = Path(appdirs.user_data_dir("Chameleon"))
 RESOURCES_DIR = Path("chameleon/resources")
-OVERPASS_TIMEOUT = (
-    180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
-)
 TASK_TIME_LIMIT = 7200
 
 try:
@@ -194,7 +194,7 @@ def process_data(
     output: str = "chameleon",
     filter_list: List[dict] = [],
     **_,
-) -> Iterator[dict]:
+) -> Generator[dict, None, None]:
     """
     task_metadata:
         current_mode
@@ -247,7 +247,8 @@ def process_data(
     if (
         not easy_mode
         and not high_deletions_ok
-        and (deletion_percentage := high_deletions_checker(cdfs)) > 20
+        and (deletion_percentage := high_deletions_checker(cdfs))
+        > HIGH_DELETIONS_THRESHOLD
     ):
         raise HighDeletionPercentageError(round(deletion_percentage, 2))
 
@@ -311,11 +312,22 @@ def process_data(
             continue
         cdfs.add(result)
 
-    task_metadata["file_name"] = write_output[file_format](
-        cdfs, user_dir, output
-    )
-
-    yield {"state": "SUCCESS", "meta": task_metadata}
+    if file_format == "geojson":
+        for response in write_geojson(cdfs, user_dir, output):
+            if fname := response.get("file_name"):
+                task_metadata["file_name"] = fname
+                yield {"state": "SUCCESS", "meta": task_metadata}
+            else:
+                task_metadata.update(response)
+                yield {
+                    "state": "PROGRESS",
+                    "meta": task_metadata,
+                }
+    else:
+        task_metadata["file_name"] = {"csv": write_csv, "excel": write_excel}[
+            file_format
+        ](cdfs, user_dir, output)
+        yield {"state": "SUCCESS", "meta": task_metadata}
 
 
 @app.route("/longtask_status/<uuid:task_id>")
@@ -327,7 +339,7 @@ def longtask_status(task_id) -> Response:
     task_id = str(task_id)
     task = celery_task.AsyncResult(task_id)
 
-    def stream_events() -> Generator:
+    def stream_events() -> Generator[str, None, None]:
         if task.state == "PENDING":
             # job is unknown
             response = {
@@ -468,27 +480,40 @@ def write_excel(dataframe_set, base_dir, output) -> str:
     return file_name
 
 
-def write_geojson(dataframe_set, base_dir, output):
-    try:
-        response = dataframe_set.to_geojson(timeout=OVERPASS_TIMEOUT)
-    except TimeoutError:
-        # TODO Inform user about error
-        return
+def write_geojson(
+    dataframe_set, base_dir, output
+) -> Generator[Dict[str, Union[str, int]], None, Dict[str, str]]:
+    overpass_query = dataframe_set.OverpassQuery(dataframe_set, OVERPASS_TIMEOUT)
+
+    for _ in overpass_query.get():
+        yield {
+            "overpass_start_time": overpass_query.overpass_start_time.isoformat(),
+            "overpass_timeout_time": overpass_query.overpass_timeout_time.isoformat(),
+            "queries_completed": overpass_query.queries_completed,
+            "query_count": overpass_query.number_of_queries,
+            "current_phase": "overpass_geojson",
+        }
+    # except TimeoutError:
+    #     return (
+    #         "Overpass timeout",
+    #         "The Overpass server did not respond in time.",
+    #         "critical",
+    #     )
+    # except overpass.MultipleRequestsError:
+    #     return (
+    #         "Too many Overpass requests",
+    #         "The Overpass server is refusing "
+    #         "to accept any more queries for a period of time",
+    #     )
 
     file_name = f"{output}.geojson"
     file_path = Path(safe_join(base_dir, file_name)).resolve()
 
     with file_path.open("w") as output_file:
-        json.dump(response, output_file)
+        geojson.dump(overpass_query.geojson, output_file)
 
-    return file_name
+    return {"file_name": file_name}
 
-
-write_output = {
-    "csv": write_csv,
-    "excel": write_excel,
-    "geojson": write_geojson,
-}
 
 mimetype = {
     # "csv": "text/csv",
@@ -539,7 +564,7 @@ def overpass_getter(
     startdate: datetime,
     enddate: datetime,
     filter_list: list,
-) -> Iterator[TextIO]:
+) -> Generator[TextIO, None, None]:
     api = overpass.API(timeout=OVERPASS_TIMEOUT)
 
     formatted_tags = []

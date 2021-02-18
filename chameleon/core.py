@@ -6,8 +6,10 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Set, TextIO, Tuple, Union
+from typing import Dict, Generator, List, Set, TextIO, Tuple, Union
 
 import geojson
 import numpy as np
@@ -25,6 +27,11 @@ TYPE_EXPANSION = {"n": "node", "w": "way", "r": "relation"}
 GEOJSON_OSM = {"Point": "node", "LineString": "way", "Polygon": "way"}
 JOSM_URL = "http://localhost:8111/load_object?new_layer=true&objects="
 OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
+OVERPASS_TIMEOUT = (
+    180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
+)
+
+HIGH_DELETIONS_THRESHOLD = 5
 
 
 class ChameleonDataFrame(pd.DataFrame):
@@ -252,14 +259,18 @@ class ChameleonDataFrameSet(set):
     Specialized dict that holds all dataframes in a run until they are written
     """
 
+    page_length = 2000
+
     def __init__(
         self,
         old: Union[str, Path, TextIO],
         new: Union[str, Path, TextIO],
         use_api=False,
-        extra_columns: dict = {},
+        extra_columns=None,
     ):
         super().__init__(self)
+        if extra_columns is None:
+            extra_columns = {}
         self.oldfile = old
         self.newfile = new
         if isinstance(self.oldfile, str):
@@ -442,68 +453,130 @@ class ChameleonDataFrameSet(set):
                                 v,
                             )
 
-    def to_geojson(self, timeout: int = 120) -> List[geojson.FeatureCollection]:
-        if not self.overpass_query_pages:
-            return
+    class OverpassQuery:
+        """
+        Manages and tracks the progress of Overpass query or queries
+        """
 
-        api = overpass.API(timeout=timeout)
-        responses = [
-            api.get(query, verbosity="meta geom", responseformat="geojson",)
-            for query in self.overpass_query_pages
-        ]
+        request_interval = 5  # Time to wait between queries
 
-        responses_merged = list(
-            itertools.chain(*(fc["features"] for fc in responses))
-        )
+        def __init__(self, parent):
+            self.parent = parent
+            self.timeout = OVERPASS_TIMEOUT
+            self.api = overpass.API(timeout=self.timeout)
+            self.queries_completed = 0
+            self._response_features = []
 
-        response_by_id = {
-            GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"]): i
-            for i in responses_merged
-        }
-
-        all_fcs = []
-        for result in self.nondeleted:
-            if not len(result):
-                all_fcs.append(
-                    geojson.FeatureCollection(
-                        [], chameleon_mode=result.chameleon_mode
-                    )
+        def get(self) -> Generator[None, None, None]:
+            sleeptime = 0
+            for query in self.parent.overpass_query_pages:
+                self.overpass_start_time = datetime.now().astimezone() + timedelta(
+                    seconds=sleeptime
                 )
-                continue
+                self.overpass_timeout_time = (
+                    self.overpass_start_time + timedelta(seconds=self.timeout)
+                )
+                yield
+                time.sleep(sleeptime)
+                logger.info(
+                    "Making query number %s of %s from Overpass.",
+                    self.queries_completed + 1,
+                    self.number_of_queries,
+                )
+                r = self.api.get(
+                    query, verbosity="meta geom", responseformat="geojson",
+                )
+                logger.info("done")
+                self.queries_completed += 1
+                self._response_features += r["features"]
+                sleeptime = self.request_interval
 
-            columns_to_keep = ["url", "user", "timestamp", "version"]
-            if "changeset" in result.columns and "osmcha" in result.columns:
+        @property
+        def geojson(self) -> geojson.FeatureCollection:
+            if not self.complete:
+                raise RuntimeError
+            response_by_id = {
+                GEOJSON_OSM[i["geometry"]["type"]][0] + str(i["id"]): i
+                for i in self._response_features
+            }
+            agg_functions = {
+                "user": lambda user: ",".join(user.unique()),
+                "timestamp": "max",
+                "version": "max",
+                "changeset": lambda changeset: ",".join(changeset.unique()),
+                "name": lambda changeset: ",".join(changeset.unique()),
+                "highway": lambda changeset: ",".join(changeset.unique()),
+                "old_tag": lambda old_tag: ",".join(old_tag.unique()),
+                "new_tag": lambda new_tag: ",".join(new_tag.unique()),
+                "change_type": ",".join,
+            }
+
+            combined = pd.concat(self.with_mode_column)
+            combined.fillna("", inplace=True)
+            combined = combined.astype(str)
+            combined.reset_index(inplace=True)
+            combined = combined.groupby("id").aggregate(agg_functions)
+
+            columns_to_keep = ["user", "timestamp", "version"]
+            if "changeset" in combined.columns and "osmcha" in combined.columns:
                 columns_to_keep += ["changeset", "osmcha"]
-            if result.chameleon_mode != "name":
-                columns_to_keep += ["name"]
-            if result.chameleon_mode != "highway":
-                columns_to_keep += ["highway"]
-            if result.chameleon_mode not in SPECIAL_MODES:
-                columns_to_keep += [
-                    f"old_{result.chameleon_mode_cleaned}",
-                    f"new_{result.chameleon_mode_cleaned}",
-                ]
-            # else:
-            #     result[result.chameleon_mode] = result.chameleon_mode
-            #     columns_to_keep += [result.chameleon_mode]
-            columns_to_keep += ["action"]
-            result = result[columns_to_keep]
+            columns_to_keep += [
+                "name",
+                "highway",
+                "old_tag",
+                "new_tag",
+                "change_type",
+            ]
+            combined = combined[columns_to_keep]
 
-            fc = geojson.FeatureCollection(
+            return geojson.FeatureCollection(
                 [
                     geojson.Feature(
                         id=fid,
                         geometry=response_by_id.get(fid, {}).get("geometry"),
                         properties=dict(row),
                     )
-                    for fid, row in result.iterrows()
+                    for fid, row in combined.iterrows()
                     if response_by_id.get(fid)
-                ],
-                chameleon_mode=result.chameleon_mode,
+                ]
             )
-            all_fcs.append(fc)
 
-        return all_fcs
+        @property
+        def complete(self) -> bool:
+            return self.queries_completed >= self.number_of_queries
+
+        @property
+        def number_of_queries(self) -> int:
+            return len(self.parent.overpass_query_pages)
+
+        @property
+        def with_mode_column(self) -> Generator[ChameleonDataFrame, None, None]:
+            # the_cdfs = set()
+            for cdf in self.parent.nondeleted:
+                cdf_copy = cdf.copy()
+                cdf_copy.rename(
+                    columns={
+                        next(
+                            (
+                                name
+                                for name in cdf.columns
+                                if name.startswith("old_")
+                            ),
+                            "old",
+                        ): "old_tag",
+                        next(
+                            (
+                                name
+                                for name in cdf.columns
+                                if name.startswith("new_")
+                            ),
+                            "new",
+                        ): "new_tag",
+                    },
+                    inplace=True,
+                )
+                cdf_copy["change_type"] = cdf.chameleon_mode
+                yield cdf_copy
 
     @property
     def nondeleted(self) -> Set[ChameleonDataFrame]:
@@ -511,20 +584,20 @@ class ChameleonDataFrameSet(set):
 
     @property
     def overpass_query_pages(self) -> List[str]:
-        page_length = 200
         all_ids = sorted(
             set(itertools.chain(*(df.index for df in self.nondeleted)))
         )
         query_pages = []
-        for page in pager(all_ids, page_length):
+        for page in pager(all_ids, self.page_length):
             feature_ids = separate_ids_by_feature_type(page)
-            query_pages.append(
-                ";".join(
-                    f"{ftype}(id:{','.join(sorted(fid))})"
-                    for ftype, fid in feature_ids.items()
-                    if ftype != "relation" and fid
-                )
+            query_page = ";".join(
+                f"{ftype}(id:{','.join(sorted(fid))})"
+                for ftype, fid in feature_ids.items()
+                if ftype != "relation" and fid
             )
+            if query_page:
+                # Relations will create empty query pages, skip those
+                query_pages.append(query_page)
         return query_pages
 
 
@@ -565,10 +638,10 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
     return the_dict
 
 
-def clean_for_presentation(uinput: str) -> str:
+def clean_for_presentation(user_input: str) -> str:
     """
     Sanitizes user input so that they can still recognize what they entered
     """
-    uinput = uinput.strip(" \"'")
-    uinput = uinput.partition("=")[0]
-    return uinput
+    user_input = user_input.strip(" \"'")
+    user_input = user_input.partition("=")[0]
+    return user_input
