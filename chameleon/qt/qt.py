@@ -1342,6 +1342,8 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         self.whitelistRemove.clicked.connect(self.remove_item)
         self.alwaysIncludeRemove.clicked.connect(self.add_item)
 
+        self.closeButton.clicked.connect(self.close)
+
     def add_item(self) -> None:
         """
         Add item to list
