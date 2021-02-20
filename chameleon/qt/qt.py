@@ -588,7 +588,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
         self.setWindowIcon(QtGui.QIcon(self.logo))
-        self.filter_menu = FilterDialog()
+        self.filter_menu = FilterDialog(self)
         self.actions_setup()
 
         self.tag_count = Counter()
@@ -730,6 +730,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         about.show()
 
     def config_menu(self) -> None:
+        self.filter_menu.properties = self.config_format
         self.filter_menu.show()
 
     def auto_completer(self) -> None:
@@ -1154,7 +1155,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             with (RESOURCES_DIR / "filter.yaml").open() as f:
                 config = yaml.safe_load(f)
         except OSError:
-            self.config = None
+            self.config = {}
             return
 
         # If keys are not sorted by file type, put them all under "all" key
@@ -1317,9 +1318,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
 
 class FilterDialog(QDialog, filter_config.Ui_Dialog):
-    def __init__(self) -> None:
+    def __init__(self, parent) -> None:
         super().__init__()
         self.setupUi(self)
+
+        self.parent = parent
 
         self.add_mapping = {
             self.whitelistAdd: self.whitelistLineEdit,
@@ -1342,7 +1345,12 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         self.whitelistRemove.clicked.connect(self.remove_item)
         self.alwaysIncludeRemove.clicked.connect(self.add_item)
 
-        self.closeButton.clicked.connect(self.close)
+        self.cancelButton.clicked.connect(self.close)
+        self.okButton.clicked.connect(self.save_and_close)
+
+    def save_and_close(self) -> None:
+        self.parent.config.setdefault("all", {}).update(self.properties)
+        self.close()
 
     def add_item(self) -> None:
         """
@@ -1373,15 +1381,27 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
     @property
     def properties(self) -> Dict[str, Union[List[str], int]]:
         return {
-            "user_whitelist": [item.text() for item in self.whitelistList],
-            "always_include": [item.text() for item in self.alwaysIncludeList],
-            "highway_step_change": self.value(),
+            "user_whitelist": [
+                item.text()
+                for item in self.whitelistList.findItems(
+                    "*", QtCore.Qt.MatchWildcard
+                )
+            ],
+            "always_include": [
+                item.text()
+                for item in self.alwaysIncludeList.findItems(
+                    "*", QtCore.Qt.MatchWildcard
+                )
+            ],
+            "highway_step_change": self.highwayStepChanges.value(),
         }
 
     @properties.setter
     def properties(self, config: Mapping) -> None:
+        self.whitelistList.clear()
         for item in config.get("user_whitelist", []):
             self.whitelistList.addItem(item)
+        self.alwaysIncludeList.clear()
         for item in config.get("always_include", []):
             self.alwaysIncludeList.addItem(item)
         if val := config.get("highway_step_change"):
