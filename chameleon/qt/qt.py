@@ -1155,20 +1155,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             with (RESOURCES_DIR / "filter.yaml").open() as f:
                 config = yaml.safe_load(f)
         except OSError:
-            self.config = {}
-            return
+            config = {}
 
-        # If keys are not sorted by file type, put them all under "all" key
-        if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
-            config["all"] = config
-
-        new_config = config.copy()
-        for file_format, file_format_config in config.items():
-            new_config[file_format]["ignored_modes"] = set(
-                file_format_config.get("ignored_modes") or []
-            )
-
-        self.config = new_config
+        self.config = filter_process(config)
 
     def run_query(self) -> None:
         """
@@ -1624,10 +1613,10 @@ def success_message(frame: ChameleonDataFrame) -> str:
     )
 
 
-def filter_process(config: Optional[Mapping]) -> Optional[dict]:
+def filter_process(config: Optional[Mapping]) -> dict:
     # Check for resource file in directory
     if config is None:
-        return
+        config = {}
 
     # If keys are not sorted by file type, put them all under "all" key
     if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
