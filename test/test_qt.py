@@ -80,7 +80,7 @@ def test_load_extra_columns(worker):
 @pytest.mark.parametrize("use_api", [True, False])
 @pytest.mark.parametrize("file_format", ["csv", "geojson", "excel"])
 def test_history_writer(
-    worker, worker_files, use_api, file_format, monkeypatch, tmp_path,
+    worker, worker_files, use_api, file_format, monkeypatch, tmp_path
 ):
     worker.files = worker_files
     worker.use_api = use_api
@@ -286,7 +286,8 @@ def test_run_checker(mainapp, qtbot, modes, button_enabled):
 
 
 @pytest.mark.parametrize(
-    "modes,button_enabled", [(("highway",), True), (("highway", "ref"), True)],
+    "modes,button_enabled",
+    [(("highway",), True), (("highway", "ref"), True)],
 )
 def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     for tag in ("highway", "ref"):
@@ -295,10 +296,35 @@ def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     # assert mainapp.runButton.isEnabled()
     for mode in modes:
         next(
-            iter(mainapp.listWidget.findItems(mode, Qt.MatchExactly)), None,
+            iter(mainapp.listWidget.findItems(mode, Qt.MatchExactly)),
+            None,
         ).setSelected(True)
         mainapp.delete_tag()
         qtbot.wait(500)
 
     qtbot.wait(500)
     assert mainapp.runButton.isEnabled() is button_enabled
+
+
+@pytest.mark.parametrize(
+    "input,gold",
+    [
+        (None, {"all": {}}),
+        ({}, {"all": {}}),
+        ({"all": {}}, {"all": {}}),
+        (
+            {
+                "user_whitelist": ["alpha", "bravo", "charlie"],
+                "always_include": ["motorway"],
+            },
+            {
+                "all": {
+                    "user_whitelist": ["alpha", "bravo", "charlie"],
+                    "always_include": ["motorway"],
+                }
+            },
+        ),
+    ],
+)
+def test_filter_process(input, gold):
+    assert qt.filter_process(input) == gold

@@ -10,6 +10,7 @@ import shlex
 import sys
 import time
 from collections import Counter
+from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -1614,21 +1615,21 @@ def success_message(frame: ChameleonDataFrame) -> str:
 
 
 def filter_process(config: Optional[Mapping]) -> dict:
+    file_formats = {"all", "geojson", "csv", "excel"}
+
     # Check for resource file in directory
-    if config is None:
+    if not config:
         config = {}
 
     # If keys are not sorted by file type, put them all under "all" key
-    if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
-        config["all"] = config
+    if set(config.keys()).isdisjoint(file_formats):
+        config = {"all": deepcopy(config)}
 
-    new_config = config.copy()
-    for file_format, file_format_config in config.items():
-        new_config[file_format]["ignored_modes"] = set(
-            file_format_config.get("ignored_modes") or []
-        )
-
-    return new_config
+    # Cast ignored modes to set where present
+    for file_format in file_formats:
+        if ignored_modes := config.get(file_format, {}).get("ignored_modes"):
+            config[file_format]["ignored_modes"] = set(ignored_modes)
+    return config
 
 
 if __name__ == "__main__":
