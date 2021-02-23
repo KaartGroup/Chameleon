@@ -6,7 +6,6 @@ export const Wrapper = styled.div`
     background-color: white;
     border-radius: 6px;
     box-shadow: 0px 2px;
-    // box-shadow-color: #f4753c;
 `;
 
 export const Heading = styled.p`
