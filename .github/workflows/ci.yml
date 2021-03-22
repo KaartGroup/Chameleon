@@ -19,6 +19,7 @@ jobs:
                   pip install -r qt-requirements.txt
                   pip install -r test-requirements.txt
                   pip install -r web-requirements.txt
+                  pyside2-uic chameleon/qt/design.ui -o chameleon/qt/design.py
             - name: Test with pytest
               run: |
                   pip install pytest
