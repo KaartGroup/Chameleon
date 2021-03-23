@@ -302,3 +302,19 @@ def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
 
     qtbot.wait(500)
     assert mainapp.runButton.isEnabled() is button_enabled
+
+
+@pytest.mark.parametrize(
+    "status_file",
+    [
+        "test/overpass_status/no_slots_waiting.txt",
+        "test/overpass_status/one_slot_running.txt",
+        "test/overpass_status/one_slot_waiting.txt",
+        "test/overpass_status/two_slots_waiting.txt",
+    ],
+)
+def test_too_many_requests(status_file, worker, requests_mock):
+    with open(status_file) as fp:
+        mock_response = fp.read()
+    requests_mock.post("//overpass-api.de/api/interpreter", status=429)
+    requests_mock.get("//overpass-api.de/api/status", text=mock_response)
