@@ -28,8 +28,9 @@ jobs:
             - name: Build GUI file
               run: |
                   pyside2-uic chameleon/qt/design.ui -o chameleon/qt/design.py
-            - name: Test with pytest
+            - name: XTVB Setup
               uses: GabrielBB/xvfb-action@v1
+            - name: Test with pytest
               run: |
                   pip install pytest
                   pip install pytest-cov
