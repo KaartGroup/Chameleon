@@ -1142,7 +1142,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             with (RESOURCES_DIR / "filter.yaml").open() as f:
                 config = yaml.safe_load(f)
         except OSError:
-            self.config = None
+            self.config = {}
             return
 
         # If keys are not sorted by file type, put them all under "all" key
