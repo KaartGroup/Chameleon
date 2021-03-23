@@ -1,6 +1,6 @@
 appdirs
 geojson
-more_itertools
+more-itertools
 overpass
 pandas
 pyyaml
