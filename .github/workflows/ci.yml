@@ -25,16 +25,15 @@ jobs:
                   pip install -r qt-requirements.txt
                   pip install -r test-requirements.txt
                   pip install -r web-requirements.txt
+                  pip install pytest-cov
             - name: Build GUI file
               run: |
                   pyside2-uic chameleon/qt/design.ui -o chameleon/qt/design.py
-            - name: XTVB Setup
-              uses: GabrielBB/xvfb-action@v1
+            # - name: XVFB Setup
             - name: Test with pytest
-              run: |
-                  pip install pytest
-                  pip install pytest-cov
-                  python -m pytest test/ --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+              uses: GabrielBB/xvfb-action@v1
+              with:
+                  run: |
+                      python -m pytest test/ --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
               env:
-                  #   QT_QPA_PLATFORM: "offscreen"
                   QT_DEBUG_PLUGINS: 1
