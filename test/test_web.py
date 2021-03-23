@@ -105,37 +105,37 @@ def test_filter_processing(filter_list, goldfilter):
     assert processed_filters == goldfilter
 
 
-@pytest.mark.parametrize(
-    "newpath",
-    ["test/BLZ_allroads_2020_02_27.csv", "test/BLZ_HPR_2020_02_03.csv"],
-)
-@pytest.mark.parametrize("file_format", ["excel", "geojson", "csv"])
-@pytest.mark.parametrize("grouping", [True, False])
-def test_result_byod(client, newpath, file_format, grouping):
-    oldpath = "test/BLZ_allroads_2020_02_03.csv"
-    filter_list = []
-    modes = ["highway", "ref", "construction", "name"]
-    # with highdeletions:
-    with open(oldpath, "rb") as oldfile, open(newpath, "rb") as newfile:
-        output = ""
-        client_uuid = ""
-        high_deletions_ok = False
-        rv = client.post(
-            "/result",
-            data={
-                "oldfile": oldfile,
-                "newfile": newfile,
-                "modes": modes,
-                "file_format": file_format,
-                "filter_list": filter_list,
-                "output": output,
-                "client_uuid": client_uuid,
-                "grouping": grouping,
-                "high_deletions_ok": high_deletions_ok,
-            },
-        )
-    assert rv.json["client_uuid"]
-    assert rv.json["mode_count"] == len(modes)
+# @pytest.mark.parametrize(
+#     "newpath",
+#     ["test/BLZ_allroads_2020_02_27.csv", "test/BLZ_HPR_2020_02_03.csv"],
+# )
+# @pytest.mark.parametrize("file_format", ["excel", "geojson", "csv"])
+# @pytest.mark.parametrize("grouping", [True, False])
+# def test_result_byod(client, newpath, file_format, grouping):
+#     oldpath = "test/BLZ_allroads_2020_02_03.csv"
+#     filter_list = []
+#     modes = ["highway", "ref", "construction", "name"]
+#     # with highdeletions:
+#     with open(oldpath, "rb") as oldfile, open(newpath, "rb") as newfile:
+#         output = ""
+#         client_uuid = ""
+#         high_deletions_ok = False
+#         rv = client.post(
+#             "/result",
+#             data={
+#                 "oldfile": oldfile,
+#                 "newfile": newfile,
+#                 "modes": modes,
+#                 "file_format": file_format,
+#                 "filter_list": filter_list,
+#                 "output": output,
+#                 "client_uuid": client_uuid,
+#                 "grouping": grouping,
+#                 "high_deletions_ok": high_deletions_ok,
+#             },
+#         )
+#     assert rv.json["client_uuid"]
+#     assert rv.json["mode_count"] == len(modes)
 
 
 @pytest.mark.parametrize(
