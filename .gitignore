@@ -26,3 +26,4 @@ test/output_name.csv
 chameleon/flask/files
 chameleon/flask/node_modules
 chameleon/resources/version.txt
+chameleon/resources/filter.yaml

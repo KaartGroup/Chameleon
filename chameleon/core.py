@@ -9,14 +9,18 @@ import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Generator, List, Set, TextIO, Tuple, Union
+from typing import Dict, Generator, List, Mapping, Set, TextIO, Tuple, Union
 
+import appdirs
 import geojson
 import numpy as np
 import overpass
 import pandas as pd
 import requests
+import requests_cache
+import yaml
 from more_itertools import chunked as pager
+from requests_cache.backends import sqlite
 
 pd.options.mode.chained_assignment = None
 
@@ -30,7 +34,7 @@ OSMCHA_URL = "https://osmcha.mapbox.com/changesets/"
 OVERPASS_TIMEOUT = (
     180  # Locked until GH mvexel/overpass-api-python-wrapper#112 is fixed
 )
-
+CACHE_LOCATION = Path(appdirs.user_cache_dir("Chameleon", "Kaart"))
 HIGH_DELETIONS_THRESHOLD = 5
 
 
@@ -40,7 +44,7 @@ class ChameleonDataFrame(pd.DataFrame):
     """
 
     # pandas will maintain these instance attributes across manipulations
-    _metadata = ["chameleon_mode", "grouping"]
+    _metadata = ["chameleon_mode", "grouping", "config"]
 
     def __init__(
         self,
@@ -48,6 +52,7 @@ class ChameleonDataFrame(pd.DataFrame):
         mode: str = "",
         grouping=False,
         dtype=None,
+        config: Mapping = None,
     ):
         # dtypes = {
         #     '@id': int,
@@ -57,6 +62,7 @@ class ChameleonDataFrame(pd.DataFrame):
 
         self.chameleon_mode = mode
         self.grouping = grouping
+        self.config = config or {}
         # Initialize as an "empty" dataframe,
         # with the source data in an attribute
         super().__init__(data=df, index=None, dtype=dtype, copy=False)
@@ -165,6 +171,8 @@ class ChameleonDataFrame(pd.DataFrame):
         if self.grouping:
             self = self.group()
         self.dropna(subset=["action"], inplace=True)
+        if set(self.config.keys()) > {"ignored_modes"}:
+            self = self.filter()
         self.fillna("", inplace=True)
         self.sort()
         return self
@@ -253,6 +261,43 @@ class ChameleonDataFrame(pd.DataFrame):
             pass
         return self
 
+    def filter(self) -> ChameleonDataFrame:
+        # Drop rows with Kaart users tagged
+        if whitelist := self.config.get("user_whitelist", []):
+            self = self[~self["user"].isin(whitelist)]
+
+        if self.chameleon_mode == "highway":
+            highway_vals = {
+                "motorway": 1,
+                "trunk": 2,
+                "primary": 3,
+                "secondary": 4,
+                "tertiary": 5,
+                "unclassified": 6,
+                "residential": 6,
+                "service": 6,
+                "track": 6,
+                "footway": 8,
+                "path": 8,
+                "steps": 8,
+                "cycleway": 8,
+                "pedestrian": 8,
+            }
+            self["highway_change_score"] = abs(
+                self["old_highway"].map(highway_vals)
+                - self["new_highway"].map(highway_vals)
+            )
+
+            always_include = self.config.get("always_include", [])
+            step_change = self.config.get("highway_step_change", 0)
+            self = self[
+                self["old_highway"].isin(always_include)
+                | self["new_highway"].isin(always_include)
+                | (self["highway_change_score"] >= step_change)
+            ]
+
+        return self
+
 
 class ChameleonDataFrameSet(set):
     """
@@ -267,6 +312,7 @@ class ChameleonDataFrameSet(set):
         new: Union[str, Path, TextIO],
         use_api=False,
         extra_columns=None,
+        config: Union[Mapping, str, Path] = None,
     ):
         super().__init__(self)
         if extra_columns is None:
@@ -280,6 +326,14 @@ class ChameleonDataFrameSet(set):
 
         self.extra_columns = extra_columns
 
+        if isinstance(config, Mapping):
+            self.config = config
+        elif config:
+            with open(config) as f:
+                self.config = yaml.safe_load(f)
+        else:
+            self.config = {}
+
         self.source_data = None
         self.deleted_way_members = {}
         self.overpass_result_attribs = {}
@@ -292,6 +346,23 @@ class ChameleonDataFrameSet(set):
             for i in self
             if i.chameleon_mode == key or i.chameleon_mode_cleaned == key
         )
+
+    def setup_cache(self) -> None:
+        try:
+            CACHE_LOCATION.mkdir(exist_ok=True, parents=True)
+        except OSError:
+            logger.error(
+                "Could not create cache directory. Caching will be disabled."
+            )
+            self.session = requests.Session()
+        else:
+            expiry = timedelta(hours=12)
+            self.session = requests_cache.CachedSession(
+                backend=sqlite.DbCache(
+                    location=str(CACHE_LOCATION / "cache"),
+                    expire_after=expiry,
+                )
+            )
 
     @property
     def modes(self) -> Set[str]:
@@ -359,31 +430,36 @@ class ChameleonDataFrameSet(set):
         Separate creations and deletions into their own dataframes
         """
         special_dataframes = {
-            "new": self.source_data[self.source_data["action"] == "new"],
-            "deleted": self.source_data[self.source_data["action"] == "deleted"],
+            mode: self.source_data[self.source_data["action"] == mode]
+            for mode in SPECIAL_MODES - self.config.get("ignored_modes", set())
         }
         # Remove the new/deleted ways from the source_data
         self.source_data = self.source_data[
             ~self.source_data["action"].isin(SPECIAL_MODES)
         ]
         for mode, df in special_dataframes.items():
-            i = ChameleonDataFrame(df=df, mode=mode).query_cdf()
-            self.add(i)
+            self.add(
+                ChameleonDataFrame(
+                    df=df, mode=mode, config=self.config
+                ).query_cdf()
+            )
         return self
 
     def check_feature_on_api(
         self, feature_id: str, app_version: str = ""
-    ) -> dict:
+    ) -> Tuple(dict, bool):
         """
         Checks whether a way was deleted on the server
         """
+
         if app_version:
             app_version = f" {app_version}".rstrip()
 
         if feature_id in self.overpass_result_attribs:
+            # TODO May be obsoleted by use of cache
             return self.overpass_result_attribs[feature_id]
         feature_type, feature_id_num = split_id(feature_id)
-        response = requests.get(
+        response = self.session.get(
             "https://www.openstreetmap.org/api/0.6/"
             f"{feature_type}/{feature_id_num}/history.json",
             timeout=5,
@@ -423,7 +499,7 @@ class ChameleonDataFrameSet(set):
         else:
             # The way was not deleted, just dropped from the latter dataset
             element_attribs.update({"action": "dropped"})
-        return element_attribs
+        return (element_attribs, getattr(response, "from_cache", False))
 
     def write_excel(self, file_name: Union[Path, str]):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
@@ -470,8 +546,8 @@ class ChameleonDataFrameSet(set):
         def get(self) -> Generator[None, None, None]:
             sleeptime = 0
             for query in self.parent.overpass_query_pages:
-                self.overpass_start_time = datetime.now().astimezone() + timedelta(
-                    seconds=sleeptime
+                self.overpass_start_time = (
+                    datetime.now().astimezone() + timedelta(seconds=sleeptime)
                 )
                 self.overpass_timeout_time = (
                     self.overpass_start_time + timedelta(seconds=self.timeout)
@@ -484,7 +560,9 @@ class ChameleonDataFrameSet(set):
                     self.number_of_queries,
                 )
                 r = self.api.get(
-                    query, verbosity="meta geom", responseformat="geojson",
+                    query,
+                    verbosity="meta geom",
+                    responseformat="geojson",
                 )
                 logger.info("done")
                 self.queries_completed += 1

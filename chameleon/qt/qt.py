@@ -169,6 +169,7 @@ class Worker(QObject):
         self.format = parent.file_format
         self.response = None
         self.output_path = None
+        self.config = parent.config_format
 
         self.error_list = []
         self.successful_items = {}
@@ -207,6 +208,7 @@ class Worker(QObject):
                 self.files["new"],
                 use_api=self.use_api,
                 extra_columns=self.load_extra_columns(),
+                config=self.config,
             )
 
             if self.high_deletions_checker(cdf_set):
@@ -233,6 +235,7 @@ class Worker(QObject):
                         cdf_set.source_data,
                         mode=mode,
                         grouping=self.group_output,
+                        config=self.config,
                     ).query_cdf()
                 except KeyError as e:
                     # File reading failed, usually because a nonexistent column
@@ -373,13 +376,14 @@ class Worker(QObject):
         deleted_ids = list(df.loc[df["action"] == "deleted"].index)
         self.scale_with_api_items.emit(len(deleted_ids))
         for feature_id in deleted_ids:
+            from_cache = False
             # Ends the API check early if the user cancels it
             if self.thread().isInterruptionRequested():
                 raise UserCancelledError
             self.increment_progbar_api.emit()
 
             try:
-                element_attribs = cdfs.check_feature_on_api(
+                element_attribs, from_cache = cdfs.check_feature_on_api(
                     feature_id, app_version=APP_VERSION
                 )
             except (Timeout, ConnectionError) as e:
@@ -406,8 +410,9 @@ class Worker(QObject):
 
             df.update(pd.DataFrame(element_attribs, index=[feature_id]))
 
-            # Wait between iterations to avoid ratelimit problems
-            time.sleep(REQUEST_INTERVAL)
+            if not from_cache:
+                # Wait between iterations to avoid ratelimit problems
+                time.sleep(REQUEST_INTERVAL)
         self.check_api_done.emit()
 
     def write_csv(self, dataframe_set: ChameleonDataFrameSet) -> None:
@@ -617,6 +622,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.history_loader()
         # OSM tag resource file, construct list from file
         self.auto_completer()
+        # Filters saved in file
+        self.filter_load()
 
         # Connecting signals to slots within init
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
@@ -941,7 +948,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Function that enables run button if form is complete
         """
-        self.runButton.setEnabled(all(self.file_paths.values()))
+        self.runButton.setEnabled(
+            all(self.file_paths.values()) and bool(self.modes_inclusive)
+        )
         self.update()
 
     def suffix_updater(self) -> None:
@@ -950,21 +959,41 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     def update_default_frames(self) -> None:
         """
-        Hides "deleted" from the list widget if geojson format selected,
-        shows it otherwise
+        Hides special modes from the list widget if geojson format selected,
+        or if explicitly excluded in config file, shows it otherwise
         """
+
+        def add_special_item(name) -> None:
+            item_to_add = QListWidgetItem(name)
+            item_to_add.setFlags(QtCore.Qt.NoItemFlags)
+            self.listWidget.addItem(item_to_add)
+
+        ignored_modes = self.config_format.get("ignored_modes")
+
         deleted_item = next(
             iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
             None,
         )
-        if self.file_format == "geojson" and deleted_item:
+        if deleted_item and (
+            self.file_format == "geojson" or "deleted" in ignored_modes
+        ):
             self.listWidget.takeItem(self.listWidget.row(deleted_item))
-        elif self.file_format != "geojson" and not deleted_item:
-            new_item = QListWidgetItem("deleted")
-            new_item.setFlags(QtCore.Qt.NoItemFlags)
-            self.listWidget.addItem(new_item)
-        else:
-            return
+        elif (
+            self.file_format != "geojson"
+            and not deleted_item
+            and "deleted" not in ignored_modes
+        ):
+            add_special_item("deleted")
+
+        new_item = next(
+            iter(self.listWidget.findItems("new", QtCore.Qt.MatchExactly)),
+            None,
+        )
+        if new_item and "new" in ignored_modes:
+            self.listWidget.takeItem(self.listWidget.row(new_item))
+        elif not new_item and "new" not in ignored_modes:
+            add_special_item("new")
+
         self.update()
 
     def on_editing_finished(self) -> None:
@@ -1067,6 +1096,14 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         return self.groupingCheckBox.isChecked()
 
+    @property
+    def config_format(self) -> dict:
+        """
+        Returns the subset of config that applies to
+        the currently-selected file format
+        """
+        return self.config.get("all", {}) | self.config.get(self.file_format, {})
+
     def validate_files(self) -> dict:
         """
         Validates the file paths the user has given
@@ -1099,6 +1136,27 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             )
         return errors
 
+    def filter_load(self) -> None:
+        # Check for resource file in directory
+        try:
+            with (RESOURCES_DIR / "filter.yaml").open() as f:
+                config = yaml.safe_load(f)
+        except OSError:
+            self.config = None
+            return
+
+        # If keys are not sorted by file type, put them all under "all" key
+        if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
+            config["all"] = config
+
+        new_config = config.copy()
+        for file_format, file_format_config in config.items():
+            new_config[file_format]["ignored_modes"] = set(
+                file_format_config.get("ignored_modes") or []
+            )
+
+        self.config = new_config
+
     def run_query(self) -> None:
         """
         Allows run button to execute based on selected tag parameters.
@@ -1115,7 +1173,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         self.document_tag(self.modes)  # Execute favorite tracking
 
-        logger.info("Modes to be processed: %s.", (self.modes | SPECIAL_MODES))
+        logger.info(
+            "Modes to be processed: %s.",
+            self.modes_inclusive,
+        )
 
         self.progress_bar = ChameleonProgressDialog(
             len(self.modes), self.file_format == "geojson"
