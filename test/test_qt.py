@@ -243,6 +243,7 @@ def test_autocompleter(mainapp):
     mainapp.auto_completer()
 
 
+@pytest.mark.skip
 def test_expand_user(mainapp, qtbot):
     qtbot.mouseClick(mainapp.newFileNameBox, Qt.LeftButton)
     mainapp.newFileNameBox.selectAll()
