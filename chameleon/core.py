@@ -337,6 +337,7 @@ class ChameleonDataFrameSet(set):
         self.source_data = None
         self.deleted_way_members = {}
         self.overpass_result_attribs = {}
+        self.setup_cache()
 
         self.merge_files()
 
