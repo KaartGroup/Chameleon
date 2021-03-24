@@ -49,6 +49,7 @@ def name_missing(mode, grouping):
         ChameleonDataFrame(cdf_set.source_data, mode)
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize(
     "feature_id,gold_file,gold_dict",
     [
