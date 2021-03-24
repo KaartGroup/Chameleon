@@ -968,7 +968,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             item_to_add.setFlags(QtCore.Qt.NoItemFlags)
             self.listWidget.addItem(item_to_add)
 
-        ignored_modes = self.config_format.get("ignored_modes")
+        ignored_modes = self.config_format.get("ignored_modes", set())
 
         deleted_item = next(
             iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
