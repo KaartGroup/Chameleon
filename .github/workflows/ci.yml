@@ -1,13 +1,10 @@
-name: Python Pytest
+name: Pytest
 
 on: [push]
 
 jobs:
     test:
         runs-on: ubuntu-latest
-        env:
-            DISPLAY: ":99.0"
-
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python
@@ -17,7 +14,6 @@ jobs:
             - name: Install APT dependencies
               run: |
                   sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0
-              #   /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
             - name: Install pip dependencies
               run: |
                   python -m pip install --upgrade pip
@@ -25,15 +21,13 @@ jobs:
                   pip install -r qt-requirements.txt
                   pip install -r test-requirements.txt
                   pip install -r web-requirements.txt
-                  pip install pytest-cov
             - name: Build GUI file
               run: |
                   pyside2-uic chameleon/qt/design.ui -o chameleon/qt/design.py
-            # - name: XVFB Setup
             - name: Test with pytest
               uses: GabrielBB/xvfb-action@v1
               with:
                   run: |
-                      python -m pytest test/ --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+                      pytest test/
               env:
                   QT_DEBUG_PLUGINS: 1
