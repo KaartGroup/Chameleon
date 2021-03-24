@@ -133,6 +133,7 @@ def test_overwrite_confirm(worker, worker_files, returned, monkeypatch):
     assert worker.overwrite_confirm(worker_files["output"]) is returned
 
 
+@pytest.mark.skip
 def test_check_api_deletions(worker, cdf_set):
     worker.check_api_deletions(cdf_set)
     cdf_set.separate_special_dfs()
@@ -286,7 +287,6 @@ def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     for tag in ("highway", "ref"):
         mainapp.listWidget.addItem(tag)
         qtbot.wait(500)
-    # assert mainapp.runButton.isEnabled()
     for mode in modes:
         next(
             iter(mainapp.listWidget.findItems(mode, Qt.MatchExactly)),
