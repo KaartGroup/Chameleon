@@ -502,7 +502,7 @@ class Worker(QObject):
             self.dialog.emit(
                 "Too many Overpass requests",
                 "The Overpass server is refusing "
-                "to accept any more queries for a period of time",
+                f"to accept any more queries for {overpass_query.time_remaining_fmt}.",
             )
             return
         finally:
