@@ -306,6 +306,8 @@ def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     assert mainapp.runButton.isEnabled() is button_enabled
 
 
+# Incomplete
+@pytest.mark.skip
 @pytest.mark.parametrize(
     "status_file",
     [
