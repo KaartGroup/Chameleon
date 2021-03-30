@@ -31,3 +31,4 @@ jobs:
                       pytest test/
               env:
                   QT_DEBUG_PLUGINS: 1
+                  IS_GHA: 1

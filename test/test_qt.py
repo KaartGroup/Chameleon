@@ -1,6 +1,7 @@
 """
 Unit tests for the qt.py file
 """
+import os
 from pathlib import Path
 
 import yaml
@@ -11,6 +12,10 @@ from chameleon import core
 from chameleon.qt import qt
 
 # TEST_FOLDER = Path("test")
+
+# Github Actions has some issues with home folders that we haven't yet resolved
+# Tests that rely on a realistic home folder setup will be skipped
+IS_GHA = bool(os.getenv("IS_GHA", 0))
 
 
 @pytest.fixture
@@ -249,6 +254,7 @@ def test_autocompleter(mainapp):
     mainapp.auto_completer()
 
 
+@pytest.mark.skipif(IS_GHA)
 def test_expand_user(mainapp, qtbot):
     qtbot.mouseClick(mainapp.newFileNameBox, Qt.LeftButton)
     mainapp.newFileNameBox.selectAll()
@@ -314,7 +320,7 @@ def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
 
 
 # Fails on GHA
-@pytest.mark.skip
+@pytest.mark.skipif(IS_GHA)
 @pytest.mark.parametrize(
     "path,returned",
     [
