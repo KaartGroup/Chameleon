@@ -155,7 +155,6 @@ def test_geojson_output():
 # GUI Tests
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "tag,count", [("highway", 1), ("addr:housenumber", 1), ("   ", 0)]
 )
@@ -166,10 +165,12 @@ def test_add_to_list(mainapp, qtbot, tag, count):
     qtbot.mouseClick(mainapp.searchBox, Qt.LeftButton)
     mainapp.searchBox.insert(tag)
     qtbot.mouseClick(mainapp.searchButton, Qt.LeftButton)
-    qtbot.wait(500)  # Waits until Qt has a chance to process the action
 
-    assert len(mainapp.listWidget.findItems(tag, Qt.MatchExactly)) == count
-    assert bool(mainapp.searchBox.text()) is not bool(count)
+    def check_is_added():
+        assert len(mainapp.listWidget.findItems(tag, Qt.MatchExactly)) == count
+        assert bool(mainapp.searchBox.text()) is not bool(count)
+
+    qtbot.waitUntil(check_is_added)
 
 
 def test_remove_from_list(mainapp, qtbot):
@@ -219,21 +220,26 @@ def test_fav_btn_populate(mainapp):
     assert mainapp.popTag5.text() == "addr:housenumber"
 
 
-@pytest.mark.skip
 def test_fav_btn_click(mainapp, qtbot):
     """
     Verifies favorite button function and reception
     of favorite values by the QListWidget.
     """
     mainapp.fav_btn_populate()
-    qtbot.wait(500)
-    assert mainapp.modes_inclusive == {"new", "deleted"}
-    assert not mainapp.modes
-    assert mainapp.popTag1.text() == "name"
-    qtbot.mouseClick(mainapp.popTag1, Qt.LeftButton)
-    qtbot.wait(500)
 
-    assert mainapp.modes == {"name"}
+    def check_empty():
+        assert mainapp.modes_inclusive == {"new", "deleted"}
+        assert not mainapp.modes
+        assert mainapp.popTag1.text() == "name"
+
+    qtbot.waitUntil(check_empty)
+
+    qtbot.mouseClick(mainapp.popTag1, Qt.LeftButton)
+
+    def check_has_name():
+        assert mainapp.modes == {"name"}
+
+    qtbot.waitUntil(check_has_name)
 
 
 def test_autocompleter(mainapp):
@@ -243,7 +249,6 @@ def test_autocompleter(mainapp):
     mainapp.auto_completer()
 
 
-@pytest.mark.skip
 def test_expand_user(mainapp, qtbot):
     qtbot.mouseClick(mainapp.newFileNameBox, Qt.LeftButton)
     mainapp.newFileNameBox.selectAll()
@@ -268,7 +273,6 @@ def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
     # TODO Check if the query actually ran
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "modes,button_enabled",
     [([], True), (["highway"], True), (["ref", "oneway"], True)],
@@ -278,12 +282,13 @@ def test_run_checker(mainapp, qtbot, modes, button_enabled):
         qtbot.mouseClick(mainapp.searchBox, Qt.LeftButton)
         mainapp.searchBox.insert(mode)
         qtbot.mouseClick(mainapp.searchButton, Qt.LeftButton)
-        qtbot.wait(500)  # Waits until Qt has a chance to process the action
 
-    assert mainapp.runButton.isEnabled() is button_enabled
+    def check_is_enabled():
+        assert mainapp.runButton.isEnabled() is button_enabled
+
+    qtbot.waitUntil(check_is_enabled)
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "modes,button_enabled",
     [(("highway",), True), (("highway", "ref"), True)],
@@ -291,17 +296,17 @@ def test_run_checker(mainapp, qtbot, modes, button_enabled):
 def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     for tag in ("highway", "ref"):
         mainapp.listWidget.addItem(tag)
-        qtbot.wait(500)
     for mode in modes:
         next(
             iter(mainapp.listWidget.findItems(mode, Qt.MatchExactly)),
             None,
         ).setSelected(True)
         mainapp.delete_tag()
-        qtbot.wait(500)
 
-    qtbot.wait(500)
-    assert mainapp.runButton.isEnabled() is button_enabled
+    def check_is_enabled():
+        assert mainapp.runButton.isEnabled() is button_enabled
+
+    qtbot.waitUntil(check_is_enabled)
 
 
 # @pytest.mark.parametrize(
