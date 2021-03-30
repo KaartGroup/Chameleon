@@ -18,6 +18,14 @@ else:
 subprocess.check_call(
     ["pyside2-uic", "chameleon/qt/design.ui", "-o", "chameleon/qt/design.py"]
 )
+subprocess.check_call(
+    [
+        "pyside2-uic",
+        "chameleon/qt/filter_config.ui",
+        "-o",
+        "chameleon/qt/filter_config.py",
+    ]
+)
 print("pyuic complete")
 
 subprocess.check_call(["pyinstaller", "Chameleon.spec", "-y"])

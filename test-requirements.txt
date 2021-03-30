@@ -1,3 +1,3 @@
 pytest
 pytest-qt
-requests-mock
+requests-mock[fixture]

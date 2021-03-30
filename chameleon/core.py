@@ -9,7 +9,17 @@ import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Generator, List, Mapping, Set, TextIO, Tuple, Union
+from typing import (
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import appdirs
 import geojson
@@ -568,7 +578,14 @@ class ChameleonDataFrameSet(set):
                 logger.info("done")
                 self.queries_completed += 1
                 self._response_features += r["features"]
-                sleeptime = self.request_interval
+                next_slot_seconds = 0
+                if self.next_query_allowed:
+                    next_slot_seconds = round(
+                        (
+                            self.next_query_allowed - datetime.now().astimezone()
+                        ).total_seconds()
+                    )
+                sleeptime = max(self.request_interval, next_slot_seconds)
 
         @property
         def geojson(self) -> geojson.FeatureCollection:
@@ -656,6 +673,51 @@ class ChameleonDataFrameSet(set):
                 )
                 cdf_copy["change_type"] = cdf.chameleon_mode
                 yield cdf_copy
+
+        @property
+        def next_query_allowed(self) -> Optional[datetime]:
+            """
+            Returns a datetime when the current IP will next
+            be allowed to make a request.
+            If None, the current IP can make a request immediately
+            """
+            if self.api.slots_available:
+                return None
+            try:
+                return min(
+                    *self.api.slots_waiting,
+                    *self.api.slots_running,
+                )
+            except (TypeError, ValueError):
+                return None
+
+        @property
+        def time_remaining_fmt(self) -> str:
+            """
+            Gives the time until the next query is allowed
+            as a natural English string
+
+            Example return value: "8 hours, 2 minutes, 10 seconds"
+            """
+            try:
+                remaining_time = max(
+                    self.next_query_allowed - datetime.now().astimezone(),
+                    timedelta(),
+                )
+            except AttributeError:  # If self.next_query_allowed is None
+                remaining_time = timedelta()
+            t_secs = round(remaining_time.total_seconds())
+            hours = t_secs // 3600
+            minutes = (t_secs % 3600) // 60
+            seconds = t_secs % 60
+
+            time_list = []
+            if hours:
+                time_list.append(f"{hours} hours")
+            if minutes:
+                time_list.append(f"{minutes} minutes")
+            time_list.append(f"{seconds} seconds")
+            return ", ".join(time_list)
 
     @property
     def nondeleted(self) -> Set[ChameleonDataFrame]:
