@@ -254,7 +254,11 @@ def test_expand_user(mainapp, qtbot):
     mainapp.newFileNameBox.selectAll()
     qtbot.keyClicks(mainapp.newFileNameBox, "~/Desktop/")
     qtbot.mouseClick(mainapp.oldFileNameBox, Qt.LeftButton)
-    assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
+
+    def check_expanded():
+        assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
+
+    qtbot.waitUntil(check_expanded)
 
 
 def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
@@ -309,12 +313,12 @@ def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     qtbot.waitUntil(check_is_enabled)
 
 
-# @pytest.mark.parametrize(
-#     "path,returned",
-#     [
-#         (Path.home() / "Documents", Path.home() / "Documents"),
-#         (Path.home() / "Documents/test.txt", Path.home() / "Documents"),
-#     ],
-# )
-# def test_dirname(path, returned):
-#     assert qt.dirname(path) == returned
+@pytest.mark.parametrize(
+    "path,returned",
+    [
+        (Path.home() / "Documents", Path.home() / "Documents"),
+        (Path.home() / "Documents/test.txt", Path.home() / "Documents"),
+    ],
+)
+def test_dirname(path, returned):
+    assert qt.dirname(path) == returned
