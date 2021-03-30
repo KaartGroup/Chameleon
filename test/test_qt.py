@@ -254,7 +254,9 @@ def test_autocompleter(mainapp):
     mainapp.auto_completer()
 
 
-@pytest.mark.skipif(IS_GHA)
+@pytest.mark.skipif(
+    IS_GHA, reason="Cannot currently check home folder-related tests on GHA"
+)
 def test_expand_user(mainapp, qtbot):
     qtbot.mouseClick(mainapp.newFileNameBox, Qt.LeftButton)
     mainapp.newFileNameBox.selectAll()
@@ -320,7 +322,9 @@ def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
 
 
 # Fails on GHA
-@pytest.mark.skipif(IS_GHA)
+@pytest.mark.skipif(
+    IS_GHA, reason="Cannot currently check home folder-related tests on GHA"
+)
 @pytest.mark.parametrize(
     "path,returned",
     [
