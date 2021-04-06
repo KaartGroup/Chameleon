@@ -12,7 +12,6 @@ from chameleon.flask import web
 # TODO Get these tests working with Github Actions
 
 
-@pytest.mark.skip
 @pytest.fixture
 def client():
     web.app.testing = True
