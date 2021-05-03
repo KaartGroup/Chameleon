@@ -23,14 +23,14 @@ def client():
     return web.app.test_client()
 
 
-@pytest.mark.skipif(IS_GHA, reason="Not working with GHA yet")
+@pytest.mark.skipif(IS_GHA, reason="Client fixture not working with GHA yet")
 @pytest.mark.parametrize("uuid", [("7bf45b97-e0b7-4b49-99e6-ac8abd7d76d1")])
 def test_longtask_status(client, uuid):
     rv = client.get(f"/longtask_status/{uuid}")
     assert rv.mimetype == "text/event-stream"
 
 
-@pytest.mark.skipif(IS_GHA, reason="Not working with GHA yet")
+@pytest.mark.skipif(IS_GHA, reason="Client fixture not working with GHA yet")
 @pytest.mark.parametrize(
     "country,startdate,enddate",
     [("SV", "2020-08-01", ""), ("SV", "2020-05-01", "2020-06-01")],
@@ -64,6 +64,7 @@ def test_result_overpass(
     assert rv.json["mode_count"] == len(modes)
 
 
+@pytest.mark.skipif(IS_GHA, reason="Client fixture not working with GHA yet")
 @pytest.mark.parametrize(
     "newpath",
     ["test/BLZ_allroads_2020_02_27.csv", "test/BLZ_HPR_2020_02_03.csv"],
