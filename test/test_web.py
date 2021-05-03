@@ -63,6 +63,7 @@ def test_result_overpass(
     assert rv.json["mode_count"] == len(modes)
 
 
+@pytest.mark.skipif(IS_GHA, reason="Not working with GHA yet")
 @pytest.mark.parametrize(
     "newpath",
     ["test/BLZ_allroads_2020_02_27.csv", "test/BLZ_HPR_2020_02_03.csv"],
