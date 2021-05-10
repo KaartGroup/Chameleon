@@ -663,6 +663,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
         self.newFileSelectButton.clicked.connect(self.open_input_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
+        self.reportFileSelectButton.clicked.connect(self.report_file)
 
         # Changes the displayed file name template depending on the selected file format
         for radio in self.file_format_radio:
