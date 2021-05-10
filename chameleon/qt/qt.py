@@ -7,6 +7,7 @@ in .csv format.
 import logging
 import os
 import shlex
+import string
 import sys
 import time
 from collections import Counter
@@ -254,6 +255,14 @@ class Worker(QObject):
         else:
             self.dialog.emit(*self.summary_message())
         finally:
+            try:
+                if (
+                    self.files["report"]
+                    # and self.format != "excel"
+                ):
+                    self.write_report()
+            except Exception:
+                logger.exception()
             self.modes.clear()
             logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
@@ -554,6 +563,24 @@ class Worker(QObject):
             )
         self.output_path = self.files["output"].parent
 
+    def write_report(self) -> None:
+        report_path: Path = self.files["report"]
+        try:
+            with report_path.open("x") as f:
+                f.write(self.summary_message()[1])
+        except FileExistsError:
+            for letter in string.ascii_lowercase:
+                alternate_path = report_path.with_stem(report_path.stem + letter)
+                try:
+                    with alternate_path.open("x") as f:
+                        f.write(self.summary_message()[1])
+                except FileExistsError:
+                    continue
+                else:
+                    break
+            else:
+                raise FileExistsError
+
 
 class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     """
@@ -599,6 +626,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 "old": self.oldFileNameBox,
                 "new": self.newFileNameBox,
                 "output": self.outputFileNameBox,
+                "report": self.reportFileNameBox,
             }
         )
 
@@ -752,6 +780,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     def file_format_action(self) -> None:
         self.suffix_updater()
+        # self.report_box_disabler()
         self.update_default_frames()
 
     def history_loader(self) -> None:
@@ -1005,6 +1034,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 if excel_output
                 else tooltip
             )
+        self.update()
 
     def run_checker(self) -> None:
         """
