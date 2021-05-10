@@ -940,7 +940,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     def output_file(self) -> None:
         """
         Adds functionality to the Output File (…) button, opens the
-        '/downloads' system path for user to name an output file.
+        '/documents' system path for user to name an output file.
         """
         # If no previous location, default to Documents folder
         output_file_dir = str(
@@ -957,6 +957,54 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             output_file_name = output_file_name.replace(".csv", "")
             self.outputFileNameBox.selectAll()
             self.outputFileNameBox.insert(output_file_name)
+
+    def report_file(self) -> None:
+        """
+        Adds functionality to the Report File (…) button, opens the
+        '/documents' system path for user to name an report file.
+        """
+        destination = self.reportFileNameBox
+        file_dir = next(
+            (
+                e
+                for e in (
+                    destination.text().strip(),
+                    self.outputFileNameBox.text().strip(),
+                )
+                if e
+            ),
+            str(Path.home() / "Documents"),
+        )
+
+        file_name = QFileDialog.getSaveFileName(
+            self,
+            "Enter report filename",
+            file_dir,
+            "TXT (*.txt)",
+        )[0]
+        if file_name:  # Clear the box before adding the new path
+            destination.selectAll()
+            destination.insert(file_name)
+
+    def report_box_disabler(self) -> None:
+        """
+        Disables the Report File box if Excel output is selected,
+        because the report will be a sheet in the workbook instead
+        """
+        widgets_tooltips = {
+            self.reportFileSelectButton: "Set save location for report file.",
+            self.reportFileNameBox: "",
+        }
+        excel_output = self.file_format == "excel"
+
+        for widget, tooltip in widgets_tooltips.items():
+            widget.setReadOnly(excel_output)
+            widget.setToolTip(
+                "Not used when Excel output is selected; "
+                "report will be added as a sheet in the workbook instead"
+                if excel_output
+                else tooltip
+            )
 
     def run_checker(self) -> None:
         """
