@@ -781,7 +781,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
     def file_format_action(self) -> None:
         self.suffix_updater()
-        # self.report_box_disabler()
         self.update_default_frames()
         self.run_checker()
 
