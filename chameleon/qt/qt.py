@@ -783,6 +783,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.suffix_updater()
         # self.report_box_disabler()
         self.update_default_frames()
+        self.run_checker()
 
     def history_loader(self) -> None:
         """
