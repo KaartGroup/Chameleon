@@ -181,7 +181,8 @@ class ChameleonDataFrame(pd.DataFrame):
         if self.grouping:
             self = self.group()
         self.dropna(subset=["action"], inplace=True)
-        if set(self.config.keys()) > {"ignored_modes"}:
+        # Only use filter if there are settings other than ignored modes
+        if set(self.config.keys()) - {"ignored_modes"}:
             self = self.filter()
         self.fillna("", inplace=True)
         self.sort()
