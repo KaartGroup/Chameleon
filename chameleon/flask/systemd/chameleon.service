@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance for Chameleon
+After=network.target
+
+[Service]
+User=<USERNAME>
+Group=www-data
+WorkingDirectory=/home/<USERNAME>/chameleon
+Environment="PATH=/home/<USERNAME>/chameleon/env/bin"
+ExecStart=/home/<USERNAME>/chameleon/env/bin/gunicorn --workers 5 --worker-class gevent --bind unix:chameleon.sock -m 007 -t 600 chameleon:app
+
+[Install]
+WantedBy=multi-user.target
