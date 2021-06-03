@@ -1,6 +1,7 @@
 """
 Unit tests for the qt.py file
 """
+import os
 from pathlib import Path
 
 import yaml
@@ -11,6 +12,10 @@ from chameleon import core
 from chameleon.qt import qt
 
 # TEST_FOLDER = Path("test")
+
+# Github Actions has some issues with home folders that we haven't yet resolved
+# Tests that rely on a realistic home folder setup will be skipped
+IS_GHA = bool(os.getenv("IS_GHA", 0))
 
 
 @pytest.fixture
@@ -128,22 +133,23 @@ def test_overwrite_confirm(worker, worker_files, returned, monkeypatch):
     assert worker.overwrite_confirm(worker_files["output"]) is returned
 
 
-# def test_check_api_deletions(worker, cdf_set):
-#     worker.check_api_deletions(cdf_set)
-#     cdf_set.separate_special_dfs()
-#     assert len(cdf_set["deleted"]["changeset_new"].isna) == 0
+@pytest.mark.skip
+def test_check_api_deletions(worker, cdf_set):
+    worker.check_api_deletions(cdf_set)
+    cdf_set.separate_special_dfs()
+    assert len(cdf_set["deleted"]["changeset_new"].isna) == 0
 
 
-# def test_csv_output():
-#     pass
+def test_csv_output():
+    pass
 
 
-# def test_excel_output():
-#     pass
+def test_excel_output():
+    pass
 
 
-# def test_geojson_output():
-#     pass
+def test_geojson_output():
+    pass
 
 
 # GUI Tests
@@ -159,10 +165,12 @@ def test_add_to_list(mainapp, qtbot, tag, count):
     qtbot.mouseClick(mainapp.searchBox, Qt.LeftButton)
     mainapp.searchBox.insert(tag)
     qtbot.mouseClick(mainapp.searchButton, Qt.LeftButton)
-    qtbot.wait(500)  # Waits until Qt has a chance to process the action
 
-    assert len(mainapp.listWidget.findItems(tag, Qt.MatchExactly)) == count
-    assert bool(mainapp.searchBox.text()) is not bool(count)
+    def check_is_added():
+        assert len(mainapp.listWidget.findItems(tag, Qt.MatchExactly)) == count
+        assert bool(mainapp.searchBox.text()) is not bool(count)
+
+    qtbot.waitUntil(check_is_added)
 
 
 def test_remove_from_list(mainapp, qtbot):
@@ -218,14 +226,20 @@ def test_fav_btn_click(mainapp, qtbot):
     of favorite values by the QListWidget.
     """
     mainapp.fav_btn_populate()
-    qtbot.wait(500)
-    assert mainapp.modes_inclusive == {"new", "deleted"}
-    assert not mainapp.modes
-    assert mainapp.popTag1.text() == "name"
-    qtbot.mouseClick(mainapp.popTag1, Qt.LeftButton)
-    qtbot.wait(500)
 
-    assert mainapp.modes == {"name"}
+    def check_empty():
+        assert mainapp.modes_inclusive == {"new", "deleted"}
+        assert not mainapp.modes
+        assert mainapp.popTag1.text() == "name"
+
+    qtbot.waitUntil(check_empty)
+
+    qtbot.mouseClick(mainapp.popTag1, Qt.LeftButton)
+
+    def check_has_name():
+        assert mainapp.modes == {"name"}
+
+    qtbot.waitUntil(check_has_name)
 
 
 def test_autocompleter(mainapp):
@@ -235,12 +249,19 @@ def test_autocompleter(mainapp):
     mainapp.auto_completer()
 
 
+@pytest.mark.skipif(
+    IS_GHA, reason="Cannot currently check home folder-related tests on GHA"
+)
 def test_expand_user(mainapp, qtbot):
     qtbot.mouseClick(mainapp.newFileNameBox, Qt.LeftButton)
     mainapp.newFileNameBox.selectAll()
     qtbot.keyClicks(mainapp.newFileNameBox, "~/Desktop/")
     qtbot.mouseClick(mainapp.oldFileNameBox, Qt.LeftButton)
-    assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
+
+    def check_expanded():
+        assert mainapp.newFileNameBox.text() == str(Path.home() / "Desktop")
+
+    qtbot.waitUntil(check_expanded)
 
 
 def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
@@ -256,19 +277,7 @@ def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
     monkeypatch.setattr(mainapp, "file_fields", file_fields)
 
     mainapp.run_query()
-
     # TODO Check if the query actually ran
-
-
-@pytest.mark.parametrize(
-    "path,returned",
-    [
-        (Path.home() / "Documents", Path.home() / "Documents"),
-        (Path.home() / "Documents/test.txt", Path.home() / "Documents"),
-    ],
-)
-def test_dirname(path, returned):
-    assert qt.dirname(path) == returned
 
 
 @pytest.mark.parametrize(
@@ -280,9 +289,11 @@ def test_run_checker(mainapp, qtbot, modes, button_enabled):
         qtbot.mouseClick(mainapp.searchBox, Qt.LeftButton)
         mainapp.searchBox.insert(mode)
         qtbot.mouseClick(mainapp.searchButton, Qt.LeftButton)
-        qtbot.wait(500)  # Waits until Qt has a chance to process the action
 
-    assert mainapp.runButton.isEnabled() is button_enabled
+    def check_is_enabled():
+        assert mainapp.runButton.isEnabled() is button_enabled
+
+    qtbot.waitUntil(check_is_enabled)
 
 
 @pytest.mark.parametrize(
@@ -292,18 +303,32 @@ def test_run_checker(mainapp, qtbot, modes, button_enabled):
 def test_run_checker_remove(mainapp, qtbot, modes, button_enabled):
     for tag in ("highway", "ref"):
         mainapp.listWidget.addItem(tag)
-        qtbot.wait(500)
-    # assert mainapp.runButton.isEnabled()
     for mode in modes:
         next(
             iter(mainapp.listWidget.findItems(mode, Qt.MatchExactly)),
             None,
         ).setSelected(True)
         mainapp.delete_tag()
-        qtbot.wait(500)
 
-    qtbot.wait(500)
-    assert mainapp.runButton.isEnabled() is button_enabled
+    def check_is_enabled():
+        assert mainapp.runButton.isEnabled() is button_enabled
+
+    qtbot.waitUntil(check_is_enabled)
+
+
+# Fails on GHA
+@pytest.mark.skipif(
+    IS_GHA, reason="Cannot currently check home folder-related tests on GHA"
+)
+@pytest.mark.parametrize(
+    "path,returned",
+    [
+        (Path.home() / "Documents", Path.home() / "Documents"),
+        (Path.home() / "Documents/test.txt", Path.home() / "Documents"),
+    ],
+)
+def test_dirname(path, returned):
+    assert qt.dirname(path) == returned
 
 
 # Incomplete
