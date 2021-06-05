@@ -1,0 +1,16 @@
+[Unit]
+Description=Celery Service
+After=network.target
+
+[Service]
+User=<USERNAME>
+Environment="PATH=/home/<USERNAME>/chameleon/env/bin"
+Environment="CELERY_BACKEND_USER=<DB USERNAME>"
+Environment="CELERY_BACKEND_PASSWORD=<DB PASSWORD>"
+Environment="CELERY_BACKEND_URL=localhost"
+Environment="CELERY_BACKEND_PORT=5432"
+WorkingDirectory=/home/<USERNAME>/chameleon
+ExecStart=/home/<USERNAME>/chameleon/env/bin/celery -A chameleon.flask.web.celery worker -l INFO
+
+[Install]
+WantedBy=multi-user.target
