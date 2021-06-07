@@ -1344,7 +1344,10 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         self.alwaysIncludeAdd.clicked.connect(self.add_item)
 
         self.whitelistRemove.clicked.connect(self.remove_item)
-        self.alwaysIncludeRemove.clicked.connect(self.add_item)
+        self.alwaysIncludeRemove.clicked.connect(self.remove_item)
+
+        self.whitelistClear.clicked.connect(self.clear_list)
+        self.alwaysIncludeClear.clicked.connect(self.clear_list)
 
         self.cancelButton.clicked.connect(self.close)
         self.okButton.clicked.connect(self.save_and_close)
