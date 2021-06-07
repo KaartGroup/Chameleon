@@ -7,6 +7,7 @@ in .csv format.
 import logging
 import os
 import shlex
+import string
 import sys
 import time
 from collections import Counter
@@ -254,6 +255,14 @@ class Worker(QObject):
         else:
             self.dialog.emit(*self.summary_message())
         finally:
+            try:
+                if (
+                    self.files["report"]
+                    # and self.format != "excel"
+                ):
+                    self.write_report()
+            except Exception:
+                logger.exception()
             self.modes.clear()
             logger.info(list(self.successful_items.values()))
             # Signal the main thread that this thread is complete
@@ -554,6 +563,24 @@ class Worker(QObject):
             )
         self.output_path = self.files["output"].parent
 
+    def write_report(self) -> None:
+        report_path: Path = self.files["report"]
+        try:
+            with report_path.open("x") as f:
+                f.write(self.summary_message()[1])
+        except FileExistsError:
+            for letter in string.ascii_lowercase:
+                alternate_path = report_path.with_stem(report_path.stem + letter)
+                try:
+                    with alternate_path.open("x") as f:
+                        f.write(self.summary_message()[1])
+                except FileExistsError:
+                    continue
+                else:
+                    break
+            else:
+                raise FileExistsError
+
 
 class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     """
@@ -599,6 +626,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
                 "old": self.oldFileNameBox,
                 "new": self.newFileNameBox,
                 "output": self.outputFileNameBox,
+                "report": self.reportFileNameBox,
             }
         )
 
@@ -635,6 +663,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.oldFileSelectButton.clicked.connect(self.open_input_file)
         self.newFileSelectButton.clicked.connect(self.open_input_file)
         self.outputFileSelectButton.clicked.connect(self.output_file)
+        self.reportFileSelectButton.clicked.connect(self.report_file)
 
         # Changes the displayed file name template depending on the selected file format
         for radio in self.file_format_radio:
@@ -753,6 +782,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     def file_format_action(self) -> None:
         self.suffix_updater()
         self.update_default_frames()
+        self.run_checker()
 
     def history_loader(self) -> None:
         """
@@ -940,7 +970,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     def output_file(self) -> None:
         """
         Adds functionality to the Output File (…) button, opens the
-        '/downloads' system path for user to name an output file.
+        '/documents' system path for user to name an output file.
         """
         # If no previous location, default to Documents folder
         output_file_dir = str(
@@ -957,6 +987,55 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             output_file_name = output_file_name.replace(".csv", "")
             self.outputFileNameBox.selectAll()
             self.outputFileNameBox.insert(output_file_name)
+
+    def report_file(self) -> None:
+        """
+        Adds functionality to the Report File (…) button, opens the
+        '/documents' system path for user to name an report file.
+        """
+        destination = self.reportFileNameBox
+        file_dir = next(
+            (
+                e
+                for e in (
+                    destination.text().strip(),
+                    self.outputFileNameBox.text().strip(),
+                )
+                if e
+            ),
+            str(Path.home() / "Documents"),
+        )
+
+        file_name = QFileDialog.getSaveFileName(
+            self,
+            "Enter report filename",
+            file_dir,
+            "TXT (*.txt)",
+        )[0]
+        if file_name:  # Clear the box before adding the new path
+            destination.selectAll()
+            destination.insert(file_name)
+
+    def report_box_disabler(self) -> None:
+        """
+        Disables the Report File box if Excel output is selected,
+        because the report will be a sheet in the workbook instead
+        """
+        widgets_tooltips = {
+            self.reportFileSelectButton: "Set save location for report file.",
+            self.reportFileNameBox: "",
+        }
+        excel_output = self.file_format == "excel"
+
+        for widget, tooltip in widgets_tooltips.items():
+            widget.setReadOnly(excel_output)
+            widget.setToolTip(
+                "Not used when Excel output is selected; "
+                "report will be added as a sheet in the workbook instead"
+                if excel_output
+                else tooltip
+            )
+        self.update()
 
     def run_checker(self) -> None:
         """
