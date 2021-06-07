@@ -514,6 +514,7 @@ class Worker(QObject):
                 "Too many Overpass requests",
                 "The Overpass server is refusing "
                 f"to accept any more queries for {overpass_query.time_remaining_fmt}.",
+                "critical",
             )
             return
         finally:
