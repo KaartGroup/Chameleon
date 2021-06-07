@@ -1043,7 +1043,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Function that enables run button if form is complete
         """
         self.runButton.setEnabled(
-            all(self.file_paths.values()) and bool(self.modes_inclusive)
+            all(self.file_paths_mandatory.values())
+            and bool(self.modes_inclusive)
         )
         self.update()
 
@@ -1134,6 +1135,17 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         }
 
     @property
+    def file_paths_mandatory(self) -> Dict[str, Optional[Path]]:
+        """
+        Subset of file_paths that must be filled before chameleon can run
+        """
+        return {
+            k: v
+            for k, v in self.file_paths.items()
+            if k in {"old", "new", "output"}
+        }
+
+    @property
     def use_api(self) -> bool:
         """
         Returns whether the user has selected to use the OSM API
@@ -1205,7 +1217,12 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         errors = {}
         # Check for blank values
         if name := next(
-            (label for label, path in self.file_paths.items() if not path), None
+            (
+                label
+                for label, path in self.file_paths_mandatory.items()
+                if not path
+            ),
+            None,
         ):
             errors["blank"] = f"{name} file field is blank."
 
