@@ -318,7 +318,7 @@ class Worker(QObject):
         return extra_columns
 
     def history_writer(self) -> None:
-        staged_history_dict = {k: str(v) for k, v in self.files.items()}
+        staged_history_dict = {k: str(v) for k, v in self.files.items() if v}
         staged_history_dict["use_api"] = self.use_api
         staged_history_dict["file_format"] = self.format
         try:
