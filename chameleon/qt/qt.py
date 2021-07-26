@@ -1394,9 +1394,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         files = {name: field.text() for name, field in self.file_fields.items()}
         # Prompt if user has changed input values from what was loaded
         try:
-            if {k: self.history_dict[k] for k in self.file_fields.keys()} != {
-                k: files[k] for k in self.file_fields.keys()
-            }:
+            if {
+                k: self.history_dict.get(k) for k in self.file_fields.keys()
+            } != {k: files.get(k) for k in self.file_fields.keys()}:
                 exit_prompt = QMessageBox()
                 exit_prompt.setIcon(QMessageBox.Question)
                 exit_response = exit_prompt.question(
