@@ -393,8 +393,12 @@ class ChameleonDataFrameSet(set):
         #     # '@version': int
         #     '@timestamp': datetime
         # }
-        old_df = pd.read_csv(self.oldfile, sep="\t", index_col="@id", dtype=str)
-        new_df = pd.read_csv(self.newfile, sep="\t", index_col="@id", dtype=str)
+        old_df = pd.read_csv(
+            self.oldfile, sep="\t", index_col=["@id", "@type"], dtype=str
+        )
+        new_df = pd.read_csv(
+            self.newfile, sep="\t", index_col=["@id", "@type"], dtype=str
+        )
         # Cast a couple items to more specific types
         # for col, col_type in dtypes.items():
         # old_df[col] = old_df[col].astype(col_type)
@@ -408,16 +412,18 @@ class ChameleonDataFrameSet(set):
         self.source_data["present_old"].fillna(False, inplace=True)
         self.source_data["present_new"].fillna(False, inplace=True)
 
+        self.source_data.reset_index(inplace=True)
+
         # Eliminate special chars that mess pandas up
         self.source_data.columns = self.source_data.columns.str.replace("@", "")
         self.source_data.columns = self.source_data.columns.str.replace(":", "_")
         # Strip whitespace
         self.source_data.columns = self.source_data.columns.str.strip()
 
-        self.source_data.index = self.source_data["type_old"].fillna(
-            self.source_data["type_new"]
-        ).str[0] + self.source_data.index.astype(str)
-        self.source_data.index.rename("id", inplace=True)
+        self.source_data["id"] = self.source_data["type"].str[
+            0
+        ] + self.source_data["id"].astype(str)
+        self.source_data.set_index("id", inplace=True)
 
         try:
             self.source_data.loc[
