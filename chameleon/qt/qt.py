@@ -1392,6 +1392,8 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         # Make a dict of text field values
         files = {name: field.text() for name, field in self.file_fields.items()}
+        if not files.get("report"):
+            files["report"] = None
         # Prompt if user has changed input values from what was loaded
         try:
             if {
