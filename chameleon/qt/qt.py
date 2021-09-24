@@ -1429,7 +1429,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
             self.alwaysIncludeAdd: self.alwaysIncludeLineEdit,
         }
 
-        # Matches buttons to correct
+        # Matches buttons to object it controls
         self.list_mapping = {
             self.whitelistAdd: self.whitelistList,
             self.alwaysIncludeAdd: self.alwaysIncludeList,
