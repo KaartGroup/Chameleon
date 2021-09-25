@@ -1459,26 +1459,44 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         """
         Add item to list
         """
-        # TODO Add splitter for multi input at once
-        # TODO Clear input box on add
-        dest = self.list_mapping.get(self.sender())
-        if not dest:
-            return
+        # Identifies sender signal and grabs button text
+        dest = self.list_mapping[self.sender()]
         source_field = self.add_mapping[self.sender()]
-        the_input = source_field.text().strip()
-        dest.addItem(the_input)
+        raw_label = source_field.text().strip()
+        if not raw_label.strip():  # Don't accept whitespace-only values
+            logger.warning("No value entered.")
+            return
+        splitter = shlex.shlex(raw_label)
+        # Count commas as a delimiter and don't include in the tags
+        splitter.whitespace += ","
+        splitter.whitespace_split = True
+        for count, label in enumerate(sorted(splitter)):
+            label = clean_for_presentation(label)
+            # Check if the label is in the list already
+            existing_item = next(
+                iter(dest.findItems(label, QtCore.Qt.MatchExactly)),
+                None,
+            )
+            if existing_item:
+                # Clear the prior selection on the first iteration only
+                if count == 0:
+                    dest.selectionModel().clear()
+                existing_item.setSelected(True)
+                logger.warning("%s is already in the list.", label)
+            else:
+                dest.addItem(label)
+                logger.info("Adding to list: %s", label)
+        source_field.clear()
+        # TODO Adapt from mainapp to filter dialog
+        # self.clear_search_box.emit()
 
     def remove_item(self) -> None:
-        dest = self.list_mapping.get(self.sender())
-        if not dest:
-            return
+        dest = self.list_mapping[self.sender()]
         for item in dest.selectedItems():
             dest.takeItem(dest.row(item))
 
     def clear_list(self) -> None:
-        dest = self.list_mapping.get(self.sender())
-        if not dest:
-            return
+        dest = self.list_mapping[self.sender()]
         dest.clear()
 
     @property
