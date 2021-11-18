@@ -1448,8 +1448,8 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         self.whitelistClear.clicked.connect(self.clear_list)
         self.alwaysIncludeClear.clicked.connect(self.clear_list)
 
-        self.cancelButton.clicked.connect(self.close)
-        self.okButton.clicked.connect(self.save_and_close)
+        self.buttonBox.rejected.connect(self.close)
+        self.buttonBox.accepted.connect(self.save_and_close)
 
     def save_and_close(self) -> None:
         self.parent.config.setdefault("all", {}).update(self.properties)
