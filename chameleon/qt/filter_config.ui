@@ -29,14 +29,17 @@
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <item row="6" column="0" rowspan="2">
-     <widget class="QLabel" name="alwaysIncludeLabel">
+    <item row="3" column="1">
+     <widget class="QListWidget" name="alwaysIncludeList"/>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="highwayStepLabel">
       <property name="text">
-       <string>Always Included</string>
+       <string>Highway Step Change</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="6">
+    <item row="3" column="2">
      <layout class="QVBoxLayout" name="alwaysIncludeVerticalLayout">
       <item>
        <widget class="QPushButton" name="alwaysIncludeRemove">
@@ -54,7 +57,17 @@
       </item>
      </layout>
     </item>
-    <item row="8" column="4">
+    <item row="0" column="0" rowspan="2">
+     <widget class="QLabel" name="whitelistLabel">
+      <property name="text">
+       <string>Whitelisted Users</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QLineEdit" name="alwaysIncludeLineEdit"/>
+    </item>
+    <item row="4" column="1">
      <widget class="QSpinBox" name="highwayStepChanges">
       <property name="minimum">
        <number>1</number>
@@ -67,33 +80,17 @@
       </property>
      </widget>
     </item>
-    <item row="6" column="6">
-     <widget class="QPushButton" name="alwaysIncludeAdd">
+    <item row="1" column="1">
+     <widget class="QListWidget" name="whitelistList"/>
+    </item>
+    <item row="0" column="2">
+     <widget class="QPushButton" name="whitelistAdd">
       <property name="text">
        <string>Add</string>
       </property>
      </widget>
     </item>
-    <item row="6" column="4">
-     <widget class="QLineEdit" name="alwaysIncludeLineEdit"/>
-    </item>
-    <item row="2" column="0" rowspan="2">
-     <widget class="QLabel" name="whitelistLabel">
-      <property name="text">
-       <string>Whitelisted Users</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="4">
-     <widget class="QListWidget" name="whitelistList"/>
-    </item>
-    <item row="2" column="4">
-     <widget class="QLineEdit" name="whitelistLineEdit"/>
-    </item>
-    <item row="7" column="4">
-     <widget class="QListWidget" name="alwaysIncludeList"/>
-    </item>
-    <item row="3" column="6">
+    <item row="1" column="2">
      <layout class="QVBoxLayout" name="whitelistVerticalLayout">
       <item>
        <widget class="QPushButton" name="whitelistRemove">
@@ -111,21 +108,7 @@
       </item>
      </layout>
     </item>
-    <item row="2" column="6">
-     <widget class="QPushButton" name="whitelistAdd">
-      <property name="text">
-       <string>Add</string>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="0">
-     <widget class="QLabel" name="highwayStepLabel">
-      <property name="text">
-       <string>Highway Step Change</string>
-      </property>
-     </widget>
-    </item>
-    <item row="9" column="4" colspan="3">
+    <item row="5" column="1" colspan="2">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <spacer name="horizontalSpacer">
@@ -161,6 +144,23 @@
        </widget>
       </item>
      </layout>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="alwaysIncludeAdd">
+      <property name="text">
+       <string>Add</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLineEdit" name="whitelistLineEdit"/>
+    </item>
+    <item row="2" column="0" rowspan="2">
+     <widget class="QLabel" name="alwaysIncludeLabel">
+      <property name="text">
+       <string>Always Included</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
