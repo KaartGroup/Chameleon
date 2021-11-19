@@ -164,7 +164,7 @@ class Worker(QObject):
     def __init__(self, parent):
         super().__init__()
         # Define set of selected modes
-        self.parent = parent
+        self.host = parent
         self.modes = parent.modes
         self.files = parent.file_paths
         self.group_output = parent.group_output
@@ -328,7 +328,7 @@ class Worker(QObject):
             logger.exception("Couldn't write history.yaml.")
         else:
             try:
-                self.parent.history_dict = staged_history_dict
+                self.host.history_dict = staged_history_dict
             except NameError:
                 # In some rare cases (like testing) MainApp may not exist
                 pass
@@ -1418,7 +1418,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         super().__init__()
         self.setupUi(self)
 
-        self.parent = parent
+        self.host = parent
 
         self.add_mapping = {
             self.whitelistAdd: self.whitelistLineEdit,
@@ -1448,7 +1448,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         self.buttonBox.accepted.connect(self.save_and_close)
 
     def save_and_close(self) -> None:
-        self.parent.config.setdefault("all", {}).update(self.properties)
+        self.host.config.setdefault("all", {}).update(self.properties)
         self.close()
 
     def add_item(self) -> None:
