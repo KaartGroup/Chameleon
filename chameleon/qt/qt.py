@@ -15,7 +15,7 @@ from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Tuple, Union
+from typing import Mapping, Optional, Union
 
 import geojson
 import overpass
@@ -268,7 +268,7 @@ class Worker(QObject):
             # Signal the main thread that this thread is complete
             self.done.emit()
 
-    def summary_message(self) -> Tuple[str, str, str]:
+    def summary_message(self) -> tuple[str, str, str]:
         # If any modes aren't in either list,
         # the process was cancelled before they could be completed
         cancelled_list = self.modes - (
@@ -1123,7 +1123,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         dialog_box.exec()
 
     @property
-    def file_paths(self) -> Dict[str, Optional[Path]]:
+    def file_paths(self) -> dict[str, Optional[Path]]:
         # Wrap the file references in Path object to prepare "file not found" warning
         return {
             name: Path(stripped) if (stripped := field.text().strip()) else None
@@ -1131,7 +1131,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         }
 
     @property
-    def file_paths_mandatory(self) -> Dict[str, Optional[Path]]:
+    def file_paths_mandatory(self) -> dict[str, Optional[Path]]:
         """
         Subset of file_paths that must be filled before chameleon can run
         """
@@ -1496,7 +1496,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         dest.clear()
 
     @property
-    def properties(self) -> Dict[str, Union[List[str], int]]:
+    def properties(self) -> dict[str, Union[list[str], int]]:
         return {
             "user_whitelist": [
                 item.text()
