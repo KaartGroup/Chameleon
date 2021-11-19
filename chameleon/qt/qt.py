@@ -865,11 +865,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         if not raw_label.strip():  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
-        splitter = shlex.shlex(raw_label)
-        # Count commas as a delimiter and don't include in the tags
-        splitter.whitespace += ","
-        splitter.whitespace_split = True
-        for count, label in enumerate(sorted(splitter)):
+        for count, label in enumerate(tag_split(raw_label)):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
             existing_item = next(
@@ -1761,6 +1757,17 @@ def filter_process(config: Optional[Mapping]) -> dict:
         if ignored_modes := config.get(file_format, {}).get("ignored_modes"):
             config[file_format]["ignored_modes"] = set(ignored_modes)
     return config
+
+
+def tag_split(raw_label) -> list[str]:
+    """
+    Splits comma- and/or space-separated values and returns sorted list
+    """
+    splitter = shlex.shlex(raw_label)
+    # Count commas as a delimiter and don't include in the tags
+    splitter.whitespace += ","
+    splitter.whitespace_split = True
+    return sorted(splitter)
 
 
 if __name__ == "__main__":
