@@ -15,7 +15,7 @@ from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Mapping
+from typing import Iterable, Mapping
 
 import geojson
 import overpass
@@ -34,9 +34,11 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QListWidgetItem,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QProgressDialog,
     QPushButton,
+    QWidget,
 )
 from requests import HTTPError, Timeout
 
@@ -49,7 +51,7 @@ from chameleon.core import (
     ChameleonDataFrameSet,
     clean_for_presentation,
 )
-from chameleon.qt import design, filter_config
+from chameleon.qt import design, favorite_edit, filter_config
 
 # Differentiate sys settings between pre and post-bundling
 RESOURCES_DIR = (
@@ -65,6 +67,7 @@ RESOURCES_DIR = (
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
+FAVORITES_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
 logger = logging.getLogger()
@@ -137,6 +140,48 @@ class UserCancelledError(Exception):
     """
 
     pass
+
+
+class Favorite(yaml.YAMLObject):
+    """
+    Holds definitions of tags to be saved
+    """
+
+    yaml_tag = "!Favorite"
+
+    def __init__(self, title: str = "", tags: Iterable = []) -> None:
+        self._title = None
+        self._tags = None
+
+        self.tags = tags
+        self.title = title
+
+    def __repr__(self) -> str:
+        if not self:
+            return f"{self.__class__.__name__}()"
+        return f"{self.__class__.__name__}(title={self.title},tags={self._tags})"
+
+    def __bool__(self) -> bool:
+        return bool(self._tags)
+
+    def __nonzero__(self) -> bool:
+        return self.__bool__()
+
+    @property
+    def tags(self) -> list[str]:
+        return self._tags
+
+    @tags.setter
+    def tags(self, new_tags: Iterable) -> None:
+        self._tags = [str(tag) for tag in new_tags if str(tag)]
+
+    @property
+    def title(self) -> str:
+        return self._title
+
+    @title.setter
+    def title(self, new_title: str) -> None:
+        self._title = new_title
 
 
 class Worker(QObject):
@@ -646,7 +691,11 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             self.popTag5,
         )
 
+        self.favorites = []
+
         # YAML file loaders
+        # Favorites saved in file
+        self.load_favorites()
         # Populate the buttons defined above
         self.fav_btn_populate()
         # Load file paths into boxes from previous session
@@ -668,6 +717,9 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
 
         for btn in self.fav_btn:
             btn.clicked.connect(self.add_tag)
+
+        self.fav_menu_setup()
+
         self.searchButton.clicked.connect(self.add_tag)
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
@@ -714,6 +766,41 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         file_menu.addAction(info_action)
         file_menu.addAction(extract_action)
         file_menu.addAction(config_action)
+
+    def edit_favorite(self) -> None:
+        target = self.sender().data()
+
+        edit_dialog = FavoriteEditDialog(self, target)
+        edit_dialog.show()
+
+    def save_favorite(self) -> None:
+        """
+        Save current tags as a favorite
+        """
+        sender = self.sender()
+        fav_index = self.fav_btn.index(sender)
+        self.favorites[fav_index].tags = self.modes
+
+        if any(self.favorites):  # Don't create a file if everything is blank
+            with FAVORITES_LOCATION.open("w") as f:
+                yaml.dump(self.favorites, f)
+
+    def load_favorites(self) -> None:
+        """
+        Load favorites from YAML file in preferences
+        """
+        try:
+            with FAVORITES_LOCATION.open() as f:
+                self.favorites = yaml.load(f)
+        except (OSError, yaml.YAMLError):
+            logger.warning("Couldn't load favorites file")
+            self.favorites = [
+                Favorite(),
+                Favorite(),
+                Favorite(),
+                Favorite(),
+                Favorite(),
+            ]
 
     def about_menu(self) -> None:
         """
@@ -802,6 +889,24 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         self.offlineRadio.setChecked(not self.history_dict.get("use_api", True))
         self.file_format = self.history_dict.get("file_format", "csv")
 
+    def fav_menu_setup(self) -> None:
+        self.fav_btn_menus = bidict({})
+
+        for btn, target in zip(self.fav_btn, self.favorites):
+            fav_menu = QMenu()
+            edit_action = QAction("&Edit", self)
+            edit_action.setData(target)
+            edit_action.triggered.connect(self.edit_favorite)
+            save_action = QAction("&Save", self)
+            save_action.triggered.connect(self.save_favorite)
+
+            fav_menu.addAction(edit_action)
+            fav_menu.addAction(save_action)
+
+            self.fav_btn_menus[btn] = fav_menu
+
+            btn.setMenu(self.fav_btn_menus[btn])
+
     def fav_btn_populate(self) -> None:
         """
         Populates the listed buttons with favorites from the given file
@@ -839,23 +944,39 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             # Add requisite number of non-redundant tags from the default list
             fav_list += [tag for tag in default_tags if tag not in fav_list]
         # Loop through the buttons and apply our ordered tag values
-        for btn, text in zip(self.fav_btn, fav_list):
-            # The fav_btn and set_lists should have a 1:1 correspondence
-            btn.setText(text)
+        for btn, counter_text, favorite in zip(
+            self.fav_btn, fav_list, self.favorites
+        ):
+            if favorite.tags:
+                if favorite.title:
+                    btn.setText(favorite.title)
+                else:
+                    label = favorite.tags[0]
+                    if len(favorite.tags) > 1:
+                        label += f"+{len(favorite.tags) - 1} more"
+
+                    btn.setText(label)
+            else:
+                btn.setText(counter_text)
 
     def add_tag(self) -> None:
         """
         Adds user defined tags into processing list on QListWidget.
         """
         # Identifies sender signal and grabs button text
-        raw_label = (
-            self.sender().text()
-            # Value was clicked from fav btn
-            if self.sender() in self.fav_btn
+        sender = self.sender()
+        try:
+            # Value was clicked from fav btn if this works without exception
+            fav_btn_index = self.fav_btn.index(sender)
+            if favorite := self.favorites[fav_btn_index]:
+                raw_label = ", ".join(favorite.tags)
+            else:
+                raw_label = sender.text()
+        except ValueError:
             # Value was typed by user
-            # self.sender() is self.searchButton
-            else self.searchBox.text()
-        )
+            # sender is self.searchButton
+            raw_label = self.searchBox.text()
+
         if not raw_label.strip():  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
@@ -1405,6 +1526,118 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         # Fail silently if history.yaml does not exist
         except AttributeError:
             logger.warning("All Chameleon analysis processing completed.")
+
+
+class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
+    def __init__(self, parent, target: Favorite) -> None:
+        super().__init__()
+        self.setupUi(self)
+
+        self.calling_object = parent
+
+        self.target = target
+
+        self.title = self.target.title
+        self.tags = self.target.tags
+
+        self.add_mapping = {
+            self.addButton: self.tagLineEdit,
+        }
+
+        self.list_mapping = {
+            self.addButton: self.tagsListWidget,
+            self.removeButton: self.tagsListWidget,
+            self.clearButton: self.tagsListWidget,
+        }
+
+        self.addButton.clicked.connect(self.add_item)
+        self.removeButton.clicked.connect(self.remove_item)
+        self.clearButton.clicked.connect(self.clear_list)
+
+        self.buttonBox.rejected.connect(self.close)
+        self.buttonBox.accepted.connect(self.save_and_close)
+
+    def add_item(self) -> None:
+        """
+        Add item to list
+        """
+        # Identifies sender signal and grabs button text
+        dest = self.tagsListWidget
+        source_field = self.add_mapping[self.sender()]
+        raw_label = source_field.text().strip()
+        if not raw_label.strip():  # Don't accept whitespace-only values
+            logger.warning("No value entered.")
+            return
+        splitter = shlex.shlex(raw_label)
+        # Count commas as a delimiter and don't include in the tags
+        splitter.whitespace += ","
+        splitter.whitespace_split = True
+        for count, label in enumerate(sorted(splitter)):
+            label = clean_for_presentation(label)
+            # Check if the label is in the list already
+            existing_item = next(
+                iter(dest.findItems(label, QtCore.Qt.MatchExactly)),
+                None,
+            )
+            if existing_item:
+                # Clear the prior selection on the first iteration only
+                if count == 0:
+                    dest.selectionModel().clear()
+                existing_item.setSelected(True)
+                logger.warning("%s is already in the list.", label)
+            else:
+                dest.addItem(label)
+                logger.info("Adding to list: %s", label)
+        source_field.clear()
+        # TODO Adapt from mainapp to filter dialog
+        # self.clear_search_box.emit()
+
+    def remove_item(self) -> None:
+        dest = self.tagsListWidget
+        for item in dest.selectedItems():
+            dest.takeItem(dest.row(item))
+
+    def clear_list(self) -> None:
+        self.tagsListWidget.clear()
+
+    @property
+    def title(self) -> str:
+        return self.titleLineEdit.text()
+
+    @title.setter
+    def title(self, new_title: str) -> None:
+        self.titleLineEdit.insert(new_title)
+
+    @property
+    def tags(self) -> list[str]:
+        return [
+            tag.text()
+            for tag in self.tagsListWidget.findItems(
+                "*", QtCore.Qt.MatchWildcard
+            )
+        ]
+
+    @tags.setter
+    def tags(self, new_tags: Iterable) -> None:
+        for tag in new_tags:
+            self.tagsListWidget.addItem(tag)
+
+    def save_and_close(self) -> None:
+        if self.title:
+            self.target.title = self.title
+        if self.tags:
+            self.target.tags = self.tags
+        if self.title or self.tags:
+            with FAVORITES_LOCATION.open("w") as f:
+                yaml.dump(self.calling_object.favorites, f)
+        elif FAVORITES_LOCATION.exists():
+            if not any(self.calling_object.favorites):
+                # Remove file if all favorites are empty
+                FAVORITES_LOCATION.unlink()
+            else:
+                with FAVORITES_LOCATION.open("w") as f:
+                    yaml.dump(self.calling_object.favorites, f)
+        self.close()
 
 
 class FilterDialog(QDialog, filter_config.Ui_Dialog):
