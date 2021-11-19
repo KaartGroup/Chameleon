@@ -12,6 +12,7 @@ __pycache__/
 .idea/
 .pytest_cache/
 .Python
+.qt_for_python
 .vscode/
 *.autosave
 *.code-workspace

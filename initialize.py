@@ -16,11 +16,11 @@ else:
     print("version.txt written")
 
 subprocess.check_call(
-    ["pyside2-uic", "chameleon/qt/design.ui", "-o", "chameleon/qt/design.py"]
+    ["pyside6-uic", "chameleon/qt/design.ui", "-o", "chameleon/qt/design.py"]
 )
 subprocess.check_call(
     [
-        "pyside2-uic",
+        "pyside6-uic",
         "chameleon/qt/filter_config.ui",
         "-o",
         "chameleon/qt/filter_config.py",

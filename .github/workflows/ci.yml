@@ -23,8 +23,8 @@ jobs:
                   pip install -r web-requirements.txt
             - name: Build GUI file
               run: |
-                  pyside2-uic chameleon/qt/design.ui -o chameleon/qt/design.py
-                  pyside2-uic chameleon/qt/filter_config.ui -o chameleon/qt/filter_config.py
+                  pyside6-uic chameleon/qt/design.ui -o chameleon/qt/design.py
+                  pyside6-uic chameleon/qt/filter_config.ui -o chameleon/qt/filter_config.py
             - name: Test with pytest
               uses: GabrielBB/xvfb-action@v1
               with:

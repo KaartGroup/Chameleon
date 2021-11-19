@@ -15,7 +15,7 @@ from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Mapping, Optional, Union
+from typing import Mapping
 
 import geojson
 import overpass
@@ -25,9 +25,9 @@ import yaml
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from bidict import bidict
-from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject, QThread, Signal
-from PySide2.QtWidgets import (
+from PySide6 import QtCore, QtGui
+from PySide6.QtCore import QObject, QThread, Signal
+from PySide6.QtWidgets import (
     QAction,
     QApplication,
     QCompleter,
@@ -1123,7 +1123,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         dialog_box.exec()
 
     @property
-    def file_paths(self) -> dict[str, Optional[Path]]:
+    def file_paths(self) -> dict[str, Path | None]:
         # Wrap the file references in Path object to prepare "file not found" warning
         return {
             name: Path(stripped) if (stripped := field.text().strip()) else None
@@ -1131,7 +1131,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         }
 
     @property
-    def file_paths_mandatory(self) -> dict[str, Optional[Path]]:
+    def file_paths_mandatory(self) -> dict[str, Path | None]:
         """
         Subset of file_paths that must be filled before chameleon can run
         """
@@ -1492,7 +1492,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         dest.clear()
 
     @property
-    def properties(self) -> dict[str, Union[list[str], int]]:
+    def properties(self) -> dict[str, list[str] | int]:
         return {
             "user_whitelist": [
                 item.text()
@@ -1706,7 +1706,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.update()
 
 
-def dirname(the_path: Union[str, Path]) -> Path:
+def dirname(the_path: str | Path) -> Path:
     """
     Return the URI of the nearest directory,
     which can be self if it is a directory
@@ -1737,7 +1737,7 @@ def success_message(frame: ChameleonDataFrame) -> str:
     )
 
 
-def filter_process(config: Optional[Mapping]) -> dict:
+def filter_process(config: Mapping | None) -> dict:
     file_formats = {"all", "geojson", "csv", "excel"}
 
     # Check for resource file in directory

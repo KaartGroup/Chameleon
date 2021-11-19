@@ -13,16 +13,16 @@
 
 ## About
 
-Chameleon is an Open Source cross-platform (MacOS, Linux, Windows) OpenStreetMap companion software developed by [`Kaart`](http://kaartgroup.com/) with [`PySide2`](https://www.qt.io/qt-for-python) and [`Python`](https://www.python.org/). This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows users to compare OSM tags from two snapshots. Some metadata OSM tags are default outputs of Chameleon, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon also features change grouping (consolidation similar changes for compared tag) and multi-tag processing (sequential tag comparisons).
+Chameleon is an Open Source cross-platform (MacOS, Linux, Windows) OpenStreetMap companion software developed by [`Kaart`](http://kaartgroup.com/) with [`PySide`](https://www.qt.io/qt-for-python) and [`Python`](https://www.python.org/). This application compares tabulated OSM data (.csv) and provide users with an output documenting changes between two timestamps. Current functionalities allows users to compare OSM tags from two snapshots. Some metadata OSM tags are default outputs of Chameleon, including `type`, `id`, `name`, `user`, `timestamp`, `version`. Chameleon also features change grouping (consolidation similar changes for compared tag) and multi-tag processing (sequential tag comparisons).
 
 Chameleon aims to inform OSM editors about changes that occurred in an area from the OSM database. The goal of Chameleon is to engage individual and organized OSM community memebers in collaborative editing.
 
 ## Installation
 
-1. Install dependencies: [`PyInstaller`](https://github.com/pyinstaller/pyinstaller), [`yaml`](https://pypi.org/project/pyyaml/), [`appdirs`](https://pypi.org/project/appdirs/), [`PySide`](https://pypi.org/project/pyside2/), [`pandas`](https://pypi.org/project/pandas/):
+1. Install dependencies: [`PyInstaller`](https://github.com/pyinstaller/pyinstaller), [`yaml`](https://pypi.org/project/pyyaml/), [`appdirs`](https://pypi.org/project/appdirs/), [`PySide`](https://pypi.org/project/pyside6/), [`pandas`](https://pypi.org/project/pandas/):
 
 ```bash
-	pip3 install pyinstaller pyyaml appdirs PySide2 pandas
+	pip3 install pyinstaller pyyaml appdirs PySide6 pandas
 ```
 
 2. Clone the repo
