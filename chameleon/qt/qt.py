@@ -641,13 +641,13 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             }
         )
         # List all of our buttons to populate so we can iterate through them
-        # self.fav_btn = (
-        #     self.popTag1,
-        #     self.popTag2,
-        #     self.popTag3,
-        #     self.popTag4,
-        #     self.popTag5,
-        # )
+        self.fav_btn = (
+            self.popTag1,
+            self.popTag2,
+            self.popTag3,
+            self.popTag4,
+            self.popTag5,
+        )
 
         # YAML file loaders
         # Populate the buttons defined above
@@ -693,10 +693,6 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         self.file_format_action()
         # Sets run button to not enabled
         self.run_checker()
-
-    @property
-    def fav_btn(self) -> tuple:
-        return tuple(self.popTagLayout.findChildren())
 
     def actions_setup(self) -> None:
         """
