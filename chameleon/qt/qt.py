@@ -25,10 +25,9 @@ import yaml
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from bidict import bidict
-from PySide6 import QtCore, QtGui
-from PySide6.QtCore import QObject, QThread, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QThread, Signal
+from PySide6.QtGui import QAction, QIcon, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
-    QAction,
     QApplication,
     QCompleter,
     QDialog,
@@ -583,7 +582,7 @@ class Worker(QObject):
                 raise FileExistsError
 
 
-class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
+class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
     """
     Main PySide window class that allows communication between UI and backend.
     Passes QMainWindow parameter to provide main application window, establish
@@ -616,7 +615,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.worker = None
 
         self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
-        self.setWindowIcon(QtGui.QIcon(self.logo))
+        self.setWindowIcon(QIcon(self.logo))
         self.filter_menu = FilterDialog(self)
         self.actions_setup()
 
@@ -642,13 +641,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             }
         )
         # List all of our buttons to populate so we can iterate through them
-        self.fav_btn = (
-            self.popTag1,
-            self.popTag2,
-            self.popTag3,
-            self.popTag4,
-            self.popTag5,
-        )
+        # self.fav_btn = (
+        #     self.popTag1,
+        #     self.popTag2,
+        #     self.popTag3,
+        #     self.popTag4,
+        #     self.popTag5,
+        # )
 
         # YAML file loaders
         # Populate the buttons defined above
@@ -679,9 +678,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         # Clears the search box after an item is selected from the autocomplete list
         # QueuedConnection is needed to make sure the events fire in the right order
-        self.clear_search_box.connect(
-            self.searchBox.clear, QtCore.Qt.QueuedConnection
-        )
+        self.clear_search_box.connect(self.searchBox.clear, Qt.QueuedConnection)
 
         self.oldFileNameBox.editingFinished.connect(self.on_editing_finished)
         self.newFileNameBox.editingFinished.connect(self.on_editing_finished)
@@ -696,6 +693,10 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.file_format_action()
         # Sets run button to not enabled
         self.run_checker()
+
+    @property
+    def fav_btn(self) -> tuple:
+        return tuple(self.popTagLayout.findChildren())
 
     def actions_setup(self) -> None:
         """
@@ -725,21 +726,21 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         Handles about page information.
         """
-        logo = QtGui.QPixmap(self.logo)
+        logo = QPixmap(self.logo)
 
         formatted_version = (
             f"<p><center>Version {APP_VERSION}</center></p>"
             if APP_VERSION
             else ""
         )
-        about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
+        about = QMessageBox(self, textFormat=Qt.RichText)
         about.setWindowTitle("About Chameleon")
         about.setIconPixmap(
             logo.scaled(
                 160,
                 160,
-                QtCore.Qt.KeepAspectRatio,
-                QtCore.Qt.SmoothTransformation,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
             )
         )
         about.setText(
@@ -869,7 +870,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
             existing_item = next(
-                iter(self.listWidget.findItems(label, QtCore.Qt.MatchExactly)),
+                iter(self.listWidget.findItems(label, Qt.MatchExactly)),
                 None,
             )
             if existing_item:
@@ -906,7 +907,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         for row in (
             self.listWidget.row(item)
-            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+            for item in self.listWidget.findItems("*", Qt.MatchWildcard)
             if item.text() not in SPECIAL_MODES
         ):
             self.listWidget.takeItem(row)
@@ -1056,13 +1057,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         def add_special_item(name) -> None:
             item_to_add = QListWidgetItem(name)
-            item_to_add.setFlags(QtCore.Qt.NoItemFlags)
+            item_to_add.setFlags(Qt.NoItemFlags)
             self.listWidget.addItem(item_to_add)
 
         ignored_modes = self.config_format.get("ignored_modes", set())
 
         deleted_item = next(
-            iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
+            iter(self.listWidget.findItems("deleted", Qt.MatchExactly)),
             None,
         )
         if deleted_item and (
@@ -1077,7 +1078,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             add_special_item("deleted")
 
         new_item = next(
-            iter(self.listWidget.findItems("new", QtCore.Qt.MatchExactly)),
+            iter(self.listWidget.findItems("new", Qt.MatchExactly)),
             None,
         )
         if new_item and "new" in ignored_modes:
@@ -1119,7 +1120,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             else QMessageBox.Information
         )
         dialog_box.setInformativeText(info)
-        dialog_box.setTextFormat(QtCore.Qt.RichText)
+        dialog_box.setTextFormat(Qt.RichText)
         dialog_box.exec()
 
     @property
@@ -1178,7 +1179,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         return {
             item.text()
-            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
+            for item in self.listWidget.findItems("*", Qt.MatchWildcard)
         }
 
     @property
@@ -1330,16 +1331,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         event : class
             Event which handles keystroke input
         """
-        if event.type() == QtCore.QEvent.KeyPress:
+        if event.type() == QEvent.KeyPress:
             # Sets up filter to enable keyboard input in listWidget
-            if obj == self.searchButton and event.key() == QtCore.Qt.Key_Tab:
+            if obj == self.searchButton and event.key() == Qt.Key_Tab:
                 if self.listWidget.count() > 0:
                     self.listWidget.item(0).setSelected(True)
                 elif self.listWidget.count() == 0:
                     event.ignore()
 
             # Set up filter to enable delete key within listWidget
-            if obj == self.listWidget and event.key() == QtCore.Qt.Key_Delete:
+            if obj == self.listWidget and event.key() == Qt.Key_Delete:
                 if self.listWidget.count() > 0:
                     self.delete_tag()
                 elif self.listWidget.count() == 0:
@@ -1466,7 +1467,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
             existing_item = next(
-                iter(dest.findItems(label, QtCore.Qt.MatchExactly)),
+                iter(dest.findItems(label, Qt.MatchExactly)),
                 None,
             )
             if existing_item:
@@ -1496,14 +1497,12 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         return {
             "user_whitelist": [
                 item.text()
-                for item in self.whitelistList.findItems(
-                    "*", QtCore.Qt.MatchWildcard
-                )
+                for item in self.whitelistList.findItems("*", Qt.MatchWildcard)
             ],
             "always_include": [
                 item.text()
                 for item in self.alwaysIncludeList.findItems(
-                    "*", QtCore.Qt.MatchWildcard
+                    "*", Qt.MatchWildcard
                 )
             ],
             "highway_step_change": self.highwayStepChanges.value(),
@@ -1554,9 +1553,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.setMinimumWidth(400)
         self.setLabelText("Beginning analysis…")
         self.setWindowFlags(
-            QtCore.Qt.Window
-            | QtCore.Qt.WindowTitleHint
-            | QtCore.Qt.CustomizeWindowHint
+            Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint
         )
 
     @property
@@ -1770,9 +1767,9 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     # Enable High DPI display with PySide2
     # app.setAttribute(
-    #     QtCore.Qt.AA_EnableHighDpiScaling, True)
-    # if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-    #     app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
+    #     Qt.AA_EnableHighDpiScaling, True)
+    # if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
+    #     app.setAttribute(Qt.AA_UseHighDpiPixmaps)
     form = MainApp()
     form.show()
     sys.exit(app.exec_())
