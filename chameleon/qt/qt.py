@@ -38,7 +38,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressDialog,
     QPushButton,
-    QWidget,
 )
 from requests import HTTPError, Timeout
 
@@ -1576,7 +1575,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
             existing_item = next(
-                iter(dest.findItems(label, QtCore.Qt.MatchExactly)),
+                iter(dest.findItems(label, Qt.MatchExactly)),
                 None,
             )
             if existing_item:
@@ -1612,9 +1611,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
     def tags(self) -> list[str]:
         return [
             tag.text()
-            for tag in self.tagsListWidget.findItems(
-                "*", QtCore.Qt.MatchWildcard
-            )
+            for tag in self.tagsListWidget.findItems("*", Qt.MatchWildcard)
         ]
 
     @tags.setter
