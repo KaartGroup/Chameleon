@@ -32,7 +32,7 @@ class QLineEditDragDrop(QLineEdit):
         # If more than one file is selected, only the first will be used
         file_path = Path(event.mimeData().urls()[0].toLocalFile())
         if file_path.suffix == ".csv":
-            logger.debug(f"Drag enter accepted, {str(file_path)}")
+            logger.debug(f"Drag enter accepted, {file_path}")
             event.accept()
         else:
             # Error prompt for when dragged object is not valid type
