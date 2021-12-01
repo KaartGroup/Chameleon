@@ -1462,11 +1462,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         if not raw_label.strip():  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
-        splitter = shlex.shlex(raw_label)
-        # Count commas as a delimiter and don't include in the tags
-        splitter.whitespace += ","
-        splitter.whitespace_split = True
-        for count, label in enumerate(sorted(splitter)):
+        for count, label in enumerate(tag_split(raw_label)):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
             existing_item = next(
