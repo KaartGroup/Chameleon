@@ -147,18 +147,26 @@ class Favorite(yaml.YAMLObject):
     """
 
     yaml_tag = "!Favorite"
+    yaml_loader = yaml.SafeLoader
 
-    def __init__(self, title: str = "", tags: Iterable = []) -> None:
-        self._title = None
+    def __init__(
+        self,
+        tags: Iterable = [],
+        title: str = None,
+    ) -> None:
+        super().__init__()
         self._tags = None
 
-        self.tags = tags
         self.title = title
+        self.tags = tags
 
     def __repr__(self) -> str:
         if not self:
             return f"{self.__class__.__name__}()"
-        return f"{self.__class__.__name__}(title={self.title},tags={self._tags})"
+        return f"{self.__class__.__name__}(tags={self.tags:r},title={self.title:r or ''})"
+        # if not self:
+        #     return "%s()" % (self.__class__.__name__)
+        # return "%s(tags={self._tags},title={self.title})" % (self.__class__.__name__, )
 
     def __bool__(self) -> bool:
         return bool(self._tags)
@@ -173,14 +181,6 @@ class Favorite(yaml.YAMLObject):
     @tags.setter
     def tags(self, new_tags: Iterable) -> None:
         self._tags = [str(tag) for tag in new_tags if str(tag)]
-
-    @property
-    def title(self) -> str:
-        return self._title
-
-    @title.setter
-    def title(self, new_title: str) -> None:
-        self._title = new_title
 
 
 class Worker(QObject):
@@ -695,6 +695,8 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         # YAML file loaders
         # Favorites saved in file
         self.load_favorites()
+        # Load count of tags used
+        self.load_tag_count()
         # Populate the buttons defined above
         self.fav_btn_populate()
         # Load file paths into boxes from previous session
@@ -790,7 +792,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         """
         try:
             with FAVORITES_LOCATION.open() as f:
-                self.favorites = yaml.load(f)
+                self.favorites = yaml.safe_load(f)
         except (OSError, yaml.YAMLError):
             logger.warning("Couldn't load favorites file")
             self.favorites = [
@@ -906,10 +908,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
 
             btn.setMenu(self.fav_btn_menus[btn])
 
-    def fav_btn_populate(self) -> None:
-        """
-        Populates the listed buttons with favorites from the given file
-        """
+    def load_tag_count(self) -> None:
         # Holds the button values until they are inserted
 
         # Parse counter.yaml for user tag preference
@@ -927,33 +926,38 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         else:
             logger.debug("counter.yaml history: %s.", (self.tag_count))
 
-        fav_list = sorted(self.tag_count, key=self.tag_count.get, reverse=True)
+    def fav_btn_populate(self) -> None:
+        """
+        Populates the listed buttons with favorites from the given file
+        """
 
-        if len(self.fav_btn) - len(fav_list) > 0:
-            # If we run out of favorites, start adding non-redundant default tags
-            # We use these when there aren't enough favorites
-            default_tags = (
-                "highway",
-                "name",
-                "ref",
-                "addr:housenumber",
-                "addr:street",
-            )
-            # Count how many def tags are needed
-            # Add requisite number of non-redundant tags from the default list
-            fav_list += [tag for tag in default_tags if tag not in fav_list]
+        frequent_tags = sorted(
+            self.tag_count, key=self.tag_count.get, reverse=True
+        )
+        # If we run out of favorites, start adding non-redundant default tags
+        # We use these when there aren't enough favorites
+        default_tags = (
+            "highway",
+            "name",
+            "ref",
+            "addr:housenumber",
+            "addr:street",
+        )
+        # Add requisite number of non-redundant tags from the default list
+        frequent_tags += [
+            tag for tag in default_tags if tag not in frequent_tags
+        ]
         # Loop through the buttons and apply our ordered tag values
         for btn, counter_text, favorite in zip(
-            self.fav_btn, fav_list, self.favorites
+            self.fav_btn, frequent_tags, self.favorites
         ):
-            if favorite.tags:
+            if favorite:
                 if favorite.title:
                     btn.setText(favorite.title)
                 else:
                     label = favorite.tags[0]
                     if len(favorite.tags) > 1:
-                        label += f"+{len(favorite.tags) - 1} more"
-
+                        label += f" + {len(favorite.tags) - 1} more"
                     btn.setText(label)
             else:
                 btn.setText(counter_text)
@@ -962,28 +966,39 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         """
         Adds user defined tags into processing list on QListWidget.
         """
+        tags_to_add = None
         # Identifies sender signal and grabs button text
         sender = self.sender()
         try:
             # Value was clicked from fav btn if this works without exception
             fav_btn_index = self.fav_btn.index(sender)
             if favorite := self.favorites[fav_btn_index]:
-                raw_label = ", ".join(favorite.tags)
+                tags_to_add = favorite.tags
             else:
-                raw_label = sender.text()
+                tags_to_add = [sender.text().strip()]
         except ValueError:
             # Value was typed by user
             # sender is self.searchButton
-            raw_label = self.searchBox.text()
+            raw_label = self.searchBox.text().strip()
 
-        if not raw_label.strip():  # Don't accept whitespace-only values
-            logger.warning("No value entered.")
-            return
-        for count, label in enumerate(tag_split(raw_label)):
-            label = clean_for_presentation(label)
+            self.clear_search_box.emit()
+
+            if not raw_label:  # Don't accept whitespace-only values
+                logger.warning("No value entered.")
+                return
+            tags_to_add = tag_split(raw_label)
+
+        self._add_tags_to_list(tags_to_add)
+
+    def _add_tags_to_list(self, tags: str | Iterable[str]) -> None:
+        if isinstance(tags, str):
+            tags = [tags]
+
+        for count, tag in enumerate(tags):
+            tag = clean_for_presentation(tag)
             # Check if the label is in the list already
             existing_item = next(
-                iter(self.listWidget.findItems(label, Qt.MatchExactly)),
+                iter(self.listWidget.findItems(tag, Qt.MatchExactly)),
                 None,
             )
             if existing_item:
@@ -991,11 +1006,10 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
                 if count == 0:
                     self.listWidget.selectionModel().clear()
                 existing_item.setSelected(True)
-                logger.warning("%s is already in the list.", label)
+                logger.warning("%s is already in the list.", tag)
             else:
-                self.listWidget.addItem(label)
-                logger.info("Adding to list: %s", label)
-        self.clear_search_box.emit()
+                self.listWidget.addItem(tag)
+                logger.info("Adding to list: %s", tag)
         self.run_checker()
 
     def delete_tag(self) -> None:
@@ -1620,11 +1634,9 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
             self.tagsListWidget.addItem(tag)
 
     def save_and_close(self) -> None:
-        if self.title:
-            self.target.title = self.title
+        self.target.title = self.title
+        self.target.tags = self.tags
         if self.tags:
-            self.target.tags = self.tags
-        if self.title or self.tags:
             with FAVORITES_LOCATION.open("w") as f:
                 yaml.dump(self.calling_object.favorites, f)
         elif FAVORITES_LOCATION.exists():
@@ -1634,6 +1646,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
             else:
                 with FAVORITES_LOCATION.open("w") as f:
                     yaml.dump(self.calling_object.favorites, f)
+        self.calling_object.fav_btn_populate()
         self.close()
 
 

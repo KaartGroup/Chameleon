@@ -26,6 +26,14 @@ subprocess.check_call(
         "chameleon/qt/filter_config.py",
     ]
 )
+subprocess.check_call(
+    [
+        "pyside6-uic",
+        "chameleon/qt/favorite_edit.ui",
+        "-o",
+        "chameleon/qt/favorite_edit.py",
+    ]
+)
 print("pyuic complete")
 
 subprocess.check_call(["pyinstaller", "Chameleon.spec", "-y"])
