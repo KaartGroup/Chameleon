@@ -45,7 +45,6 @@ from requests import HTTPError, Timeout
 from chameleon.core import (
     HIGH_DELETIONS_THRESHOLD,
     OVERPASS_TIMEOUT,
-    SPECIAL_MODES,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
     clean_for_presentation,
@@ -988,57 +987,15 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
                 return
             tags_to_add = tag_split(raw_label)
 
-        self._add_tags_to_list(tags_to_add)
-
-    def _add_tags_to_list(self, tags: str | Iterable[str]) -> None:
-        if isinstance(tags, str):
-            tags = [tags]
-
-        for count, tag in enumerate(tags):
-            tag = clean_for_presentation(tag)
-            # Check if the label is in the list already
-            existing_item = next(
-                iter(self.listWidget.findItems(tag, Qt.MatchExactly)),
-                None,
-            )
-            if existing_item:
-                # Clear the prior selection on the first iteration only
-                if count == 0:
-                    self.listWidget.selectionModel().clear()
-                existing_item.setSelected(True)
-                logger.warning("%s is already in the list.", tag)
-            else:
-                self.listWidget.addItem(tag)
-                logger.info("Adding to list: %s", tag)
+        self.listWidget.add_tags_to_list(tags_to_add)
         self.run_checker()
 
     def delete_tag(self) -> None:
-        """
-        Clears selected list items with "Delete" button.
-        Execute on `Delete` button signal.
-        """
-        try:
-            # Remove selected items in user-selected Qlist
-            for item in self.listWidget.selectedItems():
-                self.listWidget.takeItem(self.listWidget.row(item))
-                logger.info("Deleted %s from processing list.", (item.text()))
-        # Fails silently if nothing is selected
-        except AttributeError:
-            logger.exception()
+        self.listWidget.delete_tag()
         self.run_checker()
 
     def clear_tag(self) -> None:
-        """
-        Wipes all tags listed on QList with "Clear" button.
-        Execute on `Clear` button signal.
-        """
-        for row in (
-            self.listWidget.row(item)
-            for item in self.listWidget.findItems("*", Qt.MatchWildcard)
-            if item.text() not in SPECIAL_MODES
-        ):
-            self.listWidget.takeItem(row)
-        logger.info("Cleared tag list.")
+        self.listWidget.clear_tag()
         self.run_checker()
 
     def document_tag(
@@ -1301,13 +1258,9 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
     @property
     def modes_inclusive(self) -> set:
         """
-        For testing purposes
         Returns modes including the special "new" and "deleted" modes
         """
-        return {
-            item.text()
-            for item in self.listWidget.findItems("*", Qt.MatchWildcard)
-        }
+        return self.listWidget.modes_inclusive
 
     @property
     def modes(self) -> set:
@@ -1315,9 +1268,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         Returns the modes the user has input as a set,
         ignoring the special "new" and "deleted" modes
         """
-        return {
-            mode for mode in self.modes_inclusive if mode not in SPECIAL_MODES
-        }
+        return self.listWidget.modes
 
     @property
     def group_output(self) -> bool:
@@ -1541,7 +1492,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             logger.warning("All Chameleon analysis processing completed.")
 
 
-class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
+class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
     def __init__(self, parent, target: Favorite) -> None:
         super().__init__()
         self.setupUi(self)

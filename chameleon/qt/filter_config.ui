@@ -30,7 +30,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="3" column="1">
-     <widget class="QListWidget" name="alwaysIncludeList"/>
+     <widget class="QListWidgetTags" name="alwaysIncludeList"/>
     </item>
     <item row="4" column="0">
      <widget class="QLabel" name="highwayStepLabel">
@@ -81,7 +81,7 @@
      </widget>
     </item>
     <item row="1" column="1">
-     <widget class="QListWidget" name="whitelistList"/>
+     <widget class="QListWidgetTags" name="whitelistList"/>
     </item>
     <item row="0" column="2">
      <widget class="QPushButton" name="whitelistAdd">
@@ -135,6 +135,13 @@
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QListWidgetTags</class>
+   <extends>QListWidget</extends>
+   <header>chameleon.qt.qlistwidgettags</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -488,7 +488,7 @@
           </widget>
          </item>
          <item row="2" column="0" rowspan="3">
-          <widget class="QListWidget" name="listWidget">
+          <widget class="QListWidgetTags" name="listWidget">
            <property name="sizePolicy">
             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
              <horstretch>0</horstretch>
@@ -713,6 +713,11 @@
    <class>QLineEditDragDrop</class>
    <extends>QLineEdit</extends>
    <header>chameleon.qt.qlineeditdragdrop</header>
+  </customwidget>
+  <customwidget>
+   <class>QListWidgetTags</class>
+   <extends>QListWidget</extends>
+   <header>chameleon.qt.qlistwidgettags</header>
   </customwidget>
  </customwidgets>
  <tabstops>
