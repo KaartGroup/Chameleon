@@ -60,7 +60,7 @@ RESOURCES_DIR = (
     )  # Script is in a frozen package, i.e. PyInstaller
     else Path(__file__).parents[1]  # Script is not in a frozen package
     / "resources"
-    # __file__.parent is chameleon, .parents[1] is chameleon-2
+    # __file__.parent is chameleon, .parents[1] is chameleon
 )
 
 # Configuration file locations
@@ -1574,7 +1574,6 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
         """
         Add item to list
         """
-        # Identifies sender signal and grabs button text
         dest = self.tagsListWidget
         source_field = self.add_mapping[self.sender()]
         raw_label = source_field.text().strip()
@@ -1623,10 +1622,10 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_Dialog):
 
     @property
     def tags(self) -> list[str]:
-        return [
+        return tuple(
             tag.text()
             for tag in self.tagsListWidget.findItems("*", Qt.MatchWildcard)
-        ]
+        )
 
     @tags.setter
     def tags(self, new_tags: Iterable) -> None:
@@ -1716,8 +1715,6 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
                 dest.addItem(label)
                 logger.info("Adding to list: %s", label)
         source_field.clear()
-        # TODO Adapt from mainapp to filter dialog
-        # self.clear_search_box.emit()
 
     def remove_item(self) -> None:
         dest = self.list_mapping[self.sender()]
