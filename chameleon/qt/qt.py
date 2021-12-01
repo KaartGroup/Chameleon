@@ -645,8 +645,6 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         """
         super().__init__()
         self.setupUi(self)
-        # Set up application logo on main window
-        self.setWindowTitle("Chameleon")
         # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
         self.listWidget.installEventFilter(self)
@@ -654,6 +652,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         self.work_thread = None
         self.worker = None
 
+        # Set up application logo on main window
         self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
         self.setWindowIcon(QIcon(self.logo))
         self.filter_menu = FilterDialog(self)
@@ -1936,7 +1935,7 @@ def filter_process(config: Mapping | None) -> dict:
     return config
 
 
-def tag_split(raw_label) -> list[str]:
+def tag_split(raw_label: str) -> list[str]:
     """
     Splits comma- and/or space-separated values and returns sorted list
     """

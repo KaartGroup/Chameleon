@@ -13,10 +13,8 @@ logger = logging.getLogger(__name__)
 
 class QLineEditDragDrop(QLineEdit):
     """
-
-    Custom QWidget class from "promoted" QLineEdit widget. To allow
-    for drag and drop option using MIME object.
-
+    Promoted QLineEdit widget to allow for drag and drop option
+    using MIME object.
     """
 
     def __init__(self, parent=None):
