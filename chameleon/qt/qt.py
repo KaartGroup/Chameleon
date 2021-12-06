@@ -656,6 +656,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
         self.setWindowIcon(QIcon(self.logo))
         self.filter_menu = FilterDialog(self)
+        self.favorite_edit = FavoriteEditDialog(self)
         self.actions_setup()
 
         self.tag_count = Counter()
@@ -769,8 +770,9 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
     def edit_favorite(self) -> None:
         target = self.sender().data()
 
-        edit_dialog = FavoriteEditDialog(self, target)
-        edit_dialog.show()
+        self.favorite_edit.target = target
+        self.favorite_edit.setup()
+        self.favorite_edit.show()
 
     def save_favorite(self) -> None:
         """
@@ -791,7 +793,9 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         try:
             with FAVORITES_LOCATION.open() as f:
                 self.favorites = yaml.safe_load(f)
-        except (OSError, yaml.YAMLError):
+                # Make sure we loaded a list and it has at least one member
+                self.favorites[0]
+        except (OSError, yaml.YAMLError, IndexError):
             logger.warning("Couldn't load favorites file")
             self.favorites = [
                 Favorite(),
@@ -1492,16 +1496,13 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
 
 
 class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
-    def __init__(self, parent, target: Favorite) -> None:
+    def __init__(self, parent) -> None:
         super().__init__()
         self.setupUi(self)
 
-        self.calling_object = parent
+        self.host = parent
 
-        self.target = target
-
-        self.title = self.target.title
-        self.tags = self.target.tags
+        self.target = None
 
         self.add_mapping = {
             self.addButton: self.tagLineEdit,
@@ -1519,6 +1520,10 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
 
         self.buttonBox.rejected.connect(self.close)
         self.buttonBox.accepted.connect(self.save_and_close)
+
+    def setup(self) -> None:
+        self.title = getattr(self.target, "title", None)
+        self.tags = getattr(self.target, "tags", [])
 
     def add_item(self) -> None:
         """
@@ -1568,6 +1573,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
 
     @title.setter
     def title(self, new_title: str) -> None:
+        self.titleLineEdit.clear()
         self.titleLineEdit.insert(new_title)
 
     @property
@@ -1579,6 +1585,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
 
     @tags.setter
     def tags(self, new_tags: Iterable) -> None:
+        self.clear_list()
         for tag in new_tags:
             self.tagsListWidget.addItem(tag)
 
@@ -1587,15 +1594,17 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
         self.target.tags = self.tags
         if self.tags:
             with FAVORITES_LOCATION.open("w") as f:
-                yaml.dump(self.calling_object.favorites, f)
+                yaml.dump(self.host.favorites, f)
         elif FAVORITES_LOCATION.exists():
-            if not any(self.calling_object.favorites):
+            if not any(self.host.favorites):
                 # Remove file if all favorites are empty
                 FAVORITES_LOCATION.unlink()
             else:
                 with FAVORITES_LOCATION.open("w") as f:
-                    yaml.dump(self.calling_object.favorites, f)
-        self.calling_object.fav_btn_populate()
+                    yaml.dump(self.host.favorites, f)
+        self.host.fav_btn_populate()
+        self.target = None
+        self.setup()
         self.close()
 
 
