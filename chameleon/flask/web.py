@@ -5,7 +5,7 @@ import shlex
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory, TemporaryFile
-from typing import Dict, Generator, List, TextIO, Union
+from typing import Generator, TextIO
 from uuid import UUID, uuid4
 from zipfile import ZipFile
 
@@ -182,7 +182,7 @@ def celery_task(self, args: dict):
 
 def process_data(
     client_uuid: str,
-    modes: List[str],
+    modes: list[str],
     file_format: str,
     startdate: datetime = None,
     enddate: datetime = None,
@@ -192,7 +192,7 @@ def process_data(
     high_deletions_ok=False,
     grouping=False,
     output: str = "chameleon",
-    filter_list: List[dict] = [],
+    filter_list: list[dict] = [],
     **_,
 ) -> Generator[dict, None, None]:
     """
@@ -231,7 +231,11 @@ def process_data(
         yield {"state": "PROGRESS", "meta": task_metadata}
 
         oldfile, newfile = overpass_getter(
-            modes, country, startdate, enddate, filter_list,
+            modes,
+            country,
+            startdate,
+            enddate,
+            filter_list,
         )
     elif all((oldfile, newfile)):
         # BYOD mode
@@ -482,7 +486,7 @@ def write_excel(dataframe_set, base_dir, output) -> str:
 
 def write_geojson(
     dataframe_set, base_dir, output
-) -> Generator[Dict[str, Union[str, int]], None, Dict[str, str]]:
+) -> Generator[dict[str, str | int], None, dict[str, str]]:
     overpass_query = dataframe_set.OverpassQuery(dataframe_set, OVERPASS_TIMEOUT)
 
     for _ in overpass_query.get():
@@ -524,8 +528,8 @@ mimetype = {
 
 
 def filter_processing(
-    filters: List[str],
-) -> List[Dict[str, List[Union[str, dict]]]]:
+    filters: list[str],
+) -> list[dict[str, list[str | dict]]]:
     filter_list = []
     for filter in filters:
         filterstring, typestring = filter.rsplit(" (", 1)
