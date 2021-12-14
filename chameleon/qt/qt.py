@@ -1521,14 +1521,10 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
         """
         dest = self.tagsListWidget
         raw_label = self.tagLineEdit.text().strip()
-        if not raw_label.strip():  # Don't accept whitespace-only values
+        if not raw_label:  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
-        splitter = shlex.shlex(raw_label)
-        # Count commas as a delimiter and don't include in the tags
-        splitter.whitespace += ","
-        splitter.whitespace_split = True
-        for count, label in enumerate(sorted(splitter)):
+        for count, label in enumerate(tag_split(raw_label)):
             label = clean_for_presentation(label)
             # Check if the label is in the list already
             existing_item = next(
@@ -1643,7 +1639,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         dest = self.list_mapping[self.sender()]
         source_field = self.add_mapping[self.sender()]
         raw_label = source_field.text().strip()
-        if not raw_label.strip():  # Don't accept whitespace-only values
+        if not raw_label:  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
         for count, label in enumerate(tag_split(raw_label)):
