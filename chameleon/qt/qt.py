@@ -1519,27 +1519,11 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
         """
         Add item to list
         """
-        dest = self.tagsListWidget
         raw_label = self.tagLineEdit.text().strip()
         if not raw_label:  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
-        for count, label in enumerate(tag_split(raw_label)):
-            label = clean_for_presentation(label)
-            # Check if the label is in the list already
-            existing_item = next(
-                iter(dest.findItems(label, Qt.MatchExactly)),
-                None,
-            )
-            if existing_item:
-                # Clear the prior selection on the first iteration only
-                if count == 0:
-                    dest.selectionModel().clear()
-                existing_item.setSelected(True)
-                logger.warning("%s is already in the list.", label)
-            else:
-                dest.addItem(label)
-                logger.info("Adding to list: %s", label)
+        self.tagsListWidget.add_tags_to_list(tag_split(raw_label))
         self.tagLineEdit.clear()
         # TODO Adapt from mainapp to filter dialog
         # self.clear_search_box.emit()
@@ -1642,22 +1626,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         if not raw_label:  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
-        for count, label in enumerate(tag_split(raw_label)):
-            label = clean_for_presentation(label)
-            # Check if the label is in the list already
-            existing_item = next(
-                iter(dest.findItems(label, Qt.MatchExactly)),
-                None,
-            )
-            if existing_item:
-                # Clear the prior selection on the first iteration only
-                if count == 0:
-                    dest.selectionModel().clear()
-                existing_item.setSelected(True)
-                logger.warning("%s is already in the list.", label)
-            else:
-                dest.addItem(label)
-                logger.info("Adding to list: %s", label)
+        dest.add_tags_to_list(tag_split(raw_label))
         source_field.clear()
 
     def remove_item(self) -> None:
