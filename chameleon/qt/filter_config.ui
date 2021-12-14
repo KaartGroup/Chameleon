@@ -30,7 +30,11 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="3" column="1">
-     <widget class="QListWidgetTags" name="alwaysIncludeList"/>
+     <widget class="QListWidgetTags" name="alwaysIncludeList">
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
+     </widget>
     </item>
     <item row="4" column="0">
      <widget class="QLabel" name="highwayStepLabel">
@@ -81,7 +85,11 @@
      </widget>
     </item>
     <item row="1" column="1">
-     <widget class="QListWidgetTags" name="whitelistList"/>
+     <widget class="QListWidgetTags" name="whitelistList">
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
+     </widget>
     </item>
     <item row="0" column="2">
      <widget class="QPushButton" name="whitelistAdd">
