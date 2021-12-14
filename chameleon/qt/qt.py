@@ -1504,16 +1504,6 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
 
         self.target = None
 
-        self.add_mapping = {
-            self.addButton: self.tagLineEdit,
-        }
-
-        self.list_mapping = {
-            self.addButton: self.tagsListWidget,
-            self.removeButton: self.tagsListWidget,
-            self.clearButton: self.tagsListWidget,
-        }
-
         self.addButton.clicked.connect(self.add_item)
         self.removeButton.clicked.connect(self.remove_item)
         self.clearButton.clicked.connect(self.clear_list)
@@ -1530,8 +1520,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
         Add item to list
         """
         dest = self.tagsListWidget
-        source_field = self.add_mapping[self.sender()]
-        raw_label = source_field.text().strip()
+        raw_label = self.tagLineEdit.text().strip()
         if not raw_label.strip():  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
@@ -1555,7 +1544,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
             else:
                 dest.addItem(label)
                 logger.info("Adding to list: %s", label)
-        source_field.clear()
+        self.tagLineEdit.clear()
         # TODO Adapt from mainapp to filter dialog
         # self.clear_search_box.emit()
 
