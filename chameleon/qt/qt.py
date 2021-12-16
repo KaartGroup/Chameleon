@@ -47,7 +47,6 @@ from chameleon.core import (
     OVERPASS_TIMEOUT,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
-    clean_for_presentation,
 )
 from chameleon.qt import design, favorite_edit, filter_config
 
