@@ -1758,11 +1758,6 @@ def tag_split(raw_label) -> list[str]:
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    # Enable High DPI display with PySide2
-    # app.setAttribute(
-    #     Qt.AA_EnableHighDpiScaling, True)
-    # if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
-    #     app.setAttribute(Qt.AA_UseHighDpiPixmaps)
     form = MainApp()
     form.show()
     app.exec()
