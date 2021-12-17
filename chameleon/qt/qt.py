@@ -51,9 +51,6 @@ from chameleon.core import (
 )
 from chameleon.qt import design, filter_config
 
-# Needed for Big Sur compatibility
-os.environ["QT_MAC_WANTS_LAYER"] = "1"
-
 # Differentiate sys settings between pre and post-bundling
 RESOURCES_DIR = (
     Path(sys._MEIPASS)
@@ -1768,4 +1765,4 @@ if __name__ == "__main__":
     #     app.setAttribute(Qt.AA_UseHighDpiPixmaps)
     form = MainApp()
     form.show()
-    sys.exit(app.exec_())
+    app.exec()
