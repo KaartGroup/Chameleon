@@ -29,49 +29,17 @@
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <item row="3" column="1">
-     <widget class="QListWidgetTags" name="alwaysIncludeList">
-      <property name="sortingEnabled">
-       <bool>true</bool>
+    <item row="9" column="0" colspan="3">
+     <widget class="QDialogButtonBox" name="buttonBox">
+      <property name="standardButtons">
+       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
       </property>
      </widget>
     </item>
-    <item row="4" column="0">
-     <widget class="QLabel" name="highwayStepLabel">
-      <property name="text">
-       <string>Highway Step Change</string>
-      </property>
-     </widget>
+    <item row="0" column="1">
+     <widget class="QLineEdit" name="whitelistLineEdit"/>
     </item>
-    <item row="3" column="2">
-     <layout class="QVBoxLayout" name="alwaysIncludeVerticalLayout">
-      <item>
-       <widget class="QPushButton" name="alwaysIncludeRemove">
-        <property name="text">
-         <string>Remove</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="alwaysIncludeClear">
-        <property name="text">
-         <string>Clear</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item row="0" column="0" rowspan="2">
-     <widget class="QLabel" name="whitelistLabel">
-      <property name="text">
-       <string>Whitelisted Users</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="1">
-     <widget class="QLineEdit" name="alwaysIncludeLineEdit"/>
-    </item>
-    <item row="4" column="1">
+    <item row="8" column="1">
      <widget class="QSpinBox" name="highwayStepChanges">
       <property name="minimum">
        <number>1</number>
@@ -84,7 +52,7 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="1">
+    <item row="1" column="1" rowspan="3">
      <widget class="QListWidgetTags" name="whitelistList">
       <property name="sortingEnabled">
        <bool>true</bool>
@@ -98,45 +66,69 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="2">
-     <layout class="QVBoxLayout" name="whitelistVerticalLayout">
-      <item>
-       <widget class="QPushButton" name="whitelistRemove">
-        <property name="text">
-         <string>Remove</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="whitelistClear">
-        <property name="text">
-         <string>Clear</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
+    <item row="4" column="1">
+     <widget class="QLineEdit" name="alwaysIncludeLineEdit"/>
     </item>
-    <item row="2" column="2">
+    <item row="8" column="0">
+     <widget class="QLabel" name="highwayStepLabel">
+      <property name="text">
+       <string>Highway Step Change</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="2">
      <widget class="QPushButton" name="alwaysIncludeAdd">
       <property name="text">
        <string>Add</string>
       </property>
      </widget>
     </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="whitelistLineEdit"/>
+    <item row="1" column="2">
+     <widget class="QPushButton" name="whitelistRemove">
+      <property name="text">
+       <string>Remove</string>
+      </property>
+     </widget>
     </item>
-    <item row="2" column="0" rowspan="2">
+    <item row="2" column="2">
+     <widget class="QPushButton" name="whitelistClear">
+      <property name="text">
+       <string>Clear</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" rowspan="4">
+     <widget class="QLabel" name="whitelistLabel">
+      <property name="text">
+       <string>Whitelisted Users</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="2">
+     <widget class="QPushButton" name="alwaysIncludeRemove">
+      <property name="text">
+       <string>Remove</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0" rowspan="4">
      <widget class="QLabel" name="alwaysIncludeLabel">
       <property name="text">
        <string>Always Included</string>
       </property>
      </widget>
     </item>
-    <item row="5" column="0" colspan="3">
-     <widget class="QDialogButtonBox" name="buttonBox">
-      <property name="standardButtons">
-       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+    <item row="6" column="2">
+     <widget class="QPushButton" name="alwaysIncludeClear">
+      <property name="text">
+       <string>Clear</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1" rowspan="3">
+     <widget class="QListWidgetTags" name="alwaysIncludeList">
+      <property name="sortingEnabled">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
