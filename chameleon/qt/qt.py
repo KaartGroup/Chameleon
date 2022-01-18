@@ -15,7 +15,7 @@ from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Mapping, Optional, Union
+from typing import Iterable, Mapping
 
 import geojson
 import overpass
@@ -25,16 +25,16 @@ import yaml
 # Finds the right place to save config and log files on each OS
 from appdirs import user_config_dir, user_log_dir
 from bidict import bidict
-from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject, QThread, Signal
-from PySide2.QtWidgets import (
-    QAction,
+from PySide6.QtCore import QEvent, QObject, Qt, QThread, Signal
+from PySide6.QtGui import QAction, QIcon, QKeyEvent, QPixmap
+from PySide6.QtWidgets import (
     QApplication,
     QCompleter,
     QDialog,
     QFileDialog,
     QListWidgetItem,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QProgressDialog,
     QPushButton,
@@ -45,15 +45,10 @@ from requests import HTTPError, Timeout
 from chameleon.core import (
     HIGH_DELETIONS_THRESHOLD,
     OVERPASS_TIMEOUT,
-    SPECIAL_MODES,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
-    clean_for_presentation,
 )
-from chameleon.qt import design, filter_config
-
-# Needed for Big Sur compatibility
-os.environ["QT_MAC_WANTS_LAYER"] = "1"
+from chameleon.qt import design, favorite_edit, filter_config
 
 # Differentiate sys settings between pre and post-bundling
 RESOURCES_DIR = (
@@ -63,12 +58,13 @@ RESOURCES_DIR = (
     )  # Script is in a frozen package, i.e. PyInstaller
     else Path(__file__).parents[1]  # Script is not in a frozen package
     / "resources"
-    # __file__.parent is chameleon, .parents[1] is chameleon-2
+    # __file__.parent is chameleon, .parents[1] is chameleon
 )
 
 # Configuration file locations
 CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
+FAVORITES_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
 
 logger = logging.getLogger()
@@ -141,6 +137,48 @@ class UserCancelledError(Exception):
     """
 
     pass
+
+
+class Favorite(yaml.YAMLObject):
+    """
+    Holds definitions of tags to be saved
+    """
+
+    yaml_tag = "!Favorite"
+    yaml_loader = yaml.SafeLoader
+
+    def __init__(
+        self,
+        tags: Iterable = [],
+        title: str = None,
+    ) -> None:
+        super().__init__()
+        self._tags = None
+
+        self.title = title
+        self.tags = tags
+
+    def __repr__(self) -> str:
+        if not self:
+            return f"{self.__class__.__name__}()"
+        return f"{self.__class__.__name__}(tags={self.tags:r},title={self.title:r or ''})"
+        # if not self:
+        #     return "%s()" % (self.__class__.__name__)
+        # return "%s(tags={self._tags},title={self.title})" % (self.__class__.__name__, )
+
+    def __bool__(self) -> bool:
+        return bool(self._tags)
+
+    def __nonzero__(self) -> bool:
+        return self.__bool__()
+
+    @property
+    def tags(self) -> list[str]:
+        return self._tags
+
+    @tags.setter
+    def tags(self, new_tags: Iterable) -> None:
+        self._tags = [str(tag) for tag in new_tags if str(tag)]
 
 
 class Worker(QObject):
@@ -583,7 +621,7 @@ class Worker(QObject):
                 raise FileExistsError
 
 
-class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
+class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
     """
     Main PySide window class that allows communication between UI and backend.
     Passes QMainWindow parameter to provide main application window, establish
@@ -606,8 +644,6 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         """
         super().__init__()
         self.setupUi(self)
-        # Set up application logo on main window
-        self.setWindowTitle("Chameleon")
         # Enable QWidgets to capture and filter QKeyEvents
         self.searchButton.installEventFilter(self)
         self.listWidget.installEventFilter(self)
@@ -615,9 +651,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.work_thread = None
         self.worker = None
 
+        # Set up application logo on main window
         self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
-        self.setWindowIcon(QtGui.QIcon(self.logo))
+        self.setWindowIcon(QIcon(self.logo))
         self.filter_menu = FilterDialog(self)
+        self.favorite_edit = FavoriteEditDialog(self)
         self.actions_setup()
 
         self.tag_count = Counter()
@@ -650,7 +688,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             self.popTag5,
         )
 
+        self.favorites = []
+
         # YAML file loaders
+        # Favorites saved in file
+        self.load_favorites()
+        # Load count of tags used
+        self.load_tag_count()
         # Populate the buttons defined above
         self.fav_btn_populate()
         # Load file paths into boxes from previous session
@@ -672,6 +716,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         for btn in self.fav_btn:
             btn.clicked.connect(self.add_tag)
+
+        self.fav_menu_setup()
+
         self.searchButton.clicked.connect(self.add_tag)
         self.deleteItemButton.clicked.connect(self.delete_tag)
         self.clearListButton.clicked.connect(self.clear_tag)
@@ -679,9 +726,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         # Clears the search box after an item is selected from the autocomplete list
         # QueuedConnection is needed to make sure the events fire in the right order
-        self.clear_search_box.connect(
-            self.searchBox.clear, QtCore.Qt.QueuedConnection
-        )
+        self.clear_search_box.connect(self.searchBox.clear, Qt.QueuedConnection)
 
         self.oldFileNameBox.editingFinished.connect(self.on_editing_finished)
         self.newFileNameBox.editingFinished.connect(self.on_editing_finished)
@@ -721,25 +766,63 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         file_menu.addAction(extract_action)
         file_menu.addAction(config_action)
 
+    def edit_favorite(self) -> None:
+        target = self.sender().data()
+
+        self.favorite_edit.target = target
+        self.favorite_edit.setup()
+        self.favorite_edit.show()
+
+    def save_favorite(self) -> None:
+        """
+        Save current tags as a favorite
+        """
+        sender = self.sender()
+        fav_index = self.fav_btn.index(sender)
+        self.favorites[fav_index].tags = self.modes
+
+        if any(self.favorites):  # Don't create a file if everything is blank
+            with FAVORITES_LOCATION.open("w") as f:
+                yaml.dump(self.favorites, f)
+
+    def load_favorites(self) -> None:
+        """
+        Load favorites from YAML file in preferences
+        """
+        try:
+            with FAVORITES_LOCATION.open() as f:
+                self.favorites = yaml.safe_load(f)
+                # Make sure we loaded a list and it has at least one member
+                assert isinstance(self.favorites[0], Favorite)
+        except (OSError, yaml.YAMLError, IndexError, AssertionError):
+            logger.warning("Couldn't load favorites file")
+            self.favorites = [
+                Favorite(),
+                Favorite(),
+                Favorite(),
+                Favorite(),
+                Favorite(),
+            ]
+
     def about_menu(self) -> None:
         """
         Handles about page information.
         """
-        logo = QtGui.QPixmap(self.logo)
+        logo = QPixmap(self.logo)
 
         formatted_version = (
             f"<p><center>Version {APP_VERSION}</center></p>"
             if APP_VERSION
             else ""
         )
-        about = QMessageBox(self, textFormat=QtCore.Qt.RichText)
+        about = QMessageBox(self, textFormat=Qt.RichText)
         about.setWindowTitle("About Chameleon")
         about.setIconPixmap(
             logo.scaled(
                 160,
                 160,
-                QtCore.Qt.KeepAspectRatio,
-                QtCore.Qt.SmoothTransformation,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
             )
         )
         about.setText(
@@ -808,10 +891,25 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         self.offlineRadio.setChecked(not self.history_dict.get("use_api", True))
         self.file_format = self.history_dict.get("file_format", "csv")
 
-    def fav_btn_populate(self) -> None:
-        """
-        Populates the listed buttons with favorites from the given file
-        """
+    def fav_menu_setup(self) -> None:
+        self.fav_btn_menus = bidict({})
+
+        for btn, target in zip(self.fav_btn, self.favorites):
+            fav_menu = QMenu()
+            edit_action = QAction("&Edit", self)
+            edit_action.setData(target)
+            edit_action.triggered.connect(self.edit_favorite)
+            save_action = QAction("&Save", self)
+            save_action.triggered.connect(self.save_favorite)
+
+            fav_menu.addAction(edit_action)
+            fav_menu.addAction(save_action)
+
+            self.fav_btn_menus[btn] = fav_menu
+
+            btn.setMenu(self.fav_btn_menus[btn])
+
+    def load_tag_count(self) -> None:
         # Holds the button values until they are inserted
 
         # Parse counter.yaml for user tag preference
@@ -829,88 +927,77 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         else:
             logger.debug("counter.yaml history: %s.", (self.tag_count))
 
-        fav_list = sorted(self.tag_count, key=self.tag_count.get, reverse=True)
+    def fav_btn_populate(self) -> None:
+        """
+        Populates the listed buttons with favorites from the given file
+        """
 
-        if len(self.fav_btn) - len(fav_list) > 0:
-            # If we run out of favorites, start adding non-redundant default tags
-            # We use these when there aren't enough favorites
-            default_tags = (
-                "highway",
-                "name",
-                "ref",
-                "addr:housenumber",
-                "addr:street",
-            )
-            # Count how many def tags are needed
-            # Add requisite number of non-redundant tags from the default list
-            fav_list += [tag for tag in default_tags if tag not in fav_list]
+        frequent_tags = sorted(
+            self.tag_count, key=self.tag_count.get, reverse=True
+        )
+        # If we run out of favorites, start adding non-redundant default tags
+        # We use these when there aren't enough favorites
+        default_tags = (
+            "highway",
+            "name",
+            "ref",
+            "addr:housenumber",
+            "addr:street",
+        )
+        # Add requisite number of non-redundant tags from the default list
+        frequent_tags += [
+            tag for tag in default_tags if tag not in frequent_tags
+        ]
         # Loop through the buttons and apply our ordered tag values
-        for btn, text in zip(self.fav_btn, fav_list):
-            # The fav_btn and set_lists should have a 1:1 correspondence
-            btn.setText(text)
+        for btn, counter_text, favorite in zip(
+            self.fav_btn, frequent_tags, self.favorites
+        ):
+            if isinstance(favorite, Favorite) and favorite:
+                if favorite.title:
+                    btn.setText(favorite.title)
+                else:
+                    label = favorite.tags[0]
+                    if len(favorite.tags) > 1:
+                        label += f" + {len(favorite.tags) - 1} more"
+                    btn.setText(label)
+            else:
+                btn.setText(counter_text)
 
     def add_tag(self) -> None:
         """
         Adds user defined tags into processing list on QListWidget.
         """
+        tags_to_add = None
         # Identifies sender signal and grabs button text
-        raw_label = (
-            self.sender().text()
-            # Value was clicked from fav btn
-            if self.sender() in self.fav_btn
-            # Value was typed by user
-            # self.sender() is self.searchButton
-            else self.searchBox.text()
-        )
-        if not raw_label.strip():  # Don't accept whitespace-only values
-            logger.warning("No value entered.")
-            return
-        for count, label in enumerate(tag_split(raw_label)):
-            label = clean_for_presentation(label)
-            # Check if the label is in the list already
-            existing_item = next(
-                iter(self.listWidget.findItems(label, QtCore.Qt.MatchExactly)),
-                None,
-            )
-            if existing_item:
-                # Clear the prior selection on the first iteration only
-                if count == 0:
-                    self.listWidget.selectionModel().clear()
-                existing_item.setSelected(True)
-                logger.warning("%s is already in the list.", label)
+        sender = self.sender()
+        try:
+            # Value was clicked from fav btn if this works without exception
+            fav_btn_index = self.fav_btn.index(sender)
+            if favorite := self.favorites[fav_btn_index]:
+                tags_to_add = favorite.tags
             else:
-                self.listWidget.addItem(label)
-                logger.info("Adding to list: %s", label)
-        self.clear_search_box.emit()
+                tags_to_add = [sender.text().strip()]
+        except ValueError:
+            # Value was typed by user
+            # sender is self.searchButton
+            raw_label = self.searchBox.text().strip()
+
+            self.clear_search_box.emit()
+
+            if not raw_label:  # Don't accept whitespace-only values
+                logger.warning("No value entered.")
+                return
+            tags_to_add = tag_split(raw_label)
+
+        self.listWidget.add_tags_to_list(tags_to_add)
         self.run_checker()
 
     def delete_tag(self) -> None:
-        """
-        Clears selected list items with "Delete" button.
-        Execute on `Delete` button signal.
-        """
-        try:
-            # Remove selected items in user-selected Qlist
-            for item in self.listWidget.selectedItems():
-                self.listWidget.takeItem(self.listWidget.row(item))
-                logger.info("Deleted %s from processing list.", (item.text()))
-        # Fails silently if nothing is selected
-        except AttributeError:
-            logger.exception()
+        self.listWidget.delete_tag()
         self.run_checker()
 
     def clear_tag(self) -> None:
-        """
-        Wipes all tags listed on QList with "Clear" button.
-        Execute on `Clear` button signal.
-        """
-        for row in (
-            self.listWidget.row(item)
-            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
-            if item.text() not in SPECIAL_MODES
-        ):
-            self.listWidget.takeItem(row)
-        logger.info("Cleared tag list.")
+        self.listWidget.clear_tag()
         self.run_checker()
 
     def document_tag(
@@ -1056,13 +1143,13 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
 
         def add_special_item(name) -> None:
             item_to_add = QListWidgetItem(name)
-            item_to_add.setFlags(QtCore.Qt.NoItemFlags)
+            item_to_add.setFlags(Qt.NoItemFlags)
             self.listWidget.addItem(item_to_add)
 
         ignored_modes = self.config_format.get("ignored_modes", set())
 
         deleted_item = next(
-            iter(self.listWidget.findItems("deleted", QtCore.Qt.MatchExactly)),
+            iter(self.listWidget.findItems("deleted", Qt.MatchExactly)),
             None,
         )
         if deleted_item and (
@@ -1077,7 +1164,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             add_special_item("deleted")
 
         new_item = next(
-            iter(self.listWidget.findItems("new", QtCore.Qt.MatchExactly)),
+            iter(self.listWidget.findItems("new", Qt.MatchExactly)),
             None,
         )
         if new_item and "new" in ignored_modes:
@@ -1119,11 +1206,11 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             else QMessageBox.Information
         )
         dialog_box.setInformativeText(info)
-        dialog_box.setTextFormat(QtCore.Qt.RichText)
+        dialog_box.setTextFormat(Qt.RichText)
         dialog_box.exec()
 
     @property
-    def file_paths(self) -> dict[str, Optional[Path]]:
+    def file_paths(self) -> dict[str, Path | None]:
         # Wrap the file references in Path object to prepare "file not found" warning
         return {
             name: Path(stripped) if (stripped := field.text().strip()) else None
@@ -1131,7 +1218,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         }
 
     @property
-    def file_paths_mandatory(self) -> dict[str, Optional[Path]]:
+    def file_paths_mandatory(self) -> dict[str, Path | None]:
         """
         Subset of file_paths that must be filled before chameleon can run
         """
@@ -1173,13 +1260,9 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
     @property
     def modes_inclusive(self) -> set:
         """
-        For testing purposes
         Returns modes including the special "new" and "deleted" modes
         """
-        return {
-            item.text()
-            for item in self.listWidget.findItems("*", QtCore.Qt.MatchWildcard)
-        }
+        return self.listWidget.modes_inclusive
 
     @property
     def modes(self) -> set:
@@ -1187,9 +1270,7 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         Returns the modes the user has input as a set,
         ignoring the special "new" and "deleted" modes
         """
-        return {
-            mode for mode in self.modes_inclusive if mode not in SPECIAL_MODES
-        }
+        return self.listWidget.modes
 
     @property
     def group_output(self) -> bool:
@@ -1330,16 +1411,16 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
         event : class
             Event which handles keystroke input
         """
-        if event.type() == QtCore.QEvent.KeyPress:
+        if event.type() == QEvent.KeyPress:
             # Sets up filter to enable keyboard input in listWidget
-            if obj == self.searchButton and event.key() == QtCore.Qt.Key_Tab:
+            if obj == self.searchButton and event.key() == Qt.Key_Tab:
                 if self.listWidget.count() > 0:
                     self.listWidget.item(0).setSelected(True)
                 elif self.listWidget.count() == 0:
                     event.ignore()
 
             # Set up filter to enable delete key within listWidget
-            if obj == self.listWidget and event.key() == QtCore.Qt.Key_Delete:
+            if obj == self.listWidget and event.key() == Qt.Key_Delete:
                 if self.listWidget.count() > 0:
                     self.delete_tag()
                 elif self.listWidget.count() == 0:
@@ -1413,6 +1494,91 @@ class MainApp(QMainWindow, QtGui.QKeyEvent, design.Ui_MainWindow):
             logger.warning("All Chameleon analysis processing completed.")
 
 
+class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
+    def __init__(self, parent) -> None:
+        super().__init__()
+        self.setupUi(self)
+
+        self.host = parent
+
+        self.target = None
+
+        self.addButton.clicked.connect(self.add_item)
+        self.removeButton.clicked.connect(self.remove_item)
+        self.clearButton.clicked.connect(self.clear_list)
+
+        self.buttonBox.rejected.connect(self.close)
+        self.buttonBox.accepted.connect(self.save_and_close)
+
+    def setup(self) -> None:
+        if isinstance(self.target, Favorite):
+            self.title = getattr(self.target, "title", None)
+            self.tags = getattr(self.target, "tags", [])
+        elif isinstance(self.target, str):
+            self.tags = [self.target]
+
+    def add_item(self) -> None:
+        """
+        Add item to list
+        """
+        raw_label = self.tagLineEdit.text().strip()
+        if not raw_label:  # Don't accept whitespace-only values
+            logger.warning("No value entered.")
+            return
+        self.tagsListWidget.add_tags_to_list(tag_split(raw_label))
+        self.tagLineEdit.clear()
+        # TODO Adapt from mainapp to filter dialog
+        # self.clear_search_box.emit()
+
+    def remove_item(self) -> None:
+        dest = self.tagsListWidget
+        for item in dest.selectedItems():
+            dest.takeItem(dest.row(item))
+
+    def clear_list(self) -> None:
+        self.tagsListWidget.clear()
+
+    @property
+    def title(self) -> str:
+        return self.titleLineEdit.text()
+
+    @title.setter
+    def title(self, new_title: str) -> None:
+        self.titleLineEdit.clear()
+        self.titleLineEdit.insert(new_title)
+
+    @property
+    def tags(self) -> list[str]:
+        return tuple(
+            tag.text()
+            for tag in self.tagsListWidget.findItems("*", Qt.MatchWildcard)
+        )
+
+    @tags.setter
+    def tags(self, new_tags: Iterable) -> None:
+        self.clear_list()
+        for tag in new_tags:
+            self.tagsListWidget.addItem(tag)
+
+    def save_and_close(self) -> None:
+        self.target.title = self.title
+        self.target.tags = self.tags
+        if self.tags:
+            with FAVORITES_LOCATION.open("w") as f:
+                yaml.dump(self.host.favorites, f)
+        elif FAVORITES_LOCATION.exists():
+            if not any(self.host.favorites):
+                # Remove file if all favorites are empty
+                FAVORITES_LOCATION.unlink()
+            else:
+                with FAVORITES_LOCATION.open("w") as f:
+                    yaml.dump(self.host.favorites, f)
+        self.host.fav_btn_populate()
+        self.target = None
+        self.setup()
+        self.close()
+
+
 class FilterDialog(QDialog, filter_config.Ui_Dialog):
     def __init__(self, parent) -> None:
         super().__init__()
@@ -1459,28 +1625,11 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         dest = self.list_mapping[self.sender()]
         source_field = self.add_mapping[self.sender()]
         raw_label = source_field.text().strip()
-        if not raw_label.strip():  # Don't accept whitespace-only values
+        if not raw_label:  # Don't accept whitespace-only values
             logger.warning("No value entered.")
             return
-        for count, label in enumerate(tag_split(raw_label)):
-            label = clean_for_presentation(label)
-            # Check if the label is in the list already
-            existing_item = next(
-                iter(dest.findItems(label, QtCore.Qt.MatchExactly)),
-                None,
-            )
-            if existing_item:
-                # Clear the prior selection on the first iteration only
-                if count == 0:
-                    dest.selectionModel().clear()
-                existing_item.setSelected(True)
-                logger.warning("%s is already in the list.", label)
-            else:
-                dest.addItem(label)
-                logger.info("Adding to list: %s", label)
+        dest.add_tags_to_list(tag_split(raw_label))
         source_field.clear()
-        # TODO Adapt from mainapp to filter dialog
-        # self.clear_search_box.emit()
 
     def remove_item(self) -> None:
         dest = self.list_mapping[self.sender()]
@@ -1492,18 +1641,16 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
         dest.clear()
 
     @property
-    def properties(self) -> dict[str, Union[list[str], int]]:
+    def properties(self) -> dict[str, list[str] | int]:
         return {
             "user_whitelist": [
                 item.text()
-                for item in self.whitelistList.findItems(
-                    "*", QtCore.Qt.MatchWildcard
-                )
+                for item in self.whitelistList.findItems("*", Qt.MatchWildcard)
             ],
             "always_include": [
                 item.text()
                 for item in self.alwaysIncludeList.findItems(
-                    "*", QtCore.Qt.MatchWildcard
+                    "*", Qt.MatchWildcard
                 )
             ],
             "highway_step_change": self.highwayStepChanges.value(),
@@ -1554,9 +1701,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.setMinimumWidth(400)
         self.setLabelText("Beginning analysis…")
         self.setWindowFlags(
-            QtCore.Qt.Window
-            | QtCore.Qt.WindowTitleHint
-            | QtCore.Qt.CustomizeWindowHint
+            Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint
         )
 
     @property
@@ -1706,7 +1851,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.update()
 
 
-def dirname(the_path: Union[str, Path]) -> Path:
+def dirname(the_path: str | Path) -> Path:
     """
     Return the URI of the nearest directory,
     which can be self if it is a directory
@@ -1737,7 +1882,7 @@ def success_message(frame: ChameleonDataFrame) -> str:
     )
 
 
-def filter_process(config: Optional[Mapping]) -> dict:
+def filter_process(config: Mapping | None) -> dict:
     file_formats = {"all", "geojson", "csv", "excel"}
 
     # Check for resource file in directory
@@ -1755,7 +1900,7 @@ def filter_process(config: Optional[Mapping]) -> dict:
     return config
 
 
-def tag_split(raw_label) -> list[str]:
+def tag_split(raw_label: str) -> list[str]:
     """
     Splits comma- and/or space-separated values and returns sorted list
     """
@@ -1768,11 +1913,6 @@ def tag_split(raw_label) -> list[str]:
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    # Enable High DPI display with PySide2
-    # app.setAttribute(
-    #     QtCore.Qt.AA_EnableHighDpiScaling, True)
-    # if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-    #     app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
     form = MainApp()
     form.show()
-    sys.exit(app.exec_())
+    app.exec()

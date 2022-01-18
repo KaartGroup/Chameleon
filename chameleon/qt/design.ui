@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>583</width>
-    <height>678</height>
+    <height>712</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -375,52 +375,85 @@
           <enum>QLayout::SetMinimumSize</enum>
          </property>
          <item>
-          <widget class="QPushButton" name="popTag1">
+          <widget class="QToolButton" name="popTag1">
            <property name="focusPolicy">
             <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>highway</string>
            </property>
+           <property name="popupMode">
+            <enum>QToolButton::MenuButtonPopup</enum>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextOnly</enum>
+           </property>
+           <property name="arrowType">
+            <enum>Qt::DownArrow</enum>
+           </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="popTag2">
+          <widget class="QToolButton" name="popTag2">
            <property name="focusPolicy">
             <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>name</string>
            </property>
+           <property name="popupMode">
+            <enum>QToolButton::MenuButtonPopup</enum>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextOnly</enum>
+           </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="popTag3">
+          <widget class="QToolButton" name="popTag3">
            <property name="focusPolicy">
             <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>building</string>
            </property>
+           <property name="popupMode">
+            <enum>QToolButton::MenuButtonPopup</enum>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextOnly</enum>
+           </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="popTag4">
+          <widget class="QToolButton" name="popTag4">
            <property name="focusPolicy">
             <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>addr:housenumber</string>
            </property>
+           <property name="popupMode">
+            <enum>QToolButton::MenuButtonPopup</enum>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextOnly</enum>
+           </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="popTag5">
+          <widget class="QToolButton" name="popTag5">
            <property name="focusPolicy">
             <enum>Qt::TabFocus</enum>
            </property>
            <property name="text">
             <string>addr:street</string>
+           </property>
+           <property name="popupMode">
+            <enum>QToolButton::MenuButtonPopup</enum>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextOnly</enum>
            </property>
           </widget>
          </item>
@@ -455,7 +488,7 @@
           </widget>
          </item>
          <item row="2" column="0" rowspan="3">
-          <widget class="QListWidget" name="listWidget">
+          <widget class="QListWidgetTags" name="listWidget">
            <property name="sizePolicy">
             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
              <horstretch>0</horstretch>
@@ -680,6 +713,11 @@
    <class>QLineEditDragDrop</class>
    <extends>QLineEdit</extends>
    <header>chameleon.qt.qlineeditdragdrop</header>
+  </customwidget>
+  <customwidget>
+   <class>QListWidgetTags</class>
+   <extends>QListWidget</extends>
+   <header>chameleon.qt.qlistwidgettags</header>
   </customwidget>
  </customwidgets>
  <tabstops>

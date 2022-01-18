@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 import pytest
-from PySide2.QtCore import Qt
+from PySide6.QtCore import Qt
 
 from chameleon import core
 from chameleon.qt import qt

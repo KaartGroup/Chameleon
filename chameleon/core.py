@@ -9,17 +9,7 @@ import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import (
-    Dict,
-    Generator,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    TextIO,
-    Tuple,
-    Union,
-)
+from typing import Generator, Mapping, TextIO
 
 import appdirs
 import geojson
@@ -319,11 +309,11 @@ class ChameleonDataFrameSet(set):
 
     def __init__(
         self,
-        old: Union[str, Path, TextIO],
-        new: Union[str, Path, TextIO],
+        old: str | Path | TextIO,
+        new: str | Path | TextIO,
         use_api=False,
         extra_columns=None,
-        config: Union[Mapping, str, Path] = None,
+        config: Mapping | str | Path = None,
     ):
         super().__init__(self)
         if extra_columns is None:
@@ -377,11 +367,11 @@ class ChameleonDataFrameSet(set):
             )
 
     @property
-    def modes(self) -> Set[str]:
+    def modes(self) -> set[str]:
         return {i.chameleon_mode for i in self}
 
     @property
-    def modes_cleaned(self) -> Set[str]:
+    def modes_cleaned(self) -> set[str]:
         return {i.chameleon_mode_cleaned for i in self}
 
     def merge_files(self) -> ChameleonDataFrameSet:
@@ -465,7 +455,7 @@ class ChameleonDataFrameSet(set):
 
     def check_feature_on_api(
         self, feature_id: str, app_version: str = ""
-    ) -> Tuple(dict, bool):
+    ) -> tuple(dict, bool):
         """
         Checks whether a way was deleted on the server
         """
@@ -515,11 +505,10 @@ class ChameleonDataFrameSet(set):
                 if feature_type == "way":
                     self.deleted_way_members[feature_id] = prior_version["nodes"]
         else:
-            # The way was not deleted, just dropped from the latter dataset
-            element_attribs.update({"action": "dropped"})
+            element_attribs["action"] = "dropped"
         return (element_attribs, getattr(response, "from_cache", False))
 
-    def write_excel(self, file_name: Union[Path, str]):
+    def write_excel(self, file_name: Path | str):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
             for result in self:
                 # Points at first cell (blank) of last column written
@@ -682,7 +671,7 @@ class ChameleonDataFrameSet(set):
                 yield cdf_copy
 
         @property
-        def next_query_allowed(self) -> Optional[datetime]:
+        def next_query_allowed(self) -> datetime | None:
             """
             Returns a datetime when the current IP will next
             be allowed to make a request.
@@ -727,11 +716,11 @@ class ChameleonDataFrameSet(set):
             return ", ".join(time_list)
 
     @property
-    def nondeleted(self) -> Set[ChameleonDataFrame]:
+    def nondeleted(self) -> set[ChameleonDataFrame]:
         return {i for i in self if i.chameleon_mode != "deleted"}
 
     @property
-    def overpass_query_pages(self) -> List[str]:
+    def overpass_query_pages(self) -> list[str]:
         all_ids = sorted(
             set(itertools.chain(*(df.index for df in self.nondeleted)))
         )
@@ -749,7 +738,7 @@ class ChameleonDataFrameSet(set):
         return query_pages
 
 
-def split_id(feature_id: Union[str, int]) -> Tuple[str, str]:
+def split_id(feature_id: str | int) -> tuple[str, str]:
     """
     Separates an id like "n12345678" into the tuple ('node', '12345678')
     """
@@ -763,7 +752,7 @@ def split_id(feature_id: Union[str, int]) -> Tuple[str, str]:
     return ftype, idmatch
 
 
-def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
+def separate_ids_by_feature_type(mixed: list[str]) -> dict[str, list[str]]:
     """
     Separates a list of mixed type feature ids
     into a dict with types as keys and lists of ids as values
@@ -777,7 +766,7 @@ def separate_ids_by_feature_type(mixed: List[str]) -> Dict[str, List[str]]:
     Dict[str, List[str]]: a dict with keys 'nodes', 'ways', and 'relations'
     and lists of ids as values
     """
-    f_type_id: List[Tuple[str, str]] = [split_id(i) for i in mixed]
+    f_type_id: list[tuple[str, str]] = [split_id(i) for i in mixed]
 
     the_dict = {}
     for k, v in f_type_id:

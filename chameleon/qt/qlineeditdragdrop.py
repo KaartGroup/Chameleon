@@ -6,17 +6,15 @@ extracts their paths
 import logging
 from pathlib import Path
 
-from PySide2.QtWidgets import QLineEdit, QToolTip
+from PySide6.QtWidgets import QLineEdit, QToolTip
 
 logger = logging.getLogger(__name__)
 
 
 class QLineEditDragDrop(QLineEdit):
     """
-
-    Custom QWidget class from "promoted" QLineEdit widget. To allow
-    for drag and drop option using MIME object.
-
+    Promoted QLineEdit widget to allow for drag and drop option
+    using MIME object.
     """
 
     def __init__(self, parent=None):
@@ -32,7 +30,7 @@ class QLineEditDragDrop(QLineEdit):
         # If more than one file is selected, only the first will be used
         file_path = Path(event.mimeData().urls()[0].toLocalFile())
         if file_path.suffix == ".csv":
-            logger.debug(f"Drag enter accepted, {str(file_path)}")
+            logger.debug(f"Drag enter accepted, {file_path}")
             event.accept()
         else:
             # Error prompt for when dragged object is not valid type
