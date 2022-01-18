@@ -793,8 +793,8 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             with FAVORITES_LOCATION.open() as f:
                 self.favorites = yaml.safe_load(f)
                 # Make sure we loaded a list and it has at least one member
-                self.favorites[0]
-        except (OSError, yaml.YAMLError, IndexError):
+                assert isinstance(self.favorites[0], Favorite)
+        except (OSError, yaml.YAMLError, IndexError, AssertionError):
             logger.warning("Couldn't load favorites file")
             self.favorites = [
                 Favorite(),
@@ -952,7 +952,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         for btn, counter_text, favorite in zip(
             self.fav_btn, frequent_tags, self.favorites
         ):
-            if favorite:
+            if isinstance(favorite, Favorite) and favorite:
                 if favorite.title:
                     btn.setText(favorite.title)
                 else:
@@ -1511,8 +1511,11 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
         self.buttonBox.accepted.connect(self.save_and_close)
 
     def setup(self) -> None:
-        self.title = getattr(self.target, "title", None)
-        self.tags = getattr(self.target, "tags", [])
+        if isinstance(self.target, Favorite):
+            self.title = getattr(self.target, "title", None)
+            self.tags = getattr(self.target, "tags", [])
+        elif isinstance(self.target, str):
+            self.tags = [self.target]
 
     def add_item(self) -> None:
         """
