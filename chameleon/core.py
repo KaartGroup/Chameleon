@@ -9,6 +9,7 @@ import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from sqlite3 import OperationalError
 from typing import Generator, Mapping, TextIO
 
 import appdirs
@@ -352,12 +353,6 @@ class ChameleonDataFrameSet(set):
     def setup_cache(self) -> None:
         try:
             CACHE_LOCATION.mkdir(exist_ok=True, parents=True)
-        except OSError:
-            logger.error(
-                "Could not create cache directory. Caching will be disabled."
-            )
-            self.session = requests.Session()
-        else:
             expiry = timedelta(hours=12)
             self.session = requests_cache.CachedSession(
                 backend=sqlite.DbCache(
@@ -365,6 +360,12 @@ class ChameleonDataFrameSet(set):
                     expire_after=expiry,
                 )
             )
+            logger.debug("Request caching enabled")
+        except (OSError, OperationalError):
+            logger.error(
+                "Could not create cache directory. Request caching disabled."
+            )
+            self.session = requests.Session()
 
     @property
     def modes(self) -> set[str]:

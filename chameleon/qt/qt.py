@@ -1438,7 +1438,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         self.work_thread.wait()
         # In theory this deletes the worker only when done
         self.worker.deleteLater()
-        self.progress_bar.close()
+        self.progress_bar.reset()
         logger.info("All Chameleon analysis processing completed.")
         # Re-enable run button when function complete
         self.run_checker()
@@ -1695,7 +1695,7 @@ class ChameleonProgressDialog(QProgressDialog):
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setEnabled(False)
         self.setCancelButton(self.cancel_button)
-        self.setAutoClose(False)
+        self.setAutoClose(True)
         self.setAutoReset(False)
         self.setModal(True)
         self.setMinimumWidth(400)
@@ -1871,13 +1871,14 @@ def plur(count: int) -> str:
 
 def success_message(frame: ChameleonDataFrame) -> str:
     row_count = len(frame)
+    s = plur(row_count)
     return (
         # Empty dataframe
         f"{frame.chameleon_mode} has no change."
         if not row_count
         else (
             f"{frame.chameleon_mode} output "
-            f"with {row_count} row{plur(row_count)}."
+            f"with {row_count} row{s}."
         )
     )
 
