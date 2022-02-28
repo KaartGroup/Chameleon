@@ -192,7 +192,7 @@ def process_data(
     high_deletions_ok=False,
     grouping=False,
     output: str = "chameleon",
-    filter_list: list[dict] = [],
+    filter_list: list[dict] = None,
     **_,
 ) -> Generator[dict, None, None]:
     """
@@ -206,6 +206,8 @@ def process_data(
         overpass_start_time
         overpass_timeout_time
     """
+    if filter_list is None:
+        filter_list = []
     REQUEST_INTERVAL = 0.5
 
     error_list = []
@@ -574,10 +576,9 @@ def overpass_getter(
     formatted_tags = []
     for i in filter_list:
         formatted = f'~"{"|".join(i["value"])}"' if i["value"] else ""
-        for t in i["types"]:
-            formatted_tags.append(
-                f'{t}["{i["key"]}"{formatted}](area.searchArea)'
-            )
+        formatted_tags.extend(
+            f'{t}["{i["key"]}"{formatted}](area.searchArea)' for t in i["types"]
+        )
 
     # Cast to set to eliminate any possible duplicates that squeaked through client-side validation
     modes = set(modes) | {"name"}

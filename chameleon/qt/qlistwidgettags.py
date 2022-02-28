@@ -24,12 +24,10 @@ class QListWidgetTags(QListWidget):
 
         for count, tag in enumerate(tags):
             tag = clean_for_presentation(tag)
-            # Check if the label is in the list already
-            existing_item = next(
+            if existing_item := next(
                 iter(self.findItems(tag, Qt.MatchExactly)),
                 None,
-            )
-            if existing_item:
+            ):
                 # Clear the prior selection on the first iteration only
                 if count == 0:
                     self.selectionModel().clear()

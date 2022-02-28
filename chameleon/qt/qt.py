@@ -149,9 +149,11 @@ class Favorite(yaml.YAMLObject):
 
     def __init__(
         self,
-        tags: Iterable = [],
+        tags: Iterable = None,
         title: str = None,
     ) -> None:
+        if tags is None:
+            tags = []
         super().__init__()
         self._tags = None
 
@@ -607,7 +609,7 @@ class Worker(QObject):
         try:
             with report_path.open("x") as f:
                 f.write(self.summary_message()[1])
-        except FileExistsError:
+        except FileExistsError as e:
             for letter in string.ascii_lowercase:
                 alternate_path = report_path.with_stem(report_path.stem + letter)
                 try:
@@ -618,7 +620,7 @@ class Worker(QObject):
                 else:
                     break
             else:
-                raise FileExistsError
+                raise FileExistsError from e
 
 
 class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
@@ -1041,13 +1043,12 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             str(Path.home() / "Downloads"),
         )
         shortname = self.file_fields.inverse[destination]
-        file_name = QFileDialog.getOpenFileName(
+        if file_name := QFileDialog.getOpenFileName(
             self,
             f"Select CSV file with {shortname} data",
             file_dir,
             "CSV (*.csv)",
-        )[0]
-        if file_name:  # Clear the box before adding the new path
+        )[0]:
             destination.selectAll()
             destination.insert(file_name)
 
@@ -1063,10 +1064,9 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
                 or Path.home() / "Documents"
             ),
         )
-        output_file_name = QFileDialog.getSaveFileName(
+        if output_file_name := QFileDialog.getSaveFileName(
             self, "Enter output file prefix", output_file_dir
-        )[0]
-        if output_file_name:  # Clear the box before adding the new path
+        )[0]:
             # Since this is a prefix, the user shouldn't be adding their own extension
             output_file_name = output_file_name.replace(".csv", "")
             self.outputFileNameBox.selectAll()
@@ -1090,13 +1090,12 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             str(Path.home() / "Documents"),
         )
 
-        file_name = QFileDialog.getSaveFileName(
+        if file_name := QFileDialog.getSaveFileName(
             self,
             "Enter report filename",
             file_dir,
             "TXT (*.txt)",
-        )[0]
-        if file_name:  # Clear the box before adding the new path
+        )[0]:
             destination.selectAll()
             destination.insert(file_name)
 
