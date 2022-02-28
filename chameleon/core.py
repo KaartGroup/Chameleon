@@ -513,7 +513,7 @@ class ChameleonDataFrameSet(set):
 
     def write_excel(self, file_name: Path | str):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
-            for result in self:
+            for result in sorted(self, key=lambda x: len(x), reverse=True):
                 # Points at first cell (blank) of last column written
                 # Set before adding the other columns
                 column_pointer = len(result.columns) + 1
