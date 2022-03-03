@@ -358,7 +358,7 @@ class ChameleonDataFrameSet(set):
             expiry = timedelta(hours=12)
             self.session = requests_cache.CachedSession(
                 backend=sqlite.DbCache(
-                    location=str(CACHE_LOCATION / "cache"),
+                    use_cache_dir=str(CACHE_LOCATION / "cache"),
                     expire_after=expiry,
                 )
             )
