@@ -1562,16 +1562,20 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
     def save_and_close(self) -> None:
         self.target.title = self.title
         self.target.tags = self.tags
-        if self.tags:
+        if (
+            self.tags
+            or FAVORITES_LOCATION.exists()
+            and any(self.host.favorites)
+        ):
             with FAVORITES_LOCATION.open("w") as f:
                 yaml.dump(self.host.favorites, f)
-        elif FAVORITES_LOCATION.exists():
-            if not any(self.host.favorites):
-                # Remove file if all favorites are empty
-                FAVORITES_LOCATION.unlink()
-            else:
-                with FAVORITES_LOCATION.open("w") as f:
-                    yaml.dump(self.host.favorites, f)
+        elif (
+            # not self.tags (redundant)
+            FAVORITES_LOCATION.exists()
+            and not any(self.host.favorites)
+        ):
+            # Remove file if all favorites are empty
+            FAVORITES_LOCATION.unlink()
         self.host.fav_btn_populate()
         self.target = None
         self.setup()
@@ -1875,10 +1879,7 @@ def success_message(frame: ChameleonDataFrame) -> str:
         # Empty dataframe
         f"{frame.chameleon_mode} has no change."
         if not row_count
-        else (
-            f"{frame.chameleon_mode} output "
-            f"with {row_count} row{s}."
-        )
+        else f"{frame.chameleon_mode} output " f"with {row_count} row{s}."
     )
 
 
