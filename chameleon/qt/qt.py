@@ -1547,7 +1547,7 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
         self.titleLineEdit.insert(new_title)
 
     @property
-    def tags(self) -> list[str]:
+    def tags(self) -> tuple[str]:
         return tuple(
             tag.text()
             for tag in self.tagsListWidget.findItems("*", Qt.MatchWildcard)
