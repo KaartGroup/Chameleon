@@ -68,6 +68,9 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
+    disable_windowed_traceback=False,
+    target_arch=None,
+    codesign_identity=None,
     icon="chameleon/resources/chameleon.icns" if is_mac else None,
 )
 if is_mac:
