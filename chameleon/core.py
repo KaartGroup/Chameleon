@@ -113,7 +113,7 @@ class ChameleonDataFrame(pd.DataFrame):
         #     mode=self.chameleon_mode, grouping=self.grouping)
 
         self["url"] = JOSM_URL + self.index
-        self["pewu"] = pewu_from_id(self.index)
+        self["pewu"] = self.index.to_series().apply(pewu_from_id)
         self["user"] = intermediate_df["user_new"].fillna(
             intermediate_df["user_old"]
         )
@@ -127,7 +127,7 @@ class ChameleonDataFrame(pd.DataFrame):
         )
 
         # Drop all but these columns
-        self = self[["url", "user", "timestamp", "version"]]
+        self = self[["url", "pewu", "user", "timestamp", "version"]]
         try:
             # Succeeds if both csvs had changeset columns
             self["changeset"] = intermediate_df["changeset_new"]
