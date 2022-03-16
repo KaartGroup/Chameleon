@@ -11,7 +11,6 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
 from sqlite3 import OperationalError
-from string import Template
 from typing import Generator, Mapping, TextIO
 
 import appdirs
@@ -813,10 +812,5 @@ def pewu_from_id(id: str) -> str:
     """
     Returns a Pewu url from a feature ID
     """
-    pewu_template = Template(
-        "https://pewu.github.io/osm-history/#/$object_type/$object_id"
-    )
-
     ftype, fid = split_id(id)
-
-    return pewu_template.substitute(object_type=ftype, object_id=fid)
+    return f"https://pewu.github.io/osm-history/#/{ftype}/{fid}"
