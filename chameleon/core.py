@@ -109,6 +109,19 @@ class ChameleonDataFrame(pd.DataFrame):
             if self.chameleon_mode not in SPECIAL_MODES
             else self
         )
+
+        def get_column_from_intermediate(column: str) -> None:
+            try:
+                self[column] = intermediate_df[f"{column}_new"].fillna(
+                    intermediate_df[f"{column}_old"]
+                )
+            except KeyError:
+                try:
+                    # Succeeds if one csv had a name column
+                    self[column] = intermediate_df[column]
+                except KeyError:
+                    pass
+
         # self = ChameleonDataFrame(
         #     mode=self.chameleon_mode, grouping=self.grouping)
 
@@ -141,18 +154,9 @@ class ChameleonDataFrame(pd.DataFrame):
                 # If neither had one, we just won't include in the output
                 pass
 
-        for mode in ("name", "highway"):
-            if self.chameleon_mode != mode:
-            try:
-                    self[mode] = intermediate_df[f"{mode}_new"].fillna(
-                        intermediate_df[f"{mode}_old"]
-                )
-            except KeyError:
-                try:
-                    # Succeeds if one csv had a name column
-                        self[mode] = intermediate_df[mode]
-                except KeyError:
-                    pass
+        for column in ("name", "highway"):
+            if self.chameleon_mode != column:
+                get_column_from_intermediate(column)
 
         # Renaming columns to be consistent with old Chameleon outputs
         if (
@@ -164,6 +168,17 @@ class ChameleonDataFrame(pd.DataFrame):
             self[f"new_{self.chameleon_mode_cleaned}"] = intermediate_df[
                 f"{self.chameleon_mode_cleaned}_new"
             ]
+        else:
+            extra_columns = sorted(
+                {
+                    strip_column_suffix(column_name)
+                    for column_name in intermediate_df.columns
+                }
+                - set(self.columns)
+                - {"present", "type", "action"}
+            )
+            for column in extra_columns:
+                get_column_from_intermediate(column)
 
         self["action"] = intermediate_df["action"]
         if self.grouping:
@@ -803,3 +818,9 @@ def pewu_from_id(id: str) -> str:
     """
     ftype, fid = split_id(id)
     return f"https://pewu.github.io/osm-history/#/{ftype}/{fid}"
+
+
+def strip_column_suffix(input_column_name: str) -> str:
+    stripped_column_name = input_column_name.removesuffix("_new")
+    stripped_column_name = stripped_column_name.removesuffix("_old")
+    return stripped_column_name
