@@ -7,9 +7,11 @@ import itertools
 import logging
 import re
 import time
+from collections import namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
 from sqlite3 import OperationalError
+from string import Template
 from typing import Generator, Mapping, TextIO
 
 import appdirs
@@ -37,6 +39,8 @@ OVERPASS_TIMEOUT = (
 )
 CACHE_LOCATION = Path(appdirs.user_cache_dir("Chameleon", "Kaart"))
 HIGH_DELETIONS_THRESHOLD = 5
+
+OsmObj = namedtuple("OsmObj", "obj_type obj_id")
 
 
 class ChameleonDataFrame(pd.DataFrame):
@@ -110,6 +114,7 @@ class ChameleonDataFrame(pd.DataFrame):
         #     mode=self.chameleon_mode, grouping=self.grouping)
 
         self["url"] = JOSM_URL + self.index
+        self["pewu"] = pewu_from_id(self.index)
         self["user"] = intermediate_df["user_new"].fillna(
             intermediate_df["user_old"]
         )
@@ -758,7 +763,7 @@ class ChameleonDataFrameSet(set):
         return query_pages
 
 
-def split_id(feature_id: str | int) -> tuple[str, str]:
+def split_id(feature_id: str | int) -> OsmObj[str, str]:
     """
     Separates an id like "n12345678" into the tuple ('node', '12345678')
     """
@@ -769,7 +774,7 @@ def split_id(feature_id: str | int) -> tuple[str, str]:
     typematch = typeregex.search(feature_id)
     ftype = TYPE_EXPANSION.get(typematch.group()) if typematch else None
     idmatch = idregex.search(feature_id).group()
-    return ftype, idmatch
+    return OsmObj(ftype, idmatch)
 
 
 def separate_ids_by_feature_type(mixed: list[str]) -> dict[str, list[str]]:
@@ -802,3 +807,16 @@ def clean_for_presentation(user_input: str) -> str:
     user_input = user_input.strip(" \"'")
     user_input = user_input.partition("=")[0]
     return user_input
+
+
+def pewu_from_id(id: str) -> str:
+    """
+    Returns a Pewu url from a feature ID
+    """
+    pewu_template = Template(
+        "https://pewu.github.io/osm-history/#/$object_type/$object_id"
+    )
+
+    ftype, fid = split_id(id)
+
+    return pewu_template.substitute(object_type=ftype, object_id=fid)
