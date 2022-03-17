@@ -54,8 +54,8 @@ class ChameleonDataFrame(pd.DataFrame):
         grouping=False,
         dtype=None,
         config: Mapping = None,
-        index = None,
-        columns = None
+        index=None,
+        columns=None,
     ):
         # dtypes = {
         #     '@id': int,
@@ -68,7 +68,9 @@ class ChameleonDataFrame(pd.DataFrame):
         self.config = config or {}
         # Initialize as an "empty" dataframe,
         # with the source data in an attribute
-        super().__init__(data=df, index=index, dtype=dtype, copy=False, columns=columns)
+        super().__init__(
+            data=df, index=index, dtype=dtype, copy=False, columns=columns
+        )
 
     @property
     def _constructor(self):
