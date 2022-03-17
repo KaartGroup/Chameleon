@@ -54,8 +54,8 @@ class ChameleonDataFrame(pd.DataFrame):
         grouping=False,
         dtype=None,
         config: Mapping = None,
-        index = None,
-        columns = None
+        index=None,
+        columns=None,
     ):
         # dtypes = {
         #     '@id': int,
@@ -68,7 +68,9 @@ class ChameleonDataFrame(pd.DataFrame):
         self.config = config or {}
         # Initialize as an "empty" dataframe,
         # with the source data in an attribute
-        super().__init__(data=df, index=index, dtype=dtype, copy=False, columns=columns)
+        super().__init__(
+            data=df, index=index, dtype=dtype, copy=False, columns=columns
+        )
 
     @property
     def _constructor(self):
@@ -516,7 +518,7 @@ class ChameleonDataFrameSet(set):
             for result in sorted(self, key=lambda x: len(x), reverse=True):
                 # Points at first cell (blank) of last column written
                 # Set before adding the other columns
-                column_pointer = len(result.columns) + 1
+                extra_column_start = len(result.columns) + 1
                 for k in self.extra_columns.keys():
                     result[k] = ""
                 result.to_excel(
@@ -526,18 +528,33 @@ class ChameleonDataFrameSet(set):
                     freeze_panes=(1, 0),
                 )
 
-                if self.extra_columns:
-                    sheet = writer.sheets[result.chameleon_mode_cleaned]
+                sheet = writer.sheets[result.chameleon_mode_cleaned]
 
+                # autofit set column widths
+                for col_idx, (colname, column) in enumerate(
+                    result.reset_index().items()
+                ):
+                    # URLs are clipped intentionally
+                    if colname in ("url", "pewu", "osmcha"):
+                        colwidth = len(colname)
+                    else:
+                        colwidth = max(
+                            column.astype(str).str.len().max(), len(colname)
+                        )
+                    sheet.set_column(col_idx, col_idx, colwidth)
+
+                if self.extra_columns:
                     for count, (k, v) in enumerate(self.extra_columns.items()):
+                        col_idx = extra_column_start + count
                         if v is not None and v.get("validate", None):
                             sheet.data_validation(
                                 1,
-                                column_pointer + count,
+                                col_idx,
                                 len(result),
-                                column_pointer + count,
+                                col_idx,
                                 v,
                             )
+                        sheet.set_column(col_idx, col_idx, 20)
 
     class OverpassQuery:
         """
