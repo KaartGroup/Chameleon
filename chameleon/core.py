@@ -7,6 +7,7 @@ import itertools
 import logging
 import re
 import time
+from collections import namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
 from sqlite3 import OperationalError
@@ -37,6 +38,8 @@ OVERPASS_TIMEOUT = (
 )
 CACHE_LOCATION = Path(appdirs.user_cache_dir("Chameleon", "Kaart"))
 HIGH_DELETIONS_THRESHOLD = 5
+
+OsmObj = namedtuple("OsmObj", "obj_type obj_id")
 
 
 class ChameleonDataFrame(pd.DataFrame):
@@ -106,10 +109,24 @@ class ChameleonDataFrame(pd.DataFrame):
             if self.chameleon_mode not in SPECIAL_MODES
             else self
         )
+
+        def get_column_from_intermediate(column: str) -> None:
+            try:
+                self[column] = intermediate_df[f"{column}_new"].fillna(
+                    intermediate_df[f"{column}_old"]
+                )
+            except KeyError:
+                try:
+                    # Succeeds if one csv had a name column
+                    self[column] = intermediate_df[column]
+                except KeyError:
+                    pass
+
         # self = ChameleonDataFrame(
         #     mode=self.chameleon_mode, grouping=self.grouping)
 
         self["url"] = JOSM_URL + self.index
+        self["pewu"] = self.index.to_series().apply(pewu_from_id)
         self["user"] = intermediate_df["user_new"].fillna(
             intermediate_df["user_old"]
         )
@@ -123,7 +140,7 @@ class ChameleonDataFrame(pd.DataFrame):
         )
 
         # Drop all but these columns
-        self = self[["url", "user", "timestamp", "version"]]
+        self = self[["url", "pewu", "user", "timestamp", "version"]]
         try:
             # Succeeds if both csvs had changeset columns
             self["changeset"] = intermediate_df["changeset_new"]
@@ -136,30 +153,10 @@ class ChameleonDataFrame(pd.DataFrame):
             except KeyError:
                 # If neither had one, we just won't include in the output
                 pass
-        if self.chameleon_mode != "name":
-            try:
-                self["name"] = intermediate_df["name_new"].fillna(
-                    intermediate_df["name_old"]
-                )
-            except KeyError:
-                try:
-                    # Succeeds if one csv had a name column
-                    self["name"] = intermediate_df["name"]
-                except KeyError:
-                    pass
-        if self.chameleon_mode != "highway":
-            try:
-                # Succeeds if both csvs had highway columns
-                self["highway"] = intermediate_df["highway_new"].fillna(
-                    intermediate_df["highway_old"]
-                )
-            except KeyError:
-                try:
-                    # Succeeds if one csv had a highway column
-                    self["highway"] = intermediate_df["highway"]
-                except KeyError:
-                    # If neither had one, we just won't include in the output
-                    pass
+
+        for column in ("name", "highway"):
+            if self.chameleon_mode != column:
+                get_column_from_intermediate(column)
 
         # Renaming columns to be consistent with old Chameleon outputs
         if (
@@ -171,6 +168,17 @@ class ChameleonDataFrame(pd.DataFrame):
             self[f"new_{self.chameleon_mode_cleaned}"] = intermediate_df[
                 f"{self.chameleon_mode_cleaned}_new"
             ]
+        else:
+            extra_columns = sorted(
+                {
+                    strip_column_suffix(column_name)
+                    for column_name in intermediate_df.columns
+                }
+                - set(self.columns)
+                - {"present", "type", "action"}
+            )
+            for column in extra_columns:
+                get_column_from_intermediate(column)
 
         self["action"] = intermediate_df["action"]
         if self.grouping:
@@ -758,7 +766,7 @@ class ChameleonDataFrameSet(set):
         return query_pages
 
 
-def split_id(feature_id: str | int) -> tuple[str, str]:
+def split_id(feature_id: str | int) -> OsmObj[str, str]:
     """
     Separates an id like "n12345678" into the tuple ('node', '12345678')
     """
@@ -769,7 +777,7 @@ def split_id(feature_id: str | int) -> tuple[str, str]:
     typematch = typeregex.search(feature_id)
     ftype = TYPE_EXPANSION.get(typematch.group()) if typematch else None
     idmatch = idregex.search(feature_id).group()
-    return ftype, idmatch
+    return OsmObj(ftype, idmatch)
 
 
 def separate_ids_by_feature_type(mixed: list[str]) -> dict[str, list[str]]:
@@ -802,3 +810,17 @@ def clean_for_presentation(user_input: str) -> str:
     user_input = user_input.strip(" \"'")
     user_input = user_input.partition("=")[0]
     return user_input
+
+
+def pewu_from_id(id: str) -> str:
+    """
+    Returns a Pewu url from a feature ID
+    """
+    ftype, fid = split_id(id)
+    return f"https://pewu.github.io/osm-history/#/{ftype}/{fid}"
+
+
+def strip_column_suffix(input_column_name: str) -> str:
+    stripped_column_name = input_column_name.removesuffix("_new")
+    stripped_column_name = stripped_column_name.removesuffix("_old")
+    return stripped_column_name
