@@ -365,7 +365,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Popular OSM Tags</string>
+          <string>Favorites</string>
          </property>
         </widget>
        </item>
