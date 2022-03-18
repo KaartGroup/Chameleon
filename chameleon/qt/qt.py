@@ -4,6 +4,7 @@ Opens a window with fields for input and selectors, which in turn opens
 a worker object to process the input files with `q` and create output
 in .csv format.
 """
+
 import logging
 import os
 import shlex
@@ -11,6 +12,7 @@ import string
 import sys
 import time
 from collections import Counter
+from contextlib import suppress
 from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
@@ -161,9 +163,11 @@ class Favorite(yaml.YAMLObject):
         self.tags = tags
 
     def __repr__(self) -> str:
-        if not self:
-            return f"{self.__class__.__name__}()"
-        return f"{self.__class__.__name__}(tags={self.tags:r},title={self.title:r or ''})"
+        return (
+            f"{self.__class__.__name__}(tags={self.tags:r},title={self.title:r or ''})"
+            if self
+            else f"{self.__class__.__name__}()"
+        )
         # if not self:
         #     return "%s()" % (self.__class__.__name__)
         # return "%s(tags={self._tags},title={self.title})" % (self.__class__.__name__, )
@@ -325,13 +329,15 @@ class Worker(QObject):
             summary = "\n".join(self.error_list)
             if self.successful_items:
                 headline = "<p>Some tags could not be queried</p>"
-                summary += "\nThe following tags completed successfully:\n"
-                summary += "\n".join(self.successful_items.values())
+                summary += (
+                    "\nThe following tags completed successfully:\n"
+                    + "\n".join(self.successful_items.values())
+                )
         elif self.successful_items:  # Nothing failed, everything suceeded
             headline = "<p>Success!</p>"
-            summary = "All tags completed!\n"
-            summary += "\n".join(self.successful_items.values())
-        # Nothing succeeded and nothing failed, probably because user declined to overwrite
+            summary = "All tags completed!\n" + "\n".join(
+                self.successful_items.values()
+            )
         else:
             headline = "<p>Nothing saved</p>"
             summary = "No files saved"
@@ -367,11 +373,8 @@ class Worker(QObject):
         except OSError:
             logger.exception("Couldn't write history.yaml.")
         else:
-            try:
+            with suppress(NameError):
                 self.host.history_dict = staged_history_dict
-            except NameError:
-                # In some rare cases (like testing) MainApp may not exist
-                pass
 
     def high_deletions_checker(self, cdf_set: ChameleonDataFrameSet) -> bool:
         """
@@ -1562,20 +1565,12 @@ class FavoriteEditDialog(QDialog, favorite_edit.Ui_favoriteEditor):
     def save_and_close(self) -> None:
         self.target.title = self.title
         self.target.tags = self.tags
-        if (
-            self.tags
-            or FAVORITES_LOCATION.exists()
-            and any(self.host.favorites)
-        ):
+        if self.tags or FAVORITES_LOCATION.exists() and any(self.host.favorites):
             with FAVORITES_LOCATION.open("w") as f:
                 yaml.dump(self.host.favorites, f)
-        elif (
-            # not self.tags (redundant)
-            FAVORITES_LOCATION.exists()
-            and not any(self.host.favorites)
-        ):
+        elif not any(self.host.favorites):  # not self.tags
             # Remove file if all favorites are empty
-            FAVORITES_LOCATION.unlink()
+            FAVORITES_LOCATION.unlink(missing_ok=True)
         self.host.fav_btn_populate()
         self.target = None
         self.setup()
@@ -1861,7 +1856,7 @@ def dirname(the_path: str | Path) -> Path:
     or else the parent
     """
     the_path = Path(the_path)
-    return the_path.parent if not the_path.is_dir() else the_path
+    return the_path if the_path.is_dir() else the_path.parent
 
 
 def plur(count: int) -> str:
@@ -1876,10 +1871,9 @@ def success_message(frame: ChameleonDataFrame) -> str:
     row_count = len(frame)
     s = plur(row_count)
     return (
-        # Empty dataframe
-        f"{frame.chameleon_mode} has no change."
-        if not row_count
-        else f"{frame.chameleon_mode} output " f"with {row_count} row{s}."
+        f"{frame.chameleon_mode} output " f"with {row_count} row{s}."
+        if row_count
+        else f"{frame.chameleon_mode} has no change."  # Empty dataframe
     )
 
 

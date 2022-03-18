@@ -55,7 +55,11 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-items = [a.binaries, a.zipfiles, a.datas] if not is_mac else []
+items = [] if is_mac else [
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+]
 exe = EXE(
     pyz,
     a.scripts,
@@ -87,7 +91,7 @@ if is_mac:
         coll,
         name="Chameleon.app",
         icon="chameleon/resources/chameleon.icns",
-        bundle_identifier=None,
+        bundle_identifier="com.kaart.chameleon",
         info_plist={
             "NSHighResolutionCapable": "True",
             "CFBundleVersion": APP_VERSION,

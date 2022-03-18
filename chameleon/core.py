@@ -8,6 +8,7 @@ import logging
 import re
 import time
 from collections import namedtuple
+from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
 from sqlite3 import OperationalError
@@ -116,11 +117,9 @@ class ChameleonDataFrame(pd.DataFrame):
                     intermediate_df[f"{column}_old"]
                 )
             except KeyError:
-                try:
+                with suppress(KeyError):
                     # Succeeds if one csv had a name column
                     self[column] = intermediate_df[column]
-                except KeyError:
-                    pass
 
         # self = ChameleonDataFrame(
         #     mode=self.chameleon_mode, grouping=self.grouping)
@@ -269,10 +268,8 @@ class ChameleonDataFrame(pd.DataFrame):
             if self.grouping
             else ["action", "user", "timestamp"]
         )
-        try:
+        with suppress(KeyError):
             self.sort_values(sortable_values, inplace=True)
-        except KeyError:
-            pass
         return self
 
     def filter(self) -> ChameleonDataFrame:
@@ -755,12 +752,11 @@ class ChameleonDataFrameSet(set):
         query_pages = []
         for page in pager(all_ids, self.page_length):
             feature_ids = separate_ids_by_feature_type(page)
-            query_page = ";".join(
+            if query_page := ";".join(
                 f"{ftype}(id:{','.join(sorted(fid))})"
                 for ftype, fid in feature_ids.items()
                 if ftype != "relation" and fid
-            )
-            if query_page:
+            ):
                 # Relations will create empty query pages, skip those
                 query_pages.append(query_page)
         return query_pages
