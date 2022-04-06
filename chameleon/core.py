@@ -280,10 +280,15 @@ class ChameleonDataFrame(pd.DataFrame):
         if self.chameleon_mode == "highway":
             highway_vals = {
                 "motorway": 1,
+                "motorway_link": 1,
                 "trunk": 2,
+                "trunk_link": 2,
                 "primary": 3,
+                "primary_link": 3,
                 "secondary": 4,
+                "secondary_link": 4,
                 "tertiary": 5,
+                "tertiary_link": 5,
                 "unclassified": 6,
                 "residential": 6,
                 "service": 6,
