@@ -268,7 +268,6 @@ def test_no_settings_files(mainapp, monkeypatch, tmp_path, worker_files):
     """
     Test running chameleon without existing counter.yaml/settings.yaml
     """
-
     file_fields = worker_files
     history_path = tmp_path / "history.yaml"
     counter_path = tmp_path / "counter.yaml"
@@ -343,14 +342,13 @@ def test_dirname(path, returned):
     ],
 )
 def test_too_many_requests(status_file, worker, requests_mock):
-    with open(status_file) as fp:
-        mock_response = fp.read()
+    mock_response = Path(status_file).read_text()
     requests_mock.post("//overpass-api.de/api/interpreter", status=429)
     requests_mock.get("//overpass-api.de/api/status", text=mock_response)
 
 
 @pytest.mark.parametrize(
-    "input,gold",
+    "uinput,gold",
     [
         (None, {"all": {}}),
         ({}, {"all": {}}),
@@ -369,5 +367,5 @@ def test_too_many_requests(status_file, worker, requests_mock):
         ),
     ],
 )
-def test_filter_process(input, gold):
-    assert qt.filter_process(input) == gold
+def test_filter_process(uinput, gold):
+    assert qt.filter_process(uinput) == gold

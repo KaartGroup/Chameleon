@@ -138,8 +138,6 @@ class UserCancelledError(Exception):
     Raised when the user hits the cancel button on a long operation
     """
 
-    pass
-
 
 class Favorite(yaml.YAMLObject):
     """
@@ -456,10 +454,9 @@ class Worker(QObject):
                         retry_after,
                     )
                     raise
-                else:
-                    logger.error(
-                        "Server replied with a %s error", e.response.status_code
-                    )
+                logger.error(
+                    "Server replied with a %s error", e.response.status_code
+                )
                 element_attribs = {}
 
             df.update(pd.DataFrame(element_attribs, index=[feature_id]))
@@ -491,8 +488,7 @@ class Worker(QObject):
                 if not self.overwrite_confirm(file_name):
                     logger.info("Skipping %s.", result.chameleon_mode)
                     continue
-                else:
-                    to_csv(file_name, "w")
+                to_csv(file_name, "w")
             except OSError:
                 logger.exception("Write error.")
                 self.error_list.append(result.chameleon_mode)
@@ -531,7 +527,6 @@ class Worker(QObject):
         Writes all members of a ChameleonDataFrameSet to a geojson file,
         using the overpass API
         """
-
         overpass_query = dataframe_set.OverpassQuery(dataframe_set)
 
         logger.info("Querying Overpass…")
@@ -858,7 +853,6 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         Autocompletion of user searches in searchBox.
         Utilizes resource file for associated autocomplete options.
         """
-
         # OSM tag resource file, construct list from file
         with (RESOURCES_DIR / "OSMtag.txt").open("r") as read_file:
             tags = read_file.read().splitlines()
@@ -937,7 +931,6 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         """
         Populates the listed buttons with favorites from the given file
         """
-
         frequent_tags = sorted(
             self.tag_count, key=self.tag_count.get, reverse=True
         )
@@ -1014,7 +1007,6 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         Document counter and favorites using yaml file storage.
         Function parses counter.yaml and dump into favorites.yaml.
         """
-
         # Combining history counter with new counter
         self.tag_count.update(run_tags)
 

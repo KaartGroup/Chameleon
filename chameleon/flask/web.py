@@ -1,3 +1,4 @@
+import contextlib
 import csv
 import json
 import os
@@ -126,7 +127,7 @@ def result():
 
     user_dir = Path(safe_join(USER_FILES_BASE, args["client_uuid"]))
     user_dir.mkdir(parents=True, exist_ok=True)
-    try:
+    with contextlib.suppress(AttributeError, OSError):
         input_dir = user_dir / "input"
         input_dir.mkdir(exist_ok=True)
 
@@ -135,14 +136,8 @@ def result():
 
         request.files.get("old").save(args["oldfile"])
         request.files.get("new").save(args["newfile"])
-    except (AttributeError, OSError):
-        pass
-
-    try:
+    with contextlib.suppress(TypeError, ValueError):
         args["enddate"] = datetime.fromisoformat(args["enddate"])
-    except (TypeError, ValueError):
-        pass
-
     # 2012-09-12 is the earliest Overpass can query
     if any(
         d and d < datetime(2012, 9, 12, 6, 55)
@@ -533,8 +528,8 @@ def filter_processing(
     filters: list[str],
 ) -> list[dict[str, list[str | dict]]]:
     filter_list = []
-    for filter in filters:
-        filterstring, typestring = filter.rsplit(" (", 1)
+    for feature_filter in filters:
+        filterstring, typestring = feature_filter.rsplit(" (", 1)
         typestring = typestring[:-1]
 
         filter_map = {

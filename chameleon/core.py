@@ -197,7 +197,7 @@ class ChameleonDataFrame(pd.DataFrame):
         """
         self["count"] = self["id"] = self.index
         agg_functions = {
-            "id": lambda i: ",".join(i),
+            "id": ",".join,
             "count": "count",
             "user": lambda user: ",".join(user.unique()),
             "timestamp": "max",
@@ -361,7 +361,7 @@ class ChameleonDataFrameSet(set):
         return next(
             i
             for i in self
-            if i.chameleon_mode == key or i.chameleon_mode_cleaned == key
+            if key in (i.chameleon_mode, i.chameleon_mode_cleaned)
         )
 
     def setup_cache(self) -> None:
@@ -525,7 +525,7 @@ class ChameleonDataFrameSet(set):
 
     def write_excel(self, file_name: Path | str):
         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
-            for result in sorted(self, key=lambda x: len(x), reverse=True):
+            for result in sorted(self, key=len, reverse=True):
                 # Points at first cell (blank) of last column written
                 # Set before adding the other columns
                 extra_column_start = len(result.columns) + 1
