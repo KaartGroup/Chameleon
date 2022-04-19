@@ -798,8 +798,9 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             with FAVORITES_LOCATION.open() as f:
                 self.favorites = yaml.safe_load(f)
                 # Make sure we loaded a list and it has at least one member
-                assert isinstance(self.favorites[0], Favorite)
-        except (OSError, yaml.YAMLError, IndexError, AssertionError):
+                if not isinstance(self.favorites[0], Favorite):
+                    raise yaml.YAMLError
+        except (OSError, yaml.YAMLError, IndexError):
             logger.warning("Couldn't load favorites file")
             self.favorites = [
                 Favorite(),
