@@ -1,7 +1,7 @@
 appdirs
 geojson
 more-itertools
-overpass
+git+https://github.com/KaartGroup/overpass-api-python-wrapper@kaart_addons
 pandas
 pyyaml
 requests

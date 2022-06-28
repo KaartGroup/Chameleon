@@ -1829,6 +1829,7 @@ class ChameleonProgressDialog(QProgressDialog):
             time.sleep(0.1)
         if self.is_overpass_complete:
             self.update_info("Overpass response returned")
+            self.reset()
         else:
             self.update_info("Overpass timeout")
 

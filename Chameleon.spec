@@ -55,11 +55,15 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-items = [] if is_mac else [
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-]
+items = (
+    []
+    if is_mac
+    else [
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+    ]
+)
 exe = EXE(
     pyz,
     a.scripts,
