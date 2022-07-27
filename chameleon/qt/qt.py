@@ -555,6 +555,7 @@ class Worker(QObject):
                 "It's not known how long you should wait, but a minimum of 5 minutes is recommended.",
                 "critical",
             )
+            return
         except overpass.MultipleRequestsError:
             logger.error("Too many Overpass requests in a period of time")
             self.dialog.emit(
