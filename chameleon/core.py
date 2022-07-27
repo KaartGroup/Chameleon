@@ -273,6 +273,15 @@ class ChameleonDataFrame(pd.DataFrame):
         return self
 
     def filter(self) -> ChameleonDataFrame:
+        # Drop oneway changes that don't affect routing
+        if self.chameleon_mode == "oneway":
+            self = self[
+                ~(
+                    self["old_oneway"].isin(["no", np.nan])
+                    & self["new_oneway"].isin(["no", np.nan])
+                )
+            ]
+
         # Drop rows with Kaart users tagged
         if whitelist := self.config.get("user_whitelist", []):
             self = self[~self["user"].isin(whitelist)]
