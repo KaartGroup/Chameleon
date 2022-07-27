@@ -542,7 +542,17 @@ class Worker(QObject):
             logger.error("Overpass timeout")
             self.dialog.emit(
                 "Overpass timeout",
-                "The Overpass server did not respond in time.",
+                "The Overpass server did not respond in time. We don't know why.",
+                "critical",
+            )
+            return
+        except overpass.ServerLoadError:
+            logger.error("Overpass server load is too high")
+            self.dialog.emit(
+                "Overall Overpass server load is too high",
+                "Too many users (not just you) are trying to use Overpass at once. "
+                "The only thing you can do is wait and try again later. "
+                "It's not known how long you should wait, but a minimum of 5 minutes is recommended.",
                 "critical",
             )
             return
@@ -550,7 +560,8 @@ class Worker(QObject):
             logger.error("Too many Overpass requests in a period of time")
             self.dialog.emit(
                 "Too many Overpass requests",
-                "The Overpass server is refusing "
+                "You have made too many requests to the Overpass server "
+                "in a short period of time. The Overpass server is refusing "
                 f"to accept any more queries for {overpass_query.time_remaining_fmt}.",
                 "critical",
             )
