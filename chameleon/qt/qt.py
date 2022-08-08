@@ -1656,6 +1656,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
                 )
             ],
             "highway_step_change": self.highwayStepChanges.value(),
+            "tracks_are_pedestrian": self.pedestrianRadioButton.isChecked(),
         }
 
     @properties.setter
@@ -1668,6 +1669,8 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
             self.alwaysIncludeList.addItem(item)
         if val := config.get("highway_step_change"):
             self.highwayStepChanges.setValue(max(val, 1))
+        if val := config.get("tracks_are_pedestrian"):
+            self.pedestrianRadioButton.setChecked(True)
 
 
 class ChameleonProgressDialog(QProgressDialog):

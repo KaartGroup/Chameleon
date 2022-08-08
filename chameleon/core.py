@@ -301,13 +301,15 @@ class ChameleonDataFrame(pd.DataFrame):
                 "unclassified": 6,
                 "residential": 6,
                 "service": 6,
-                "track": 6,
                 "footway": 8,
                 "path": 8,
                 "steps": 8,
                 "cycleway": 8,
                 "pedestrian": 8,
             }
+            highway_vals["track"] == 8 if self.config.get(
+                "tracks_are_pedestrian"
+            ) else 6
             self["highway_change_score"] = abs(
                 self["old_highway"].map(highway_vals)
                 - self["new_highway"].map(highway_vals)
