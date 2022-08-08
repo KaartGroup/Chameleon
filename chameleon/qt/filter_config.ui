@@ -134,7 +134,32 @@
     </item>
     <item row="9" column="1">
      <widget class="QGroupBox" name="groupBox">
-      <layout class="QHBoxLayout" name="horizontalLayout"/>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QRadioButton" name="motorizedRadioButton">
+         <property name="text">
+          <string>Motorized ways</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="pedestrianRadioButton">
+         <property name="text">
+          <string>Pedestrian ways</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="9" column="0">
+     <widget class="QLabel" name="trackSwitchLabel">
+      <property name="text">
+       <string>Tracks count as:</string>
+      </property>
      </widget>
     </item>
    </layout>
