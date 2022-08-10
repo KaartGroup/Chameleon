@@ -68,6 +68,7 @@ CONFIG_DIR = Path(user_config_dir("Chameleon", "Kaart"))
 HISTORY_LOCATION = CONFIG_DIR / "history.yaml"
 FAVORITES_LOCATION = CONFIG_DIR / "favorites.yaml"
 COUNTER_LOCATION = CONFIG_DIR / "counter.yaml"
+CONFIG_LOCATION = CONFIG_DIR / "config.yaml"
 
 logger = logging.getLogger()
 
@@ -857,6 +858,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
 
     def config_menu(self) -> None:
         self.filter_menu.properties = self.config_format
+        self.filter_load()
         self.filter_menu.show()
 
     def auto_completer(self) -> None:
@@ -1215,6 +1217,21 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         dialog_box.setTextFormat(Qt.RichText)
         dialog_box.exec()
 
+    def filter_writer(self) -> None:
+        """
+        Saves configuration for next use
+        """
+        savable_config = self.config
+        for top_level in savable_config:
+            for k, v in savable_config[top_level].items():
+                if isinstance(v, Iterable):
+                    savable_config[top_level][k] = list(v)
+        try:
+            with CONFIG_LOCATION.open("w") as config_file:
+                yaml.dump(savable_config, config_file)
+        except OSError:
+            logger.exception("Couldn't write config.yaml.")
+
     @property
     def file_paths(self) -> dict[str, Path | None]:
         # Wrap the file references in Path object to prepare "file not found" warning
@@ -1336,8 +1353,19 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             with (RESOURCES_DIR / "filter.yaml").open() as f:
                 config = yaml.safe_load(f)
         except OSError:
-            self.config = {}
-            return
+            config = {}
+
+        try:
+            with CONFIG_LOCATION.open() as config_file:
+                config = yaml.safe_load(config_file)
+
+        except FileNotFoundError:
+            logger.warning(
+                "Config file could not be found. "
+                "This is normal when running the program for the first time."
+            )
+        except OSError:
+            logger.exception("Config file found but not readable.")
 
         # If keys are not sorted by file type, put them all under "all" key
         if set(config.keys()).isdisjoint({"all", "geojson", "csv", "excel"}):
@@ -1366,6 +1394,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
             return
 
         self.document_tag(self.modes)  # Execute favorite tracking
+        self.filter_writer()
 
         logger.info(
             "Modes to be processed: %s.",
@@ -1656,6 +1685,7 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
                 )
             ],
             "highway_step_change": self.highwayStepChanges.value(),
+            "tracks_are_pedestrian": self.pedestrianRadioButton.isChecked(),
         }
 
     @properties.setter
@@ -1668,6 +1698,8 @@ class FilterDialog(QDialog, filter_config.Ui_Dialog):
             self.alwaysIncludeList.addItem(item)
         if val := config.get("highway_step_change"):
             self.highwayStepChanges.setValue(max(val, 1))
+        if config.get("tracks_are_pedestrian"):
+            self.pedestrianRadioButton.setChecked(True)
 
 
 class ChameleonProgressDialog(QProgressDialog):

@@ -301,7 +301,7 @@ class ChameleonDataFrame(pd.DataFrame):
                 "unclassified": 6,
                 "residential": 6,
                 "service": 6,
-                "track": 6,
+                "track": 7 if self.config.get("tracks_are_pedestrian") else 6,
                 "footway": 8,
                 "path": 8,
                 "steps": 8,
