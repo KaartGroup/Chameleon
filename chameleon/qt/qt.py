@@ -1221,7 +1221,7 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         """
         Saves configuration for next use
         """
-        savable_config = self.config
+        savable_config = deepcopy(self.config)
         for top_level in savable_config:
             for k, v in savable_config[top_level].items():
                 if isinstance(v, Iterable):
