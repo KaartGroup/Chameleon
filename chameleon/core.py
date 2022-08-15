@@ -153,7 +153,7 @@ class ChameleonDataFrame(pd.DataFrame):
                 # If neither had one, we just won't include in the output
                 pass
 
-        for column in ("name", "highway"):
+        for column in ("name", "highway", "barrier"):
             if self.chameleon_mode != column:
                 get_column_from_intermediate(column)
 
@@ -241,6 +241,8 @@ class ChameleonDataFrame(pd.DataFrame):
             new_column_order += ["name"]
         if self.chameleon_mode != "highway":
             new_column_order += ["highway"]
+        if self.chameleon_mode != "barrier":
+            new_column_order += ["barrier"]
         new_column_order += [
             f"old_{self.chameleon_mode_cleaned}",
             f"new_{self.chameleon_mode_cleaned}",
@@ -281,6 +283,22 @@ class ChameleonDataFrame(pd.DataFrame):
                     & self["new_oneway"].isin(["no", np.nan])
                 )
             ]
+
+        # Drop access changes that don't affect routing
+        if self.chameleon_mode == "access":
+            self = self[self["highway"].notnull() | self["barrier"].notnull()]
+            self = self[
+                ~(
+                    self["old_access"].isin(["yes", np.nan])
+                    & self["new_access"].isin(["yes", np.nan])
+                )
+            ]
+
+        if self.chameleon_mode == "barrier":
+            self = self[self.index.str.startswith("n")]
+
+        if self.chameleon_mode in ["construction", "name"]:
+            self = self[self["highway"].notnull()]
 
         # Drop rows with Kaart users tagged
         if whitelist := self.config.get("user_whitelist", []):
