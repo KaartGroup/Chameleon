@@ -1,3 +1,0 @@
-bidict
-PySide6
-pyinstaller

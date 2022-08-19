@@ -32,3 +32,4 @@ test/output_name.csv
 main.spec
 output_test.csv
 pip-selfcheck.json
+poetry.lock
