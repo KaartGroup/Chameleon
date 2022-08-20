@@ -36,7 +36,7 @@ else:
 
 
 a = Analysis(
-    ["chameleon/qt/qt.py"],
+    ["pyinstaller_entry.py"],
     pathex=[],
     binaries=[],
     datas=added_files,
