@@ -44,13 +44,13 @@ from PySide6.QtWidgets import (
 from requests import HTTPError, Timeout
 
 # Import generated UI file
-from chameleon.core import (
+from ..core import (
     HIGH_DELETIONS_THRESHOLD,
     OVERPASS_TIMEOUT,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
 )
-from chameleon.qt import design, favorite_edit, filter_config
+from . import design, favorite_edit, filter_config
 
 # Differentiate sys settings between pre and post-bundling
 RESOURCES_DIR = (
