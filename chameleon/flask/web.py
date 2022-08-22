@@ -32,7 +32,7 @@ from flask import (
 from requests import HTTPError, Timeout
 from werkzeug.exceptions import UnprocessableEntity
 
-from chameleon.core import (
+from ..core import (
     HIGH_DELETIONS_THRESHOLD,
     OVERPASS_TIMEOUT,
     TYPE_EXPANSION,
@@ -216,35 +216,28 @@ def process_data(
     if easy_mode:
         # Need to make files for the user
         overpass_start_time = datetime.now(timezone.utc)
-        task_metadata.update(
-            {
-                "current_phase": "overpass",
-                "overpass_start_time": overpass_start_time.isoformat(),
-                "overpass_timeout_time": (
-                    overpass_start_time + timedelta(seconds=OVERPASS_TIMEOUT)
-                ).isoformat(),
-            }
-        )
+        task_metadata |= {
+            "current_phase": "overpass",
+            "overpass_start_time": overpass_start_time.isoformat(),
+            "overpass_timeout_time": (
+                overpass_start_time + timedelta(seconds=OVERPASS_TIMEOUT)
+            ).isoformat(),
+        }
+
         yield {"state": "PROGRESS", "meta": task_metadata}
 
         oldfile, newfile = overpass_getter(
-            modes,
-            country,
-            startdate,
-            enddate,
-            filter_list,
+            modes, country, startdate, enddate, filter_list
         )
+
     elif all((oldfile, newfile)):
-        # BYOD mode
         yield {"state": "PROGRESS", "meta": task_metadata}
         oldfile = open(oldfile, "r")
         newfile = open(newfile, "r")
     else:
-        # Client-side validation slipped up
         raise UnprocessableEntity
     with oldfile as old, newfile as new:
         cdfs = ChameleonDataFrameSet(old, new)
-
     if (
         not easy_mode
         and not high_deletions_ok
@@ -261,22 +254,17 @@ def process_data(
     error_count = 0
     for num, feature_id in enumerate(deleted_ids):
         task_metadata["osm_api_completed"] = num
-        yield {
-            "state": "PROGRESS",
-            "meta": task_metadata,
-        }
+        yield {"state": "PROGRESS", "meta": task_metadata}
         try:
             element_attribs = cdfs.check_feature_on_api(
                 feature_id, app_version=APP_VERSION
             )
+
         except (Timeout, ConnectionError):
             if error_count > 10:
-                # Too many timeouts, abandon online checker
+
                 task_metadata["osm_api_completed"] = task_metadata["osm_api_max"]
-                yield {
-                    "state": "PROGRESS",
-                    "meta": task_metadata,
-                }
+                yield {"state": "PROGRESS", "meta": task_metadata}
                 break
             error_count += 1
         except HTTPError as e:
@@ -288,26 +276,18 @@ def process_data(
 
     task_metadata["osm_api_completed"] = task_metadata["osm_api_max"]
     task_metadata["current_phase"] = "modes"
-    yield {
-        "state": "PROGRESS",
-        "meta": task_metadata,
-    }
-
+    yield {"state": "PROGRESS", "meta": task_metadata}
     cdfs.separate_special_dfs()
 
     for num, mode in enumerate(modes):
-        # self.update_state(state="MODES", meta={"mode": mode})
         task_metadata["modes_completed"] = num
         task_metadata["current_mode"] = mode
-        yield {
-            "state": "PROGRESS",
-            "meta": task_metadata,
-        }
-
+        yield {"state": "PROGRESS", "meta": task_metadata}
         try:
             result = ChameleonDataFrame(
                 cdfs.source_data, mode=mode, grouping=grouping
             ).query_cdf()
+
         except KeyError:
             error_list.append(mode)
             continue
@@ -319,15 +299,13 @@ def process_data(
                 task_metadata["file_name"] = fname
                 yield {"state": "SUCCESS", "meta": task_metadata}
             else:
-                task_metadata.update(response)
-                yield {
-                    "state": "PROGRESS",
-                    "meta": task_metadata,
-                }
+                task_metadata |= response
+                yield {"state": "PROGRESS", "meta": task_metadata}
     else:
         task_metadata["file_name"] = {"csv": write_csv, "excel": write_excel}[
             file_format
         ](cdfs, user_dir, output)
+
         yield {"state": "SUCCESS", "meta": task_metadata}
 
 
