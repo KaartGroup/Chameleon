@@ -23,7 +23,6 @@ import requests
 import requests_cache
 import yaml
 from more_itertools import chunked as pager
-from requests_cache.backends import sqlite
 
 pd.options.mode.chained_assignment = None
 
@@ -395,10 +394,11 @@ class ChameleonDataFrameSet(set):
         try:
             CACHE_LOCATION.mkdir(exist_ok=True, parents=True)
             expiry = timedelta(hours=12)
+            requests_cache.remove_expired_responses(expiry)
             self.session = requests_cache.CachedSession(
-                backend=sqlite.DbCache(
-                    use_cache_dir=str(CACHE_LOCATION / "cache"),
-                    expire_after=expiry,
+                backend=requests_cache.backends.sqlite.SQLiteCache(
+                    db_path=CACHE_LOCATION / "cache.sqlite",
+                    use_cache_dir=True,
                 )
             )
             logger.debug("Request caching enabled")
