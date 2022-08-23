@@ -77,9 +77,11 @@ exe = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
+    argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     icon="chameleon/resources/chameleon.icns" if is_mac else None,
+    entitlements_file=None,
 )
 if is_mac:
     coll = COLLECT(
@@ -89,6 +91,7 @@ if is_mac:
         a.datas,
         strip=False,
         upx=True,
+        upx_exclude=[],
         name="Chameleon",
     )
     app = BUNDLE(
