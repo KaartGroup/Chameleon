@@ -41,10 +41,8 @@ a = Analysis(
     binaries=[],
     datas=added_files,
     hiddenimports=[
-        "chameleon.qt.design",
         "cmath",
         "pandas._libs.tslibs.timedeltas",
-        "pytest",
     ],
     hookspath=[],
     runtime_hooks=[],
