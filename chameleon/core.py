@@ -394,13 +394,13 @@ class ChameleonDataFrameSet(set):
         try:
             CACHE_LOCATION.mkdir(exist_ok=True, parents=True)
             expiry = timedelta(hours=12)
-            requests_cache.remove_expired_responses(expiry)
             self.session = requests_cache.CachedSession(
                 backend=requests_cache.backends.sqlite.SQLiteCache(
                     db_path=CACHE_LOCATION / "cache.sqlite",
-                    use_cache_dir=True,
-                )
+                ),
+                expire_after=expiry,
             )
+            self.session.remove_expired_responses()
             logger.debug("Request caching enabled")
         except (OSError, OperationalError):
             logger.error(
