@@ -44,13 +44,13 @@ from PySide6.QtWidgets import (
 from requests import HTTPError, Timeout
 
 # Import generated UI file
-from chameleon.core import (
+from ..core import (
     HIGH_DELETIONS_THRESHOLD,
     OVERPASS_TIMEOUT,
     ChameleonDataFrame,
     ChameleonDataFrameSet,
 )
-from chameleon.qt import design, favorite_edit, filter_config
+from . import design, favorite_edit, filter_config
 
 # Differentiate sys settings between pre and post-bundling
 RESOURCES_DIR = (
@@ -239,14 +239,6 @@ class Worker(QObject):
             logger.debug("Worker thread successfully exposed to debugger.")
         try:  # Global exception catcher
             # Saving paths to config for future loading
-            # Make directory if it doesn't exist
-            if not CONFIG_DIR.is_dir():
-                try:
-                    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-                except FileExistsError:
-                    logger.debug("Config directory already exists")
-                except OSError:
-                    logger.debug("Config directory could not be created.")
             if self.files:
                 self.history_writer()
             cdf_set = ChameleonDataFrameSet(
@@ -662,6 +654,14 @@ class MainApp(QMainWindow, QKeyEvent, design.Ui_MainWindow):
         self.progress_bar = None
         self.work_thread = None
         self.worker = None
+
+        # Make directory if it doesn't exist
+        try:
+            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        except FileExistsError:
+            logger.debug("Config directory already exists")
+        except OSError:
+            logger.debug("Config directory could not be created.")
 
         # Set up application logo on main window
         self.logo = str((RESOURCES_DIR / "chameleon.png").resolve())
@@ -1943,8 +1943,12 @@ def tag_split(raw_label: str) -> list[str]:
     return sorted(splitter)
 
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     form = MainApp()
     form.show()
     app.exec()
+
+
+if __name__ == "__main__":
+    main()

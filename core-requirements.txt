@@ -1,9 +1,0 @@
-appdirs
-geojson
-more-itertools
-git+https://github.com/KaartGroup/overpass-api-python-wrapper@kaart_addons
-pandas
-pyyaml
-requests
-requests_cache
-xlsxwriter

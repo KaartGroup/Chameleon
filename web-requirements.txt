@@ -1,8 +1,0 @@
-celery
-flask
-gevent
-gunicorn
-psycopg2
-redis
-sqlalchemy
-werkzeug
